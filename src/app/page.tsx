@@ -16,35 +16,58 @@ export default function Home() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-primary via-primary-light to-primary overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(201,168,76,0.3),transparent_70%)]" />
-        </div>
-        <div className="mx-auto max-w-7xl px-4 py-16 md:py-24 relative z-10">
-          <div className="max-w-2xl">
-            <p className="text-accent font-semibold tracking-wide uppercase text-sm mb-3">Итальянские традиции качества</p>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-              Чемоданы и аксессуары для путешествий
-            </h1>
-            <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-              Собственные бренды VIP COLLECTION и ARISTOCRAT. 100% поликарбонат,
-              натуральная кожа, итальянское производство.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                href="/catalog/chemodany"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
-              >
-                Смотреть каталог
-                <ArrowRight size={18} />
-              </Link>
-              <Link
-                href="/catalog/rasprodazha"
-                className="inline-flex items-center gap-2 px-8 py-3.5 border-2 border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
-              >
-                Распродажа
-              </Link>
+      {/* Hero with slider */}
+      <section className="relative bg-primary overflow-hidden">
+        <div className="relative">
+          <Carousel autoplay loop slidesPerView={1}>
+            {[
+              '/images/banners/banner-1.jpg',
+              '/images/banners/banner-2.jpg',
+              '/images/banners/banner-3.jpg',
+              '/images/banners/banner-4.jpg',
+              '/images/banners/banner-5.jpg',
+            ].map((src, i) => (
+              <div key={i} className="relative w-full aspect-[21/9] md:aspect-[21/7]">
+                <Image
+                  src={src}
+                  alt={`Баннер ${i + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority={i === 0}
+                />
+                <div className="absolute inset-0 bg-primary/50" />
+              </div>
+            ))}
+          </Carousel>
+          {/* Text overlay */}
+          <div className="absolute inset-0 z-10 flex items-center pointer-events-none">
+            <div className="mx-auto max-w-7xl px-4 w-full">
+              <div className="max-w-2xl">
+                <p className="text-accent font-semibold tracking-wide uppercase text-sm mb-3">Итальянские традиции качества</p>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
+                  Чемоданы и аксессуары для путешествий
+                </h1>
+                <p className="text-gray-200 text-base md:text-lg mb-8 leading-relaxed drop-shadow">
+                  Собственные бренды VIP COLLECTION и ARISTOCRAT. 100% поликарбонат,
+                  натуральная кожа, итальянское производство.
+                </p>
+                <div className="flex flex-wrap gap-4 pointer-events-auto">
+                  <Link
+                    href="/catalog/chemodany"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+                  >
+                    Смотреть каталог
+                    <ArrowRight size={18} />
+                  </Link>
+                  <Link
+                    href="/catalog/rasprodazha"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 border-2 border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Распродажа
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
