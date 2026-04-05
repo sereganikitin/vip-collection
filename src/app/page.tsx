@@ -24,7 +24,6 @@ export default function Home() {
               '/images/banners/banner-1.jpg',
               '/images/banners/banner-2.jpg',
               '/images/banners/banner-3.jpg',
-              '/images/banners/banner-4.jpg',
               '/images/banners/banner-5.jpg',
             ].map((src, i) => (
               <div key={i} className="relative w-full aspect-[21/9] md:aspect-[21/7]">
@@ -36,7 +35,7 @@ export default function Home() {
                   sizes="100vw"
                   priority={i === 0}
                 />
-                <div className="absolute inset-0 bg-primary/50" />
+                <div className="absolute inset-0 bg-primary/70" />
               </div>
             ))}
           </Carousel>
