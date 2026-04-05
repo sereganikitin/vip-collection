@@ -75,6 +75,7 @@ export default function CheckoutPage() {
           comment: form.comment || undefined,
           items: items.map(({ product, quantity }) => ({
             productId: product.id,
+            productSlug: product.slug,
             quantity,
           })),
         }),
