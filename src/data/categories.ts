@@ -1,0 +1,81 @@
+import { Category } from '@/types';
+
+export const categories: Category[] = [
+  {
+    id: 'suitcases',
+    name: 'Чемоданы и кейс-пилоты',
+    slug: 'chemodany',
+    image: '/images/categories/suitcases.jpg',
+    productCount: 25,
+  },
+  {
+    id: 'women-bags',
+    name: 'Сумки женские David Jones',
+    slug: 'sumki-zhenskie',
+    image: '/images/categories/women-bags.jpg',
+    productCount: 21,
+  },
+  {
+    id: 'briefcases',
+    name: 'Портфели и сумки дорожные',
+    slug: 'portfeli',
+    image: '/images/categories/briefcases.jpg',
+    productCount: 4,
+  },
+  {
+    id: 'parts',
+    name: 'Запчасти для чемоданов',
+    slug: 'zapchasti',
+    image: '/images/categories/parts.jpg',
+    productCount: 10,
+  },
+  {
+    id: 'wallets',
+    name: 'Портмоне и обложки',
+    slug: 'portmone',
+    image: '/images/categories/wallets.jpg',
+    productCount: 27,
+  },
+  {
+    id: 'backpacks',
+    name: 'Рюкзаки и сумки для ноутбука',
+    slug: 'ryukzaki',
+    image: '/images/categories/backpacks.jpg',
+    productCount: 32,
+  },
+  {
+    id: 'covers',
+    name: 'Чехлы для чемоданов',
+    slug: 'chekhly',
+    image: '/images/categories/covers.jpg',
+    productCount: 21,
+  },
+  {
+    id: 'belts',
+    name: 'Ремни',
+    slug: 'remni',
+    image: '/images/categories/belts.jpg',
+    productCount: 5,
+  },
+  {
+    id: 'waist-bags',
+    name: 'Сумки на пояс',
+    slug: 'sumki-na-poyas',
+    image: '/images/categories/waist-bags.jpg',
+    productCount: 10,
+  },
+  {
+    id: 'misc',
+    name: 'Разное',
+    slug: 'raznoe',
+    image: '/images/categories/misc.jpg',
+    productCount: 12,
+  },
+  {
+    id: 'sale',
+    name: 'РАСПРОДАЖА',
+    slug: 'rasprodazha',
+    image: '/images/categories/sale.jpg',
+    productCount: 9,
+  },
+];
