@@ -17,7 +17,7 @@ export default function Home() {
   return (
     <>
       {/* Hero with slider */}
-      <section className="relative bg-primary overflow-hidden">
+      <section className="relative bg-black overflow-hidden">
         <div className="relative">
           <Carousel autoplay loop slidesPerView={1}>
             {[
@@ -35,7 +35,7 @@ export default function Home() {
                   sizes="100vw"
                   priority={i === 0}
                 />
-                <div className="absolute inset-0 bg-primary/70" />
+                <div className="absolute inset-0 bg-black/60" />
               </div>
             ))}
           </Carousel>
