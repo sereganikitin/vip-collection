@@ -4,16 +4,12 @@ import { auth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
-  const showAll = req.nextUrl.searchParams.get('all') === 'true';
-  const where = showAll ? {} : { isActive: true };
-
-  const categories = await prisma.category.findMany({
-    where,
-    orderBy: { sortOrder: 'asc' },
+export async function GET() {
+  const brands = await prisma.brand.findMany({
+    orderBy: { name: 'asc' },
     include: { _count: { select: { products: { where: { isActive: true } } } } },
   });
-  return NextResponse.json(categories);
+  return NextResponse.json(brands);
 }
 
 export async function POST(req: NextRequest) {
@@ -21,6 +17,6 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const data = await req.json();
-  const category = await prisma.category.create({ data });
-  return NextResponse.json(category, { status: 201 });
+  const brand = await prisma.brand.create({ data });
+  return NextResponse.json(brand, { status: 201 });
 }

@@ -62,14 +62,20 @@ export default function AdminDashboard() {
 
       {/* Navigation */}
       <nav className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          <Link href="/admin" className="px-4 py-3 text-sm font-medium text-accent border-b-2 border-accent">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
+          <Link href="/admin" className="px-4 py-3 text-sm font-medium text-accent border-b-2 border-accent whitespace-nowrap">
             Дашборд
           </Link>
-          <Link href="/admin/products" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors">
+          <Link href="/admin/products" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
             Товары
           </Link>
-          <Link href="/admin/orders" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors">
+          <Link href="/admin/categories" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
+            Категории
+          </Link>
+          <Link href="/admin/brands" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
+            Бренды
+          </Link>
+          <Link href="/admin/orders" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
             Заказы
           </Link>
         </div>
