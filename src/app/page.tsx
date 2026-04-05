@@ -3,16 +3,37 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Truck, Shield, Percent, Wrench } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { products } from '@/data/products';
 import { categories } from '@/data/categories';
 import { brands } from '@/data/brands';
 import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
 
+const DEFAULT_BANNERS = [
+  '/images/banners/banner-1.jpg',
+  '/images/banners/banner-2.jpg',
+  '/images/banners/banner-3.jpg',
+  '/images/banners/banner-5.jpg',
+];
+
 export default function Home() {
   const newProducts = products.filter((p) => p.isNew);
   const saleProducts = products.filter((p) => p.isSale);
   const popularProducts = products.slice(0, 8);
+
+  const [bannerImages, setBannerImages] = useState<string[]>(DEFAULT_BANNERS);
+
+  useEffect(() => {
+    fetch('/api/banners')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBannerImages(data.map((b: { image: string }) => b.image));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -20,12 +41,7 @@ export default function Home() {
       <section className="relative bg-black overflow-hidden">
         <div className="relative">
           <Carousel autoplay loop slidesPerView={1}>
-            {[
-              '/images/banners/banner-1.jpg',
-              '/images/banners/banner-2.jpg',
-              '/images/banners/banner-3.jpg',
-              '/images/banners/banner-5.jpg',
-            ].map((src, i) => (
+            {bannerImages.map((src, i) => (
               <div key={i} className="relative w-full aspect-[4/5] sm:aspect-[16/9] md:aspect-[21/8] lg:aspect-[21/7]">
                 <Image
                   src={src}

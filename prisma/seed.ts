@@ -157,6 +157,31 @@ async function main() {
   }
 
   console.log(`${productCount} products created`);
+
+  // Create default banners
+  const bannersData = [
+    { image: '/images/banners/banner-1.jpg', sortOrder: 1 },
+    { image: '/images/banners/banner-2.jpg', sortOrder: 2 },
+    { image: '/images/banners/banner-3.jpg', sortOrder: 3 },
+    { image: '/images/banners/banner-5.jpg', sortOrder: 4 },
+  ];
+  for (const b of bannersData) {
+    await prisma.banner.upsert({
+      where: { id: `banner-${b.sortOrder}` },
+      update: b,
+      create: { id: `banner-${b.sortOrder}`, ...b },
+    });
+  }
+  console.log(`${bannersData.length} banners created`);
+
+  // Create default settings
+  await prisma.setting.upsert({
+    where: { key: 'admin_email' },
+    update: {},
+    create: { key: 'admin_email', value: 'k959em177@gmail.com' },
+  });
+  console.log('Default settings created');
+
   console.log('Seeding complete!');
 }
 

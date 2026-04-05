@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { sendOrderEmails } from '@/lib/mail';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,23 @@ export async function POST(req: NextRequest) {
     },
     include: { items: { include: { product: true } } },
   });
+
+  // Send email notifications (async, don't block response)
+  sendOrderEmails({
+    orderNumber: order.number,
+    customerName,
+    customerPhone,
+    customerEmail,
+    deliveryMethod,
+    deliveryAddress,
+    comment,
+    totalPrice: order.totalPrice,
+    items: order.items.map((item) => ({
+      name: item.product.name,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+  }).catch(console.error);
 
   return NextResponse.json(order, { status: 201 });
 }

@@ -104,3 +104,17 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
 }
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model Banner {
+  id        String  @id @default(cuid())
+  image     String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+  title     String?
+  link      String?
+}
