@@ -25,7 +25,7 @@ export default function CheckoutPage() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
         >
           На главную
         </Link>
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
               </div>
               <button
                 type="submit"
-                className="block w-full text-center py-3.5 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+                className="block w-full text-center py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
               >
                 Подтвердить заказ
               </button>

@@ -49,7 +49,7 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
           <button
             onClick={() => addItem(product)}
-            className="p-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+            className="p-2.5 bg-accent text-primary rounded-lg hover:bg-accent-hover transition-colors"
             aria-label="Добавить в корзину"
           >
             <ShoppingBag size={18} />

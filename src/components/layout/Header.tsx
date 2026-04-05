@@ -81,7 +81,7 @@ export default function Header() {
           </button>
           <Link
             href="/cart"
-            className="relative flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors font-medium"
+            className="relative flex items-center gap-2 px-4 py-2.5 bg-accent text-primary rounded-lg hover:bg-accent-hover transition-colors font-medium"
           >
             <ShoppingBag size={20} />
             <span className="hidden sm:inline">Корзина</span>

@@ -98,7 +98,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <button
             onClick={() => addItem(product)}
             disabled={!product.inStock}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-8"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-8"
           >
             <ShoppingBag size={20} />
             Добавить в корзину

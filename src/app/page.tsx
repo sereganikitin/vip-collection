@@ -34,7 +34,7 @@ export default function Home() {
             <div className="flex flex-wrap gap-4">
               <Link
                 href="/catalog/chemodany"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+                className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
               >
                 Смотреть каталог
                 <ArrowRight size={18} />

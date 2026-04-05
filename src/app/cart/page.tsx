@@ -20,7 +20,7 @@ export default function CartPage() {
         <p className="text-text-muted mb-6">Добавьте товары из каталога</p>
         <Link
           href="/catalog/chemodany"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
         >
           Перейти в каталог
         </Link>
@@ -106,7 +106,7 @@ export default function CartPage() {
             </div>
             <Link
               href="/checkout"
-              className="block w-full text-center py-3.5 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+              className="block w-full text-center py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
             >
               Оформить заказ
             </Link>

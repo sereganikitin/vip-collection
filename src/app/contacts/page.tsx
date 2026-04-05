@@ -78,7 +78,7 @@ export default function ContactsPage() {
               <label className="block text-sm font-medium mb-1.5">Сообщение</label>
               <textarea rows={4} className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none" />
             </div>
-            <button type="submit" className="w-full py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent-hover transition-colors">
+            <button type="submit" className="w-full py-3 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors">
               Отправить
             </button>
           </form>
