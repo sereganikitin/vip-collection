@@ -35,7 +35,7 @@ export default function Home() {
                   sizes="100vw"
                   priority={i === 0}
                 />
-                <div className="absolute inset-0 bg-black/60" />
+                <div className="absolute inset-0 bg-black/75" />
               </div>
             ))}
           </Carousel>
