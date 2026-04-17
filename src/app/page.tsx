@@ -9,6 +9,7 @@ import { categories } from '@/data/categories';
 import { brands } from '@/data/brands';
 import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
+import FadeSlider from '@/components/FadeSlider';
 
 const DEFAULT_BANNERS = [
   '/images/banners/banner-1.jpg',
@@ -40,21 +41,7 @@ export default function Home() {
       {/* Hero with slider */}
       <section className="relative bg-black overflow-hidden">
         <div className="relative">
-          <Carousel autoplay loop slidesPerView={1}>
-            {bannerImages.map((src, i) => (
-              <div key={i} className="relative w-full aspect-[4/5] sm:aspect-[16/9] md:aspect-[21/8] lg:aspect-[21/7]">
-                <Image
-                  src={src}
-                  alt={`Баннер ${i + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="100vw"
-                  priority={i === 0}
-                />
-                <div className="absolute inset-0 bg-black/75" />
-              </div>
-            ))}
-          </Carousel>
+          <FadeSlider images={bannerImages} autoplayDelay={5000} />
           {/* Text overlay */}
           <div className="absolute inset-0 z-10 flex items-center pointer-events-none">
             <div className="mx-auto max-w-7xl px-4 w-full">
