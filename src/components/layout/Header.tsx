@@ -6,6 +6,20 @@ import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { categories } from '@/data/categories';
 
+const SHORT_NAMES: Record<string, string> = {
+  'suitcases': 'Чемоданы',
+  'women-bags': 'Женские сумки',
+  'briefcases': 'Портфели',
+  'parts': 'Запчасти',
+  'wallets': 'Портмоне',
+  'backpacks': 'Рюкзаки',
+  'covers': 'Чехлы',
+  'belts': 'Ремни',
+  'waist-bags': 'Поясные сумки',
+  'misc': 'Разное',
+  'sale': 'РАСПРОДАЖА',
+};
+
 export default function Header() {
   const { totalItems } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -111,16 +125,17 @@ export default function Header() {
       {/* Desktop navigation */}
       <nav className="hidden lg:block border-t border-border">
         <div className="mx-auto max-w-7xl px-4">
-          <ul className="flex items-center gap-1">
+          <ul className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
             {categories.map((cat) => (
               <li key={cat.id}>
                 <Link
                   href={`/catalog/${cat.slug}`}
-                  className={`block px-3 py-3 text-sm font-medium hover:text-accent transition-colors whitespace-nowrap ${
+                  title={cat.name}
+                  className={`block px-2.5 py-3 text-sm font-medium hover:text-accent transition-colors whitespace-nowrap ${
                     cat.id === 'sale' ? 'text-danger font-bold' : 'text-text'
                   }`}
                 >
-                  {cat.name}
+                  {SHORT_NAMES[cat.id] ?? cat.name}
                 </Link>
               </li>
             ))}
