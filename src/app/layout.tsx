@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     images: ['/images/banners/banner-1.jpg'],
   },
   verification: {
-    yandex: 'REPLACE_WITH_YANDEX_VERIFICATION_CODE',
+    yandex: '8c250c66b18906a1',
   },
 };
 
