@@ -4,6 +4,7 @@ import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { CartProvider } from '@/context/CartContext';
+import YandexMetrika from '@/components/YandexMetrika';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -96,6 +97,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
         </CartProvider>
+        <YandexMetrika />
       </body>
     </html>
   );
