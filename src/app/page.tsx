@@ -10,6 +10,8 @@ import { brands } from '@/data/brands';
 import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
 import FadeSlider from '@/components/FadeSlider';
+import JsonLd from '@/components/JsonLd';
+import { ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/lib/seo';
 
 const DEFAULT_BANNERS = [
   '/images/banners/banner-1.jpg',
@@ -38,6 +40,8 @@ export default function Home() {
 
   return (
     <>
+      <JsonLd data={ORGANIZATION_JSONLD} />
+      <JsonLd data={WEBSITE_JSONLD} />
       {/* Hero with slider */}
       <section className="relative bg-black overflow-hidden">
         <div className="relative">
@@ -256,6 +260,52 @@ export default function Home() {
             </ul>
           </div>
         </div>
+      </section>
+
+      {/* SEO content block */}
+      <section className="mx-auto max-w-7xl px-4 py-12 border-t border-border">
+        <article className="prose prose-sm max-w-none">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">Интернет-магазин VIP COLLECTION в Москве</h2>
+          <div className="grid md:grid-cols-2 gap-6 text-text-muted text-sm leading-relaxed">
+            <div>
+              <h3 className="text-base font-semibold text-text mb-2">Чемоданы из поликарбоната</h3>
+              <p className="mb-4">
+                В нашем каталоге представлены <strong>чемоданы из 100% поликарбоната</strong> различных размеров —
+                S (20&quot;), M (24&quot;), L (28&quot;) и наборы из трёх чемоданов. Под собственным брендом
+                <strong> VIP COLLECTION</strong> производятся премиальные модели с TSA-замками,
+                а под брендом <strong>ARISTOCRAT</strong> — доступные модели для повседневного использования.
+                Все чемоданы оборудованы 4-мя двойными колёсами с поворотом на 360° и телескопической ручкой.
+              </p>
+              <h3 className="text-base font-semibold text-text mb-2">Сумки, портфели, рюкзаки</h3>
+              <p>
+                Женские сумки <strong>David Jones</strong> — стильный аксессуар на каждый день. Кожаные портфели
+                <strong> VIP COLLECTION</strong> и рюкзаки <strong>ARISTOCRAT</strong> с отделениями для ноутбуков
+                до 17&quot;. Портмоне и обложки для документов <strong>NERI KARRA</strong> из натуральной кожи
+                растительного дубления.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-text mb-2">Доставка и оплата</h3>
+              <p className="mb-4">
+                Доставляем по всей России: курьером по Москве, через СДЭК, Почту России, Яндекс.Доставку и Авито.
+                <strong> Бесплатная доставка по Москве при заказе от 20 000 ₽</strong>. Оплата картой онлайн или
+                наличными при получении. Возможен самовывоз с нашего склада на Сормовском проезде, 11.
+              </p>
+              <h3 className="text-base font-semibold text-text mb-2">Ремонт и гарантия</h3>
+              <p>
+                Все товары — оригинальные, с гарантией от производителя. У нас работает собственный
+                <strong> сервисный центр по ремонту чемоданов</strong>: замена колёс, ручек, замков и других
+                комплектующих. Скидки именинникам — 15% в день рождения. Для оптовых клиентов —
+                индивидуальные условия и регистрация в личном кабинете.
+              </p>
+            </div>
+          </div>
+          <p className="mt-6 text-sm text-text-muted">
+            Адрес магазина: 115088, Москва, Сормовский проезд, 11, стр. 1.
+            Телефон / WhatsApp / Telegram: <a href="tel:+79175741130" className="text-accent hover:underline">+7 (917) 574-11-30</a>.
+            Email: <a href="mailto:vipcoll@mail.ru" className="text-accent hover:underline">vipcoll@mail.ru</a>.
+          </p>
+        </article>
       </section>
     </>
   );
