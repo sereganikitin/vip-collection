@@ -9,15 +9,15 @@ import { categories } from '@/data/categories';
 import { brands } from '@/data/brands';
 import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
-import FadeSlider from '@/components/FadeSlider';
+import FadeSlider, { type FadeSlide } from '@/components/FadeSlider';
 import JsonLd from '@/components/JsonLd';
 import { ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/lib/seo';
 
-const DEFAULT_BANNERS = [
-  '/images/banners/banner-1.jpg',
-  '/images/banners/banner-2.jpg',
-  '/images/banners/banner-3.jpg',
-  '/images/banners/banner-5.jpg',
+const DEFAULT_SLIDES: FadeSlide[] = [
+  { image: '/images/banners/banner-1.jpg' },
+  { image: '/images/banners/banner-2.jpg' },
+  { image: '/images/banners/banner-3.jpg' },
+  { image: '/images/banners/banner-5.jpg' },
 ];
 
 export default function Home() {
@@ -25,14 +25,19 @@ export default function Home() {
   const saleProducts = products.filter((p) => p.isSale);
   const popularProducts = products.slice(0, 8);
 
-  const [bannerImages, setBannerImages] = useState<string[]>(DEFAULT_BANNERS);
+  const [slides, setSlides] = useState<FadeSlide[]>(DEFAULT_SLIDES);
 
   useEffect(() => {
     fetch('/api/banners')
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setBannerImages(data.map((b: { image: string }) => b.image));
+          setSlides(
+            data.map((b: { image: string; imageMobile?: string | null }) => ({
+              image: b.image,
+              imageMobile: b.imageMobile,
+            }))
+          );
         }
       })
       .catch(() => {});
@@ -45,30 +50,31 @@ export default function Home() {
       {/* Hero with slider */}
       <section className="relative bg-black overflow-hidden">
         <div className="relative">
-          <FadeSlider images={bannerImages} autoplayDelay={5000} />
+          <FadeSlider slides={slides} autoplayDelay={5000} />
           {/* Text overlay */}
-          <div className="absolute inset-0 z-10 flex items-center pointer-events-none">
+          <div className="absolute inset-0 z-10 flex items-end sm:items-center pointer-events-none pb-16 sm:pb-0">
             <div className="mx-auto max-w-7xl px-4 w-full">
-              <div className="max-w-2xl">
+              <div className="max-w-2xl"
+                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 2px rgba(0,0,0,0.9)' }}>
                 <p className="text-accent font-semibold tracking-wide uppercase text-xs sm:text-sm mb-2 sm:mb-3">Итальянские традиции качества</p>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-3 sm:mb-6 drop-shadow-lg">
+                <h1 className="text-3xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-3 sm:mb-6">
                   Чемоданы и аксессуары для путешествий
                 </h1>
-                <p className="text-gray-200 text-sm sm:text-base md:text-lg mb-5 sm:mb-8 leading-relaxed drop-shadow hidden xs:block">
+                <p className="text-gray-100 text-sm sm:text-base md:text-lg mb-5 sm:mb-8 leading-relaxed">
                   Собственные бренды VIP COLLECTION и ARISTOCRAT. 100% поликарбонат,
                   натуральная кожа, итальянское производство.
                 </p>
                 <div className="flex flex-wrap gap-3 sm:gap-4 pointer-events-auto">
                   <Link
                     href="/catalog/chemodany"
-                    className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors text-sm sm:text-base"
+                    className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors text-sm sm:text-base shadow-lg"
                   >
                     Смотреть каталог
                     <ArrowRight size={18} />
                   </Link>
                   <Link
                     href="/catalog/rasprodazha"
-                    className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 border-2 border-white/30 text-white font-semibold rounded-lg hover:bg-white/10 transition-colors text-sm sm:text-base"
+                    className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/15 transition-colors text-sm sm:text-base backdrop-blur-sm"
                   >
                     Распродажа
                   </Link>

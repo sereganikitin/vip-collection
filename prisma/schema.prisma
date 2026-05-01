@@ -111,10 +111,11 @@ model Setting {
 }
 
 model Banner {
-  id        String  @id @default(cuid())
-  image     String
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-  title     String?
-  link      String?
+  id          String  @id @default(cuid())
+  image       String
+  imageMobile String?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+  title       String?
+  link        String?
 }
