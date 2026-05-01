@@ -50,7 +50,7 @@ export default function Home() {
       {/* Hero with slider */}
       <section className="relative bg-black overflow-hidden">
         <div className="relative">
-          <FadeSlider slides={slides} autoplayDelay={5000} />
+          <FadeSlider slides={slides} autoplayDelay={3000} />
           {/* Text overlay */}
           <div className="absolute inset-0 z-10 flex items-end sm:items-center pointer-events-none pb-8 sm:pb-0">
             <div className="mx-auto max-w-7xl px-4 w-full">
