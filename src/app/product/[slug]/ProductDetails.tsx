@@ -55,6 +55,7 @@ export default function ProductDetails({ slug }: { slug: string }) {
               className="object-contain p-4"
               sizes="(max-width: 1024px) 100vw, 50vw"
               priority
+              unoptimized={product.images[0]?.startsWith('/uploads/')}
             />
             <div className="absolute top-4 left-4 flex flex-col gap-2">
               {product.isNew && (

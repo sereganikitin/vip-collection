@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Pencil, Trash2, LogOut, ArrowLeft, Save, X } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 
 interface Brand {
   id: string;
@@ -122,22 +123,24 @@ export default function AdminBrands() {
         {showNew && (
           <div className="bg-surface rounded-xl border border-border p-5 mb-6">
             <h3 className="font-semibold mb-4">Новый бренд</h3>
-            <div className="grid sm:grid-cols-3 gap-4 mb-4">
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Название *</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Логотип</label>
-                <input type="text" value={form.logo} onChange={(e) => setForm({ ...form, logo: e.target.value })} placeholder="/images/brands/..."
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
-              </div>
-              <div className="flex items-end pb-0.5">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 mt-3 cursor-pointer">
                   <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="w-4 h-4 accent-accent" />
                   <span className="text-sm">Активен</span>
                 </label>
+              </div>
+              <div>
+                <ImageUpload
+                  label="Логотип бренда"
+                  value={form.logo}
+                  onChange={(url) => setForm({ ...form, logo: url })}
+                  folder="brands"
+                  hint="PNG с прозрачным фоном, ~400×267 px"
+                />
               </div>
             </div>
             <div className="flex gap-2">
@@ -168,18 +171,25 @@ export default function AdminBrands() {
                   editId === brand.id ? (
                     <tr key={brand.id} className="bg-accent/5">
                       <td className="px-4 py-3" colSpan={5}>
-                        <div className="grid sm:grid-cols-3 gap-3 mb-3">
+                        <div className="grid sm:grid-cols-2 gap-3 mb-3">
                           <div>
                             <label className="block text-xs font-medium mb-1">Название</label>
                             <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                               className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent" />
+                            <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="w-4 h-4 accent-accent" />
+                              <span className="text-sm">Активен</span>
+                            </label>
                           </div>
                           <div>
-                            <label className="block text-xs font-medium mb-1">Логотип</label>
-                            <input type="text" value={form.logo} onChange={(e) => setForm({ ...form, logo: e.target.value })}
-                              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent" />
+                            <ImageUpload
+                              label="Логотип"
+                              value={form.logo}
+                              onChange={(url) => setForm({ ...form, logo: url })}
+                              folder="brands"
+                            />
                           </div>
-                          <div className="flex items-end pb-0.5">
+                          <div className="hidden">
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="w-4 h-4 accent-accent" />
                               <span className="text-sm">Активен</span>
@@ -200,7 +210,7 @@ export default function AdminBrands() {
                     <tr key={brand.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="w-16 h-10 relative rounded overflow-hidden bg-gray-100">
-                          {brand.logo && <Image src={brand.logo} alt="" fill className="object-contain p-1" sizes="64px" />}
+                          {brand.logo && <Image src={brand.logo} alt="" fill className="object-contain p-1" sizes="64px" unoptimized={brand.logo.startsWith('/uploads/')} />}
                         </div>
                       </td>
                       <td className="px-4 py-3 font-medium">{brand.name}</td>

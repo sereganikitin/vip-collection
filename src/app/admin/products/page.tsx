@@ -116,7 +116,7 @@ export default function AdminProducts() {
                       <td className="px-4 py-3">
                         <div className="w-12 h-12 relative rounded overflow-hidden bg-gray-100">
                           {product.images[0] && (
-                            <Image src={product.images[0]} alt="" fill className="object-contain p-0.5" sizes="48px" />
+                            <Image src={product.images[0]} alt="" fill className="object-contain p-0.5" sizes="48px" unoptimized={product.images[0]?.startsWith('/uploads/')} />
                           )}
                         </div>
                       </td>

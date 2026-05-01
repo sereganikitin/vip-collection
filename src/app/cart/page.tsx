@@ -46,7 +46,7 @@ export default function CartPage() {
           {items.map(({ product, quantity }) => (
             <div key={product.id} className="bg-surface rounded-xl border border-border p-4 flex gap-4">
               <div className="w-24 h-24 bg-white rounded-lg flex-shrink-0 relative overflow-hidden">
-                <Image src={product.images[0]} alt={product.name} fill className="object-contain p-1" sizes="96px" />
+                <Image src={product.images[0]} alt={product.name} fill className="object-contain p-1" sizes="96px" unoptimized={product.images[0]?.startsWith('/uploads/')} />
               </div>
               <div className="flex-1 min-w-0">
                 <Link href={`/product/${product.slug}`} className="font-medium hover:text-accent transition-colors line-clamp-2">

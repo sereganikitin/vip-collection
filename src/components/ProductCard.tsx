@@ -25,6 +25,7 @@ export default function ProductCard({ product }: { product: Product }) {
           fill
           className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          unoptimized={product.images[0]?.startsWith('/uploads/')}
         />
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {product.isNew && (

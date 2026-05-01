@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Pencil, Trash2, LogOut, ArrowLeft, Save, X } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 
 interface Category {
   id: string;
@@ -145,10 +146,14 @@ export default function AdminCategories() {
                 <input type="text" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm font-mono" />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Изображение</label>
-                <input type="text" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="/images/categories/..."
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
+              <div className="sm:col-span-2">
+                <ImageUpload
+                  label="Изображение категории"
+                  value={form.image}
+                  onChange={(url) => setForm({ ...form, image: url })}
+                  folder="categories"
+                  hint="Рекомендуем квадратное изображение от 600×600 px"
+                />
               </div>
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
@@ -203,10 +208,13 @@ export default function AdminCategories() {
                             <input type="text" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
                               className="w-full px-3 py-2 border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-accent" />
                           </div>
-                          <div>
-                            <label className="block text-xs font-medium mb-1">Изображение</label>
-                            <input type="text" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })}
-                              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent" />
+                          <div className="sm:col-span-2">
+                            <ImageUpload
+                              label="Изображение"
+                              value={form.image}
+                              onChange={(url) => setForm({ ...form, image: url })}
+                              folder="categories"
+                            />
                           </div>
                           <div className="flex gap-4 items-end">
                             <div className="flex-1">
@@ -234,7 +242,7 @@ export default function AdminCategories() {
                     <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="w-10 h-10 relative rounded overflow-hidden bg-gray-100">
-                          {cat.image && <Image src={cat.image} alt="" fill className="object-cover" sizes="40px" />}
+                          {cat.image && <Image src={cat.image} alt="" fill className="object-cover" sizes="40px" unoptimized={cat.image.startsWith('/uploads/')} />}
                         </div>
                       </td>
                       <td className="px-4 py-3 font-medium">{cat.name}</td>

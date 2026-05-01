@@ -4,7 +4,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 
 interface Category { id: string; name: string; }
 interface Brand { id: string; name: string; }
@@ -195,22 +196,35 @@ export default function EditProduct({ params }: { params: Promise<{ id: string }
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Изображения (пути)</label>
-            {form.images.map((img, i) => (
-              <div key={i} className="flex gap-2 mb-2">
-                <input
-                  type="text" value={img}
-                  onChange={(e) => { const imgs = [...form.images]; imgs[i] = e.target.value; updateField('images', imgs); }}
-                  placeholder="/images/products/..."
-                  className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm"
-                />
-                {form.images.length > 1 && (
-                  <button type="button" onClick={() => updateField('images', form.images.filter((_, j) => j !== i))} className="px-3 text-danger text-sm">✕</button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={() => updateField('images', [...form.images, ''])} className="text-sm text-accent hover:underline">
-              + Добавить изображение
+            <label className="block text-sm font-medium mb-2">Изображения товара</label>
+            <p className="text-xs text-text-muted mb-3">Первое изображение — главное. Остальные показываются в галерее.</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {form.images.map((img, i) => (
+                <div key={i} className="relative">
+                  <ImageUpload
+                    value={img}
+                    onChange={(url) => { const imgs = [...form.images]; imgs[i] = url; updateField('images', imgs); }}
+                    folder="products"
+                    label={i === 0 ? 'Главное фото' : `Дополнительное фото ${i}`}
+                  />
+                  {form.images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => updateField('images', form.images.filter((_, j) => j !== i))}
+                      className="absolute -top-1 right-0 flex items-center gap-1 text-xs text-danger hover:underline"
+                    >
+                      <Trash2 size={12} /> удалить
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => updateField('images', [...form.images, ''])}
+              className="mt-3 text-sm text-accent hover:underline"
+            >
+              + Добавить ещё изображение
             </button>
           </div>
 
