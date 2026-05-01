@@ -6,12 +6,18 @@ import { SlidersHorizontal, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRig
 import { products } from '@/data/products';
 import { categories } from '@/data/categories';
 import ProductCard from '@/components/ProductCard';
+import type { CategorySeoContent } from '@/data/seo-content';
 
 type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name';
 
 const PER_PAGE = 12;
 
-export default function CatalogContent({ slug }: { slug: string }) {
+interface CatalogContentProps {
+  slug: string;
+  seo?: CategorySeoContent;
+}
+
+export default function CatalogContent({ slug, seo }: CatalogContentProps) {
   const [sort, setSort] = useState<SortOption>('default');
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
@@ -218,6 +224,61 @@ export default function CatalogContent({ slug }: { slug: string }) {
               </Link>
             </div>
           )}
+
+          {/* SEO content block */}
+          {seo && (
+            <article className="mt-12 pt-8 border-t border-border">
+              <p className="text-text-muted leading-relaxed mb-6">{seo.intro}</p>
+              {seo.sections.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  {seo.sections.map((section) => (
+                    <section key={section.title} className="bg-surface rounded-xl border border-border p-5">
+                      <h2 className="text-lg font-semibold mb-2">{section.title}</h2>
+                      <p className="text-sm text-text-muted leading-relaxed">{section.body}</p>
+                    </section>
+                  ))}
+                </div>
+              )}
+              {seo.faq && seo.faq.length > 0 && (
+                <section className="bg-surface rounded-xl border border-border p-5 md:p-6">
+                  <h2 className="text-lg font-semibold mb-4">Частые вопросы</h2>
+                  <div className="divide-y divide-border">
+                    {seo.faq.map((item) => (
+                      <details key={item.q} className="group py-3">
+                        <summary className="flex justify-between items-center cursor-pointer text-sm font-medium hover:text-accent transition-colors">
+                          {item.q}
+                          <ChevronRight size={16} className="transition-transform group-open:rotate-90 flex-shrink-0 ml-2" />
+                        </summary>
+                        <p className="mt-2 text-sm text-text-muted leading-relaxed">{item.a}</p>
+                      </details>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </article>
+          )}
+
+          {/* Cross-linking to other categories */}
+          <section className="mt-10 pt-8 border-t border-border">
+            <h2 className="text-lg font-semibold mb-4">Другие категории</h2>
+            <div className="flex flex-wrap gap-2">
+              {categories
+                .filter((c) => c.slug !== slug && c.id !== 'misc')
+                .map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/catalog/${cat.slug}`}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      cat.id === 'sale'
+                        ? 'border-danger/30 text-danger hover:bg-danger/5'
+                        : 'border-border hover:border-accent hover:text-accent'
+                    }`}
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+            </div>
+          </section>
         </div>
       </div>
     </div>

@@ -1,5 +1,24 @@
+import type { Metadata } from 'next';
 import { ChevronRight, MapPin, Phone, Clock } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Где купить чемоданы VIP COLLECTION в Москве — самовывоз',
+  description:
+    'Магазин-склад VIP COLLECTION в Москве: Сормовский проезд, 11, стр. 1. Самовывоз заказов, осмотр товара, консультация по выбору чемодана. Удобный подъезд, метро Кожуховская / Печатники.',
+  keywords: [
+    'где купить чемодан', 'магазин чемоданов Москва', 'самовывоз чемоданов',
+    'Сормовский проезд 11', 'магазин кожгалантереи', 'офлайн магазин чемоданов',
+  ],
+  alternates: { canonical: 'https://infoseledka.ru/samovyvoz' },
+  openGraph: {
+    title: 'Где купить чемоданы — Самовывоз VIP COLLECTION',
+    description: 'Магазин-склад на Сормовском проезде, 11. Самовывоз и осмотр товара.',
+    url: 'https://infoseledka.ru/samovyvoz',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 export default function PickupPage() {
   return (

@@ -1,5 +1,25 @@
+import type { Metadata } from 'next';
 import { ChevronRight, Wrench, Settings, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Ремонт чемоданов в Москве — VIP COLLECTION',
+  description:
+    'Ремонт чемоданов VIP COLLECTION, ARISTOCRAT и других брендов в Москве. Замена колёс, ручек, замков, телескопических ручек. Сервисный центр на Сормовском проезде, 11. Гарантийный ремонт бесплатно.',
+  keywords: [
+    'ремонт чемоданов', 'ремонт чемодана Москва', 'замена колёс чемодана',
+    'замена ручки чемодана', 'починить чемодан', 'сервис чемоданов',
+    'мастерская чемоданов Москва', 'VIP COLLECTION ремонт', 'ARISTOCRAT сервис',
+  ],
+  alternates: { canonical: 'https://infoseledka.ru/remont' },
+  openGraph: {
+    title: 'Ремонт чемоданов в Москве — VIP COLLECTION',
+    description: 'Замена колёс, ручек, замков. Сервисный центр на Сормовском проезде, 11.',
+    url: 'https://infoseledka.ru/remont',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 export default function RepairPage() {
   return (

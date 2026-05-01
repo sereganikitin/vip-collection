@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { categories } from '@/data/categories';
 import { products } from '@/data/products';
+import { categorySeoContent, GLOBAL_KEYWORDS } from '@/data/seo-content';
 import CatalogContent from './CatalogContent';
 import JsonLd from '@/components/JsonLd';
 import { SITE_URL, SITE_NAME, buildBreadcrumbList, buildItemList } from '@/lib/seo';
@@ -15,23 +16,25 @@ export async function generateMetadata(
     return { title: 'Каталог' };
   }
 
+  const seo = categorySeoContent[slug];
   const items = products.filter((p) => p.categoryId === category.id);
   const count = items.length;
   const minPrice = items.length > 0 ? Math.min(...items.map((p) => p.price)) : 0;
 
-  const title = `${category.name} — купить в Москве${minPrice > 0 ? `, от ${minPrice} ₽` : ''}`;
-  const description = `${category.name} в интернет-магазине ${SITE_NAME}: ${count} моделей${minPrice > 0 ? ` от ${minPrice} ₽` : ''}. Собственные бренды и проверенные производители. Доставка по Москве и России, оплата при получении, гарантия качества.`;
-  const url = `${SITE_URL}/catalog/${category.slug}`;
+  const title = seo?.metaTitle ?? `${category.name} — купить в Москве${minPrice > 0 ? `, от ${minPrice} ₽` : ''}`;
+  const description = seo?.metaDescription
+    ?? `${category.name} в интернет-магазине ${SITE_NAME}: ${count} моделей${minPrice > 0 ? ` от ${minPrice} ₽` : ''}. Собственные бренды, доставка по Москве и России.`;
 
   const keywords = [
-    category.name,
-    `${category.name} купить`,
-    `${category.name} Москва`,
-    `${category.name} интернет-магазин`,
-    'VIP COLLECTION',
-    'ARISTOCRAT',
-    'David Jones',
+    ...(seo?.keywords ?? [
+      category.name,
+      `${category.name} купить`,
+      `${category.name} Москва`,
+    ]),
+    ...GLOBAL_KEYWORDS,
   ];
+
+  const url = `${SITE_URL}/catalog/${category.slug}`;
 
   return {
     title,
@@ -56,6 +59,7 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
   const items = category
     ? products.filter((p) => p.categoryId === category.id)
     : [];
+  const seo = categorySeoContent[slug];
 
   const breadcrumbJsonLd = buildBreadcrumbList([
     { name: 'Главная', url: SITE_URL },
@@ -75,11 +79,25 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
       )
     : null;
 
+  // FAQPage Schema if there are FAQ items for this category
+  const faqJsonLd = seo?.faq && seo.faq.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: seo.faq.map((item) => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+      }
+    : null;
+
   return (
     <>
       <JsonLd data={breadcrumbJsonLd} />
       {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
-      <CatalogContent slug={slug} />
+      {faqJsonLd && <JsonLd data={faqJsonLd} />}
+      <CatalogContent slug={slug} seo={seo} />
     </>
   );
 }

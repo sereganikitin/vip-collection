@@ -1,5 +1,21 @@
+import type { Metadata } from 'next';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'О компании VIP COLLECTION — итальянские традиции качества',
+  description:
+    'VIP COLLECTION — российский интернет-магазин чемоданов и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT. Корни в Италии, производство в Тоскане. Магазин в Москве на Сормовском проезде.',
+  keywords: ['о компании VIP COLLECTION', 'итальянские чемоданы', 'ARISTOCRAT', 'история бренда', 'тосканская кожа'],
+  alternates: { canonical: 'https://infoseledka.ru/about' },
+  openGraph: {
+    title: 'О компании VIP COLLECTION',
+    description: 'Собственные бренды VIP COLLECTION и ARISTOCRAT. Итальянские традиции, производство в Тоскане.',
+    url: 'https://infoseledka.ru/about',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 export default function AboutPage() {
   return (

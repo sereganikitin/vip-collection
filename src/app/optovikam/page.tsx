@@ -1,5 +1,25 @@
+import type { Metadata } from 'next';
 import { ChevronRight, Users, TrendingUp, Shield, FileText } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Чемоданы и сумки оптом — VIP COLLECTION для бизнеса',
+  description:
+    'Оптовая продажа чемоданов, сумок и кожгалантереи для торговых компаний, ИП, интернет-магазинов и тревел-агентств. Гибкие условия, индивидуальные цены, доставка по всей России. Регистрация в личном кабинете.',
+  keywords: [
+    'чемоданы оптом', 'сумки оптом', 'кожгалантерея оптом',
+    'оптовый поставщик чемоданов', 'дистрибуция VIP COLLECTION',
+    'опт Москва', 'B2B чемоданы', 'оптовая продажа сумок',
+  ],
+  alternates: { canonical: 'https://infoseledka.ru/optovikam' },
+  openGraph: {
+    title: 'Чемоданы и сумки оптом — VIP COLLECTION',
+    description: 'Опт для торговых компаний, ИП и интернет-магазинов. Индивидуальные цены, доставка по России.',
+    url: 'https://infoseledka.ru/optovikam',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 export default function WholesalePage() {
   return (
