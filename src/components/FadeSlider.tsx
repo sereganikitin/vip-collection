@@ -40,7 +40,7 @@ export default function FadeSlider({ slides, autoplayDelay = 5000 }: FadeSliderP
 
   return (
     <div
-      className="relative w-full h-[100svh] sm:aspect-[16/9] sm:h-auto md:aspect-[21/8] lg:aspect-[21/7] group overflow-hidden"
+      className="relative w-full aspect-[4/5] sm:aspect-[16/9] md:aspect-[2/1] lg:aspect-[21/9] group overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

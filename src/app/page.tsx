@@ -52,7 +52,7 @@ export default function Home() {
         <div className="relative">
           <FadeSlider slides={slides} autoplayDelay={5000} />
           {/* Text overlay */}
-          <div className="absolute inset-0 z-10 flex items-end sm:items-center pointer-events-none pb-16 sm:pb-0">
+          <div className="absolute inset-0 z-10 flex items-end sm:items-center pointer-events-none pb-8 sm:pb-0">
             <div className="mx-auto max-w-7xl px-4 w-full">
               <div className="max-w-2xl"
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 2px rgba(0,0,0,0.9)' }}>
