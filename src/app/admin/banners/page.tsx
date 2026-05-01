@@ -242,13 +242,13 @@ export default function AdminBanners() {
                   <div className="grid sm:grid-cols-3 gap-2 p-2">
                     {/* Desktop preview */}
                     <div className="sm:col-span-2 relative aspect-[21/7] bg-gray-100 rounded-lg overflow-hidden">
-                      <Image src={banner.image} alt={banner.title || 'Десктоп'} fill className="object-cover" sizes="700px" />
+                      <Image src={banner.image} alt={banner.title || 'Десктоп'} fill className="object-cover" sizes="700px" unoptimized={banner.image.startsWith('/uploads/')} />
                       <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-white text-xs rounded">Desktop</span>
                     </div>
                     {/* Mobile preview */}
                     <div className="relative aspect-[4/5] bg-gray-100 rounded-lg overflow-hidden">
                       {banner.imageMobile ? (
-                        <Image src={banner.imageMobile} alt={banner.title || 'Мобильный'} fill className="object-cover" sizes="240px" />
+                        <Image src={banner.imageMobile} alt={banner.title || 'Мобильный'} fill className="object-cover" sizes="240px" unoptimized={banner.imageMobile.startsWith('/uploads/')} />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-text-muted text-xs text-center px-2">
                           Используется<br/>десктопный

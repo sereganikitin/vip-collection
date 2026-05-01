@@ -6,7 +6,9 @@ import path from 'node:path';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const UPLOAD_ROOT = path.join(process.cwd(), 'public', 'images');
+// Files are saved OUTSIDE /public so they are accessible immediately
+// without restarting Next.js. Nginx serves /uploads/ directly from disk.
+const UPLOAD_ROOT = path.join(process.cwd(), 'uploads');
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -49,6 +51,6 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   await writeFile(targetPath, Buffer.from(arrayBuffer));
 
-  const url = `/images/${folder}/${fileName}`.replace(/\\/g, '/');
+  const url = `/uploads/${folder}/${fileName}`.replace(/\\/g, '/');
   return NextResponse.json({ url, fileName, size: file.size }, { status: 201 });
 }

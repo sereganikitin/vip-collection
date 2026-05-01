@@ -62,6 +62,7 @@ export default function FadeSlider({ slides, autoplayDelay = 5000 }: FadeSliderP
                 className="object-cover"
                 sizes="100vw"
                 priority={i === 0}
+                unoptimized={mobileSrc.startsWith('/uploads/')}
               />
             </div>
             {/* Desktop image */}
@@ -73,6 +74,7 @@ export default function FadeSlider({ slides, autoplayDelay = 5000 }: FadeSliderP
                 className="object-cover"
                 sizes="100vw"
                 priority={i === 0}
+                unoptimized={slide.image.startsWith('/uploads/')}
               />
             </div>
             {/* Light overall darkening */}

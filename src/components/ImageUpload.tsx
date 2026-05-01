@@ -56,7 +56,7 @@ export default function ImageUpload({ value, onChange, folder = 'banners', label
       {value ? (
         <div className="relative rounded-lg overflow-hidden border border-border bg-gray-100">
           <div className="relative aspect-[16/9] w-full">
-            <Image src={value} alt="Превью" fill className="object-cover" sizes="600px" />
+            <Image src={value} alt="Превью" fill className="object-cover" sizes="600px" unoptimized={value.startsWith('/uploads/')} />
           </div>
           <button
             type="button"
