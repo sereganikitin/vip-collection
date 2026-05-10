@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   description:
     'Контактные данные интернет-магазина VIP COLLECTION в Москве. Адрес: Сормовский проезд, 11, стр. 1. Телефон/WhatsApp: +7 (917) 574-11-30. Email: vipcoll@mail.ru. Telegram: @VIP_CHEMODAN.',
   keywords: ['VIP COLLECTION контакты', 'магазин чемоданов Москва', 'Сормовский проезд 11', 'телефон магазина'],
-  alternates: { canonical: 'https://infoseledka.ru/contacts' },
+  alternates: { canonical: 'https://vipcoll.ru/contacts' },
   openGraph: {
     title: 'Контакты VIP COLLECTION',
     description: 'Москва, Сормовский проезд 11. +7 (917) 574-11-30. WhatsApp, Telegram.',
-    url: 'https://infoseledka.ru/contacts',
+    url: 'https://vipcoll.ru/contacts',
     type: 'website',
     locale: 'ru_RU',
   },

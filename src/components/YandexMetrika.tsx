@@ -2,7 +2,7 @@
 
 import Script from 'next/script';
 
-const COUNTER_ID = 108966156;
+const COUNTER_ID = 109132464;
 
 export default function YandexMetrika() {
   return (
@@ -21,6 +21,8 @@ export default function YandexMetrika() {
             webvisor: true,
             clickmap: true,
             ecommerce: 'dataLayer',
+            referrer: document.referrer,
+            url: location.href,
             accurateTrackBounce: true,
             trackLinks: true
           });

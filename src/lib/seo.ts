@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://infoseledka.ru';
+export const SITE_URL = 'https://vipcoll.ru';
 export const SITE_NAME = 'VIP COLLECTION';
 
 export const ORGANIZATION_JSONLD = {

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 
-const BASE_URL = 'https://infoseledka.ru';
+const BASE_URL = 'https://vipcoll.ru';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;

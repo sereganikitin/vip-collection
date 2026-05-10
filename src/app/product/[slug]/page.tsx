@@ -1,20 +1,21 @@
 import type { Metadata } from 'next';
-import { products } from '@/data/products';
-import { categories } from '@/data/categories';
 import ProductDetails from './ProductDetails';
 import JsonLd from '@/components/JsonLd';
 import { SITE_URL, SITE_NAME, buildBreadcrumbList } from '@/lib/seo';
+import { getCategoriesForFrontend } from '@/lib/categories';
+import { getProductBySlug, getProductsForFrontend } from '@/lib/products';
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params;
-  const product = products.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     return { title: 'Товар не найден' };
   }
 
+  const categories = await getCategoriesForFrontend();
   const category = categories.find((c) => c.id === product.categoryId);
   const title = `${product.name} — купить в Москве, цена ${product.price} ₽`;
   const description = product.description
@@ -54,13 +55,17 @@ export async function generateMetadata(
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = products.find((p) => p.slug === slug);
+  const product = await getProductBySlug(slug);
 
   if (!product) {
-    return <ProductDetails slug={slug} />;
+    return <ProductDetails slug={slug} product={null} category={null} relatedProducts={[]} />;
   }
 
-  const category = categories.find((c) => c.id === product.categoryId);
+  const [categories, relatedProducts] = await Promise.all([
+    getCategoriesForFrontend(),
+    getProductsForFrontend({ categoryId: product.categoryId, excludeId: product.id, limit: 4 }),
+  ]);
+  const category = categories.find((c) => c.id === product.categoryId) ?? null;
 
   const productJsonLd = {
     '@context': 'https://schema.org/',
@@ -107,7 +112,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <>
       <JsonLd data={productJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      <ProductDetails slug={slug} />
+      <ProductDetails slug={slug} product={product} category={category} relatedProducts={relatedProducts} />
     </>
   );
 }

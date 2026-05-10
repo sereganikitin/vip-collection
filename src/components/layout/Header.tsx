@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ShoppingBag, Phone, Mail, Search, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
-import { categories } from '@/data/categories';
+import type { CategoryView } from '@/lib/categories';
 
 const SHORT_NAMES: Record<string, string> = {
   'suitcases': 'Чемоданы',
@@ -20,7 +20,7 @@ const SHORT_NAMES: Record<string, string> = {
   'sale': 'РАСПРОДАЖА',
 };
 
-export default function Header() {
+export default function Header({ categories }: { categories: CategoryView[] }) {
   const { totalItems } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);

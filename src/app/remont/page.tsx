@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     'замена ручки чемодана', 'починить чемодан', 'сервис чемоданов',
     'мастерская чемоданов Москва', 'VIP COLLECTION ремонт', 'ARISTOCRAT сервис',
   ],
-  alternates: { canonical: 'https://infoseledka.ru/remont' },
+  alternates: { canonical: 'https://vipcoll.ru/remont' },
   openGraph: {
     title: 'Ремонт чемоданов в Москве — VIP COLLECTION',
     description: 'Замена колёс, ручек, замков. Сервисный центр на Сормовском проезде, 11.',
-    url: 'https://infoseledka.ru/remont',
+    url: 'https://vipcoll.ru/remont',
     type: 'website',
     locale: 'ru_RU',
   },

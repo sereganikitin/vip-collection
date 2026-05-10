@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { CartProvider } from '@/context/CartContext';
 import YandexMetrika from '@/components/YandexMetrika';
+import { getCategoriesForFrontend } from '@/lib/categories';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -19,7 +20,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://infoseledka.ru'),
+  metadataBase: new URL('https://vipcoll.ru'),
   title: {
     default: 'VIP COLLECTION — Купить чемоданы, сумки и кожгалантерею в Москве',
     template: '%s | VIP COLLECTION',
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
     'интернет-магазин чемоданов', 'магазин кожгалантереи',
     'оптом чемоданы', 'ремонт чемоданов',
   ],
-  authors: [{ name: 'VIP COLLECTION', url: 'https://infoseledka.ru' }],
+  authors: [{ name: 'VIP COLLECTION', url: 'https://vipcoll.ru' }],
   creator: 'VIP COLLECTION',
   publisher: 'VIP COLLECTION',
   formatDetection: { email: false, address: false, telephone: false },
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
-    url: 'https://infoseledka.ru',
+    url: 'https://vipcoll.ru',
     siteName: 'VIP COLLECTION',
     title: 'VIP COLLECTION — Купить чемоданы, сумки и кожгалантерею в Москве',
     description:
@@ -77,23 +78,24 @@ export const metadata: Metadata = {
     images: ['/images/banners/banner-1.jpg'],
   },
   verification: {
-    yandex: '8c250c66b18906a1',
+    yandex: '61dad71a8d48ef2f',
   },
   other: {
     'yandex:locality': 'Москва',
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const categories = await getCategoriesForFrontend();
   return (
     <html lang="ru" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
         <CartProvider>
-          <Header />
+          <Header categories={categories} />
           <main className="flex-1">{children}</main>
           <Footer />
         </CartProvider>

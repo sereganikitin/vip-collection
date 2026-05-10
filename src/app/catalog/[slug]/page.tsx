@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
-import { categories } from '@/data/categories';
-import { products } from '@/data/products';
 import { categorySeoContent, GLOBAL_KEYWORDS } from '@/data/seo-content';
 import CatalogContent from './CatalogContent';
 import JsonLd from '@/components/JsonLd';
 import { SITE_URL, SITE_NAME, buildBreadcrumbList, buildItemList } from '@/lib/seo';
+import { getCategoriesForFrontend } from '@/lib/categories';
+import { getProductsForFrontend } from '@/lib/products';
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params;
+  const categories = await getCategoriesForFrontend();
   const category = categories.find((c) => c.slug === slug);
 
   if (!category) {
@@ -17,7 +18,7 @@ export async function generateMetadata(
   }
 
   const seo = categorySeoContent[slug];
-  const items = products.filter((p) => p.categoryId === category.id);
+  const items = await getProductsForFrontend({ categoryId: category.id });
   const count = items.length;
   const minPrice = items.length > 0 ? Math.min(...items.map((p) => p.price)) : 0;
 
@@ -55,9 +56,10 @@ export async function generateMetadata(
 
 export default async function CatalogPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const categories = await getCategoriesForFrontend();
   const category = categories.find((c) => c.slug === slug);
   const items = category
-    ? products.filter((p) => p.categoryId === category.id)
+    ? await getProductsForFrontend({ categoryId: category.id })
     : [];
   const seo = categorySeoContent[slug];
 
@@ -97,7 +99,7 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
       <JsonLd data={breadcrumbJsonLd} />
       {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
       {faqJsonLd && <JsonLd data={faqJsonLd} />}
-      <CatalogContent slug={slug} seo={seo} />
+      <CatalogContent slug={slug} seo={seo} categories={categories} items={items} />
     </>
   );
 }

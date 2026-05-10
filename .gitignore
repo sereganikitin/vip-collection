@@ -44,3 +44,10 @@ next-env.d.ts
 
 # user uploads (served by nginx)
 /uploads/
+
+# Claude Code local config
+/.claude/
+
+# scraping artifacts (images + logs from import-from-old-site)
+/tmp-recon/
+/tmp-scrape.log

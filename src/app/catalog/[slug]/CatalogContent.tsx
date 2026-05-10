@@ -3,10 +3,10 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { SlidersHorizontal, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { products } from '@/data/products';
-import { categories } from '@/data/categories';
 import ProductCard from '@/components/ProductCard';
 import type { CategorySeoContent } from '@/data/seo-content';
+import type { CategoryView } from '@/lib/categories';
+import type { ProductView } from '@/lib/products';
 
 type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name';
 
@@ -15,9 +15,11 @@ const PER_PAGE = 12;
 interface CatalogContentProps {
   slug: string;
   seo?: CategorySeoContent;
+  categories: CategoryView[];
+  items: ProductView[];
 }
 
-export default function CatalogContent({ slug, seo }: CatalogContentProps) {
+export default function CatalogContent({ slug, seo, categories, items }: CatalogContentProps) {
   const [sort, setSort] = useState<SortOption>('default');
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
@@ -26,21 +28,17 @@ export default function CatalogContent({ slug, seo }: CatalogContentProps) {
   const categoryName = category?.name || 'Каталог';
 
   const filteredProducts = useMemo(() => {
-    const result = category
-      ? products.filter((p) => p.categoryId === category.id)
-      : products;
-
     switch (sort) {
       case 'price-asc':
-        return [...result].sort((a, b) => a.price - b.price);
+        return [...items].sort((a, b) => a.price - b.price);
       case 'price-desc':
-        return [...result].sort((a, b) => b.price - a.price);
+        return [...items].sort((a, b) => b.price - a.price);
       case 'name':
-        return [...result].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+        return [...items].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
       default:
-        return result;
+        return items;
     }
-  }, [category, sort]);
+  }, [items, sort]);
 
   const totalPages = Math.ceil(filteredProducts.length / PER_PAGE);
   const safeCurrentPage = Math.min(page, totalPages || 1);

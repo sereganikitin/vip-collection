@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://infoseledka.ru';
+const BASE_URL = 'https://vipcoll.ru';
 
 export default function robots(): MetadataRoute.Robots {
   const disallow = ['/admin', '/admin/*', '/api/*', '/cart', '/checkout'];
@@ -37,6 +37,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
-    host: 'infoseledka.ru',
+    host: 'vipcoll.ru',
   };
 }

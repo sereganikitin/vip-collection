@@ -5,7 +5,8 @@ import { categories as staticCategories } from '@/data/categories';
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
-const SITE_URL = 'https://infoseledka.ru';
+const SITE_URL = 'https://vipcoll.ru';
+const SALES_NOTES = 'Самовывоз: Москва, Сормовский проезд, 11, стр. 1';
 
 function xmlEscape(str: string | null | undefined): string {
   if (!str) return '';
@@ -17,15 +18,34 @@ function xmlEscape(str: string | null | undefined): string {
     .replace(/'/g, '&apos;');
 }
 
+// FNV-1a 32-bit hash → stable short numeric id from cuid/string
+function hashId(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+function absUrl(p: string): string {
+  if (!p) return '';
+  if (/^https?:\/\//i.test(p)) return p;
+  return `${SITE_URL}${p.startsWith('/') ? '' : '/'}${p}`;
+}
+
 function formatYmlDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const tz = -d.getTimezoneOffset();
+  const tzSign = tz >= 0 ? '+' : '-';
+  const tzAbs = Math.abs(tz);
+  const tzStr = `${tzSign}${pad(Math.floor(tzAbs / 60))}${pad(tzAbs % 60)}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}${tzStr}`;
 }
 
 interface FeedCategory {
   id: string;
   name: string;
-  parentId?: string | null;
 }
 
 interface FeedProduct {
@@ -106,17 +126,26 @@ export async function GET() {
   const offers = products
     .filter((p) => categoriesById.has(p.categoryId))
     .map((p) => {
+      const offerId = hashId(p.id);
+      const categoryId = hashId(p.categoryId);
       const url = `${SITE_URL}/product/${p.slug}`;
-      const picture = p.images[0]
-        ? `${SITE_URL}${p.images[0].startsWith('/') ? '' : '/'}${p.images[0]}`
-        : '';
 
-      const description = (p.description || `${p.name}. Бренд: ${p.brand}.`)
-        .slice(0, 3000);
+      const pictures = (p.images || [])
+        .slice(0, 10)
+        .map(absUrl)
+        .filter(Boolean)
+        .map((u) => `      <picture>${xmlEscape(u)}</picture>`)
+        .join('\n');
+
+      const description = (p.description || `${p.name}. Бренд: ${p.brand}.`).slice(0, 3000);
+
+      const oldPriceTag = p.oldPrice && p.oldPrice > p.price
+        ? `      <oldprice>${p.oldPrice}</oldprice>\n`
+        : '';
 
       const params = p.specs
         ? Object.entries(p.specs)
-            .filter(([, v]) => v != null && v !== '')
+            .filter(([, v]) => v != null && String(v).trim() !== '')
             .slice(0, 20)
             .map(
               ([key, value]) =>
@@ -125,36 +154,33 @@ export async function GET() {
             .join('\n')
         : '';
 
-      const oldPriceTag = p.oldPrice && p.oldPrice > p.price
-        ? `      <oldprice>${p.oldPrice}</oldprice>\n`
-        : '';
-
-      return `    <offer id="${xmlEscape(p.id)}" available="${p.inStock ? 'true' : 'false'}">
+      return `    <offer id="${offerId}" available="${p.inStock ? 'true' : 'false'}">
       <url>${xmlEscape(url)}</url>
       <price>${p.price}</price>
 ${oldPriceTag}      <currencyId>RUR</currencyId>
-      <categoryId>${xmlEscape(p.categoryId)}</categoryId>
-      <picture>${xmlEscape(picture)}</picture>
+      <categoryId>${categoryId}</categoryId>
+${pictures ? pictures + '\n' : ''}      <store>true</store>
+      <pickup>true</pickup>
+      <delivery>false</delivery>
       <name>${xmlEscape(p.name)}</name>
       <vendor>${xmlEscape(p.brand)}</vendor>
+      <vendorCode>${xmlEscape(p.id)}</vendorCode>
       <description><![CDATA[${description}]]></description>
-${params}
-    </offer>`;
+      <sales_notes>${xmlEscape(SALES_NOTES)}</sales_notes>
+${params ? params + '\n' : ''}    </offer>`;
     })
     .join('\n');
 
   const categoriesXml = usedCategories
-    .map((c) => `    <category id="${xmlEscape(c.id)}">${xmlEscape(c.name)}</category>`)
+    .map((c) => `    <category id="${hashId(c.id)}">${xmlEscape(c.name)}</category>`)
     .join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
 <yml_catalog date="${formatYmlDate(new Date())}">
   <shop>
     <name>VIP COLLECTION</name>
     <company>VIP COLLECTION</company>
     <url>${SITE_URL}</url>
-    <platform>Next.js</platform>
     <currencies>
       <currency id="RUR" rate="1"/>
     </currencies>

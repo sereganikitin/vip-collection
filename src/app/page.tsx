@@ -1,47 +1,34 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Truck, Shield, Percent, Wrench } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { products } from '@/data/products';
-import { categories } from '@/data/categories';
-import { brands } from '@/data/brands';
 import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
 import FadeSlider, { type FadeSlide } from '@/components/FadeSlider';
 import JsonLd from '@/components/JsonLd';
 import { ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/lib/seo';
+import { prisma } from '@/lib/prisma';
+import { getCategoriesForFrontend } from '@/lib/categories';
+import { getProductsForFrontend } from '@/lib/products';
+import { getBrandsForFrontend } from '@/lib/brands';
 
-const DEFAULT_SLIDES: FadeSlide[] = [
-  { image: '/images/banners/banner-1.jpg' },
-  { image: '/images/banners/banner-2.jpg' },
-  { image: '/images/banners/banner-3.jpg' },
-  { image: '/images/banners/banner-5.jpg' },
-];
+export const dynamic = 'force-dynamic';
 
-export default function Home() {
-  const newProducts = products.filter((p) => p.isNew);
-  const saleProducts = products.filter((p) => p.isSale);
-  const popularProducts = products.slice(0, 8);
-
-  const [slides, setSlides] = useState<FadeSlide[]>(DEFAULT_SLIDES);
-
-  useEffect(() => {
-    fetch('/api/banners')
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setSlides(
-            data.map((b: { image: string; imageMobile?: string | null }) => ({
-              image: b.image,
-              imageMobile: b.imageMobile,
-            }))
-          );
-        }
-      })
-      .catch(() => {});
-  }, []);
+export default async function Home() {
+  const [banners, categories, brands, newProducts, saleProducts, popularProducts] = await Promise.all([
+    prisma.banner.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+    }),
+    getCategoriesForFrontend(),
+    getBrandsForFrontend(),
+    getProductsForFrontend({ isNew: true, limit: 12 }),
+    getProductsForFrontend({ isSale: true, limit: 12 }),
+    getProductsForFrontend({ limit: 8 }),
+  ]);
+  const slides: FadeSlide[] = banners.map((b) => ({
+    image: b.image,
+    imageMobile: b.imageMobile,
+  }));
 
   return (
     <>
@@ -118,20 +105,23 @@ export default function Home() {
           </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {categories.filter(c => c.id !== 'sale' && c.id !== 'misc').map((cat) => (
+          {categories.filter(c => c.id !== 'misc').map((cat) => (
             <Link
               key={cat.id}
               href={`/catalog/${cat.slug}`}
               className="group relative bg-surface rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all"
             >
               <div className="aspect-square relative bg-white">
-                <Image
-                  src={cat.image}
-                  alt={cat.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                />
+                {cat.image && (
+                  <Image
+                    src={cat.image}
+                    alt={cat.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                    unoptimized={cat.image.startsWith('/uploads/')}
+                  />
+                )}
               </div>
               <div className="p-3 text-center">
                 <h3 className="text-sm font-medium group-hover:text-accent transition-colors line-clamp-2">{cat.name}</h3>
@@ -220,13 +210,18 @@ export default function Home() {
                 key={brand.id}
                 className="aspect-[3/2] bg-white border border-border rounded-xl flex items-center justify-center p-4 hover:shadow-md transition-shadow cursor-pointer relative"
               >
-                <Image
-                  src={brand.logo}
-                  alt={brand.name}
-                  fill
-                  className="object-contain p-3"
-                  sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
-                />
+                {brand.logo ? (
+                  <Image
+                    src={brand.logo}
+                    alt={brand.name}
+                    fill
+                    className="object-contain p-3"
+                    sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
+                    unoptimized={brand.logo.startsWith('/uploads/')}
+                  />
+                ) : (
+                  <span className="text-sm font-medium text-text-muted">{brand.name}</span>
+                )}
               </div>
             ))}
           </div>

@@ -3,19 +3,24 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronRight, ShoppingBag, Truck, Shield, RotateCcw, Check } from 'lucide-react';
-import { products } from '@/data/products';
-import { categories } from '@/data/categories';
 import { useCart } from '@/context/CartContext';
 import ProductCard from '@/components/ProductCard';
+import type { CategoryView } from '@/lib/categories';
+import type { ProductView } from '@/lib/products';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 }
 
-export default function ProductDetails({ slug }: { slug: string }) {
-  const { addItem } = useCart();
+interface ProductDetailsProps {
+  slug: string;
+  product: ProductView | null;
+  category: CategoryView | null;
+  relatedProducts: ProductView[];
+}
 
-  const product = products.find((p) => p.slug === slug);
+export default function ProductDetails({ product, category, relatedProducts }: ProductDetailsProps) {
+  const { addItem } = useCart();
 
   if (!product) {
     return (
@@ -25,11 +30,6 @@ export default function ProductDetails({ slug }: { slug: string }) {
       </div>
     );
   }
-
-  const category = categories.find((c) => c.id === product.categoryId);
-  const relatedProducts = products.filter(
-    (p) => p.categoryId === product.categoryId && p.id !== product.id
-  ).slice(0, 4);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
