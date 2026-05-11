@@ -18,7 +18,7 @@ export default function CheckoutPage() {
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '',
-    delivery: 'cdek', address: '', comment: '',
+    delivery: 'courier', address: '', comment: '',
   });
 
   function updateField(field: string, value: string) {
@@ -54,7 +54,7 @@ export default function CheckoutPage() {
   }
 
   const deliveryLabels: Record<string, string> = {
-    cdek: 'СДЭК', post: 'Почта России', pickup: 'Самовывоз',
+    courier: 'Курьер по Москве и области', pickup: 'Самовывоз',
   };
 
   async function handleSubmit(e: React.FormEvent) {
@@ -146,9 +146,8 @@ export default function CheckoutPage() {
               <h2 className="font-semibold text-lg mb-4">Доставка</h2>
               <div className="space-y-3 mb-4">
                 {[
-                  { value: 'cdek', label: 'СДЭК', desc: 'Доставка курьером или в пункт выдачи' },
-                  { value: 'post', label: 'Почта России', desc: 'Доставка по всей России' },
-                  { value: 'pickup', label: 'Самовывоз', desc: 'Москва, Сормовский пр-д, 11' },
+                  { value: 'courier', label: 'Курьер по Москве и области', desc: 'От 20 000 ₽ — бесплатно по Москве. По МО — расчёт по адресу' },
+                  { value: 'pickup', label: 'Самовывоз', desc: 'Москва, Сормовский пр-д, 11, стр. 1' },
                 ].map((method) => (
                   <label key={method.value} className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
                     <input type="radio" name="delivery" value={method.value} checked={form.delivery === method.value}

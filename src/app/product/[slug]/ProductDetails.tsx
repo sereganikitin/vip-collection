@@ -116,7 +116,7 @@ export default function ProductDetails({ product, category, relatedProducts }: P
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { icon: Truck, title: 'Доставка', desc: 'По всей России' },
+              { icon: Truck, title: 'Доставка', desc: 'Москва и область' },
               { icon: Shield, title: 'Гарантия', desc: 'Оригинальный товар' },
               { icon: RotateCcw, title: 'Ремонт', desc: 'Сервисный центр' },
             ].map((item) => (

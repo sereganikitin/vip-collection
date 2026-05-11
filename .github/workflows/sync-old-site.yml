@@ -1,0 +1,62 @@
+name: Sync products from vip-collection.ru
+
+on:
+  # Daily at 04:00 UTC (07:00 MSK)
+  schedule:
+    - cron: '0 4 * * *'
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+
+concurrency:
+  group: sync-old-site
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Scrape vip-collection.ru
+        run: npx tsx scripts/scrape-old-site.ts
+        env:
+          NODE_OPTIONS: --max-old-space-size=2048
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Upload scrape result to server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'rm -rf /var/lib/vip-sync && mkdir -p /var/lib/vip-sync'
+          rsync -az --delete tmp-recon/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/lib/vip-sync/
+
+      - name: Run sync on server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
+            cd /var/www/vip-collection &&
+            npx tsx scripts/sync-old-products.ts /var/lib/vip-sync/products.json /var/lib/vip-sync/images
+          ' 2>&1 | tee sync.log
+
+      - name: Upload sync log as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-log-${{ github.run_id }}
+          path: sync.log
+          retention-days: 30

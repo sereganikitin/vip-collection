@@ -14,7 +14,7 @@ import { getBrandsForFrontend } from '@/lib/brands';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const [banners, categories, brands, newProducts, saleProducts, popularProducts] = await Promise.all([
+  const [banners, categories, brands, newProducts, saleProducts, popularProducts, minSuitcase] = await Promise.all([
     prisma.banner.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
@@ -24,11 +24,17 @@ export default async function Home() {
     getProductsForFrontend({ isNew: true, limit: 12 }),
     getProductsForFrontend({ isSale: true, limit: 12 }),
     getProductsForFrontend({ limit: 8 }),
+    prisma.product.aggregate({
+      where: { isActive: true, categoryId: 'suitcases', price: { gt: 0 } },
+      _min: { price: true },
+    }),
   ]);
   const slides: FadeSlide[] = banners.map((b) => ({
     image: b.image,
     imageMobile: b.imageMobile,
   }));
+  const minSuitcasePrice = Math.round(minSuitcase._min.price ?? 3500);
+  const minSuitcasePriceFmt = new Intl.NumberFormat('ru-RU').format(minSuitcasePrice);
 
   return (
     <>
@@ -43,27 +49,27 @@ export default async function Home() {
             <div className="mx-auto max-w-7xl px-4 w-full">
               <div className="max-w-2xl"
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 2px rgba(0,0,0,0.9)' }}>
-                <p className="text-accent font-semibold tracking-wide uppercase text-xs sm:text-sm mb-2 sm:mb-3">Итальянские традиции качества</p>
+                <p className="text-accent font-semibold tracking-wide uppercase text-xs sm:text-sm mb-2 sm:mb-3">Самовывоз и курьер по Москве и Подмосковью</p>
                 <h1 className="text-3xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-3 sm:mb-6">
-                  Чемоданы и аксессуары для путешествий
+                  Чемоданы на колёсах от {minSuitcasePriceFmt} ₽
                 </h1>
                 <p className="text-gray-100 text-sm sm:text-base md:text-lg mb-5 sm:mb-8 leading-relaxed">
-                  Собственные бренды VIP COLLECTION и ARISTOCRAT. 100% поликарбонат,
-                  натуральная кожа, итальянское производство.
+                  Магазин-склад на Сормовском проезде 11. Чемоданы VIP COLLECTION,
+                  рюкзаки и сумки ARISTOCRAT, портмоне NERI KARRA, запчасти для ремонта.
                 </p>
                 <div className="flex flex-wrap gap-3 sm:gap-4 pointer-events-auto">
                   <Link
                     href="/catalog/chemodany"
                     className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors text-sm sm:text-base shadow-lg"
                   >
-                    Смотреть каталог
+                    В каталог
                     <ArrowRight size={18} />
                   </Link>
                   <Link
                     href="/catalog/rasprodazha"
                     className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/15 transition-colors text-sm sm:text-base backdrop-blur-sm"
                   >
-                    Распродажа
+                    Акции и скидки
                   </Link>
                 </div>
               </div>
@@ -77,10 +83,10 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Truck, title: 'Бесплатная доставка', desc: 'От 20 000 ₽ по Москве' },
-              { icon: Shield, title: 'Гарантия качества', desc: 'Оригинальные товары' },
-              { icon: Percent, title: 'Скидка 15%', desc: 'В день рождения' },
-              { icon: Wrench, title: 'Ремонт чемоданов', desc: 'Сервисный центр' },
+              { icon: Truck, title: 'Курьер по Москве и МО', desc: 'От 20 000 ₽ — бесплатно' },
+              { icon: Shield, title: 'Самовывоз', desc: 'Сормовский проезд 11' },
+              { icon: Percent, title: 'Скидки и акции', desc: 'До 45% на хиты' },
+              { icon: Wrench, title: 'Ремонт чемоданов', desc: 'Свой сервисный центр' },
             ].map((item) => (
               <div key={item.title} className="flex items-center gap-3 p-3">
                 <div className="w-10 h-10 bg-accent/10 text-accent rounded-lg flex items-center justify-center flex-shrink-0">
@@ -232,15 +238,28 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-surface rounded-xl border border-border p-6 md:p-8">
-            <h3 className="text-xl font-bold mb-3">Собственные бренды</h3>
-            <p className="text-text-muted leading-relaxed text-sm">
-              VIP COLLECTION и ARISTOCRAT — собственные бренды компании, производимые из высококачественных материалов
-              в лучших традициях итальянского мастерства. Чемоданы из 100% поликарбоната, аксессуары из натуральной кожи
-              растительного дубления из Тосканы.
-            </p>
+            <h3 className="text-xl font-bold mb-3">Как купить</h3>
+            <ul className="space-y-2 text-sm text-text-muted">
+              <li className="flex items-start gap-2">
+                <span className="text-accent font-bold">→</span>
+                <span><strong>Самовывоз</strong> бесплатно: Москва, Сормовский проезд 11, стр. 1</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-accent font-bold">→</span>
+                <span><strong>Курьер по Москве</strong> — бесплатно от 20 000 ₽</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-accent font-bold">→</span>
+                <span><strong>Курьер по Подмосковью</strong> — расчёт по адресу</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-accent font-bold">→</span>
+                <span><strong>Оплата</strong> картой онлайн или наличными при получении</span>
+              </li>
+            </ul>
           </div>
           <div className="bg-surface rounded-xl border border-border p-6 md:p-8">
-            <h3 className="text-xl font-bold mb-3">Выгодные акции</h3>
+            <h3 className="text-xl font-bold mb-3">Скидки и акции</h3>
             <ul className="space-y-2 text-sm text-text-muted">
               <li className="flex items-start gap-2">
                 <span className="text-accent font-bold">15%</span>
@@ -255,8 +274,8 @@ export default async function Home() {
                 <span>При покупке 3-х одинаковых чемоданов</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-accent font-bold">0 ₽</span>
-                <span>Бесплатная доставка от 20 000 ₽ по Москве</span>
+                <span className="text-accent font-bold">−45%</span>
+                <span>На прошлые коллекции в разделе «Распродажа»</span>
               </li>
             </ul>
           </div>
@@ -266,45 +285,45 @@ export default async function Home() {
       {/* SEO content block */}
       <section className="mx-auto max-w-7xl px-4 py-12 border-t border-border">
         <article className="prose prose-sm max-w-none">
-          <h2 className="text-2xl md:text-3xl font-bold mb-6">Интернет-магазин VIP COLLECTION в Москве</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">Магазин чемоданов и сумок с самовывозом в Москве</h2>
           <div className="grid md:grid-cols-2 gap-6 text-text-muted text-sm leading-relaxed">
             <div>
-              <h3 className="text-base font-semibold text-text mb-2">Чемоданы из поликарбоната</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Чемоданы VIP COLLECTION от 4 200 ₽</h3>
               <p className="mb-4">
-                В нашем каталоге представлены <strong>чемоданы из 100% поликарбоната</strong> различных размеров —
-                S (20&quot;), M (24&quot;), L (28&quot;) и наборы из трёх чемоданов. Под собственным брендом
-                <strong> VIP COLLECTION</strong> производятся премиальные модели с TSA-замками,
-                а под брендом <strong>ARISTOCRAT</strong> — доступные модели для повседневного использования.
-                Все чемоданы оборудованы 4-мя двойными колёсами с поворотом на 360° и телескопической ручкой.
+                В каталоге — <strong>чемоданы из поликарбоната</strong> размеров S (20&quot;), M (24&quot;), L (28&quot;) и наборы из трёх штук.
+                Все чемоданы под брендом <strong>VIP COLLECTION</strong> — TSA-замки, четыре двойных колеса с поворотом 360°,
+                телескопическая ручка, шёлковая внутренняя отделка. Подходят под нормы ручной клади большинства авиакомпаний.
               </p>
-              <h3 className="text-base font-semibold text-text mb-2">Сумки, портфели, рюкзаки</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Запчасти и ремонт</h3>
               <p>
-                Женские сумки <strong>David Jones</strong> — стильный аксессуар на каждый день. Кожаные портфели
-                <strong> VIP COLLECTION</strong> и рюкзаки <strong>ARISTOCRAT</strong> с отделениями для ноутбуков
-                до 17&quot;. Портмоне и обложки для документов <strong>NERI KARRA</strong> из натуральной кожи
-                растительного дубления.
+                Сломалось колесо или ручка — не выкидывайте чемодан. В разделе
+                <strong> «Запчасти»</strong> есть колёса, телескопические ручки, замки. Цены от 200 ₽.
+                Если ремонтировать самому неудобно — приносите в наш сервисный центр на Сормовском проезде,
+                <strong> чиним за 1–3 дня</strong>. Гарантийный ремонт чемоданов VIP COLLECTION — бесплатно.
               </p>
             </div>
             <div>
-              <h3 className="text-base font-semibold text-text mb-2">Доставка и оплата</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Доставка по Москве и самовывоз</h3>
               <p className="mb-4">
-                Доставляем по всей России: курьером по Москве, через СДЭК, Почту России, Яндекс.Доставку и Авито.
-                <strong> Бесплатная доставка по Москве при заказе от 20 000 ₽</strong>. Оплата картой онлайн или
-                наличными при получении. Возможен самовывоз с нашего склада на Сормовском проезде, 11.
+                <strong>Самовывоз бесплатно</strong> — Москва, Сормовский проезд 11, стр. 1.
+                <strong> Курьер по Москве</strong> — расчёт по адресу, от 20 000 ₽ бесплатно в пределах МКАД.
+                Доставка в <strong>Подмосковье</strong> — отдельно по тарифу. Оплата картой онлайн, по СБП
+                или наличными курьеру / при самовывозе.
               </p>
-              <h3 className="text-base font-semibold text-text mb-2">Ремонт и гарантия</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Сумки, рюкзаки, мелочи</h3>
               <p>
-                Все товары — оригинальные, с гарантией от производителя. У нас работает собственный
-                <strong> сервисный центр по ремонту чемоданов</strong>: замена колёс, ручек, замков и других
-                комплектующих. Скидки именинникам — 15% в день рождения. Для оптовых клиентов —
-                индивидуальные условия и регистрация в личном кабинете.
+                Рюкзаки и сумки <strong>ARISTOCRAT</strong> — с отделением для ноутбука до 16&quot;, USB-выходом
+                и ортопедической спинкой. Женские сумки <strong>David Jones</strong> — модно и недорого, цены от 1 500 ₽.
+                Поясные сумки для бега и поездок, портмоне и обложки <strong>NERI KARRA</strong>,
+                ремни, чехлы для чемоданов — всё для путешествий и повседневного быта.
               </p>
             </div>
           </div>
           <p className="mt-6 text-sm text-text-muted">
-            Адрес магазина: 115088, Москва, Сормовский проезд, 11, стр. 1.
-            Телефон / WhatsApp / Telegram: <a href="tel:+79175741130" className="text-accent hover:underline">+7 (917) 574-11-30</a>.
+            Магазин-склад: 115088, Москва, Сормовский проезд, 11, стр. 1.
+            Звонок, WhatsApp, Telegram: <a href="tel:+79175741130" className="text-accent hover:underline">+7 (917) 574-11-30</a>.
             Email: <a href="mailto:vipcoll@mail.ru" className="text-accent hover:underline">vipcoll@mail.ru</a>.
+            Работаем без выходных.
           </p>
         </article>
       </section>

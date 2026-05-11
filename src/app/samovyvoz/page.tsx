@@ -33,8 +33,8 @@ export default function PickupPage() {
         <h1 className="text-3xl font-bold mb-6">Где купить</h1>
 
         <p className="text-text-muted leading-relaxed mb-8">
-          Вы можете приобрести наши товары в пункте выдачи в Москве или заказать доставку
-          по всей России.
+          Вы можете приобрести наши товары в магазине-складе в Москве или заказать
+          доставку курьером по Москве и Московской области.
         </p>
 
         <div className="bg-bg rounded-xl p-6 space-y-4">

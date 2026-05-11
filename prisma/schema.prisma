@@ -60,12 +60,16 @@ model Product {
   brandId     String
   brand       Brand       @relation(fields: [brandId], references: [id])
   orderItems  OrderItem[]
+  externalUrl String?     @unique
+  noSync      Boolean     @default(false)
+  lastSyncAt  DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   @@index([categoryId])
   @@index([brandId])
   @@index([slug])
+  @@index([externalUrl])
 }
 
 model Order {

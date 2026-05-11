@@ -1,42 +1,15 @@
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://vipcoll.ru';
-
+// Secondary site — closed from indexing. Primary site is vip-collection.ru.
+// Yandex.Market feed (/feed.xml) is allowed so the merchant cabinet can pull it.
 export default function robots(): MetadataRoute.Robots {
-  const disallow = ['/admin', '/admin/*', '/api/*', '/cart', '/checkout'];
-
   return {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        disallow,
-      },
-      {
-        userAgent: 'Yandex',
-        allow: '/',
-        disallow,
-      },
-      {
-        userAgent: 'YandexBot',
-        allow: '/',
-        disallow,
-      },
-      {
-        userAgent: 'YandexImages',
-        allow: '/',
-      },
-      {
-        userAgent: 'Googlebot',
-        allow: '/',
-        disallow,
-      },
-      {
-        userAgent: 'Googlebot-Image',
-        allow: '/',
+        disallow: '/',
+        allow: '/feed.xml',
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
-    host: 'vipcoll.ru',
   };
 }
