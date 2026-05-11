@@ -26,6 +26,7 @@ async function main() {
       price: p.price,
       oldPrice: p.oldPrice,
       specs: (p.specs as Record<string, string>) ?? null,
+      externalUrl: p.externalUrl,
     });
     if (next === p.description) {
       skipped++;

@@ -16,6 +16,10 @@ interface ProductForGen {
   price: number;
   oldPrice?: number | null;
   specs?: Record<string, string> | null;
+  /** Stable seed for deterministic fragment selection. Use externalUrl
+   *  when available so the same legacy product always picks the same
+   *  template across both initial import and later sync re-runs. */
+  externalUrl?: string | null;
 }
 
 function djb2(s: string): number {
@@ -143,11 +147,15 @@ const GUARANTEE_VARIANTS = [
   'На товар действует годовая гарантия — ремонт и замену делаем у себя.',
 ];
 
+function seedOf(p: ProductForGen): string {
+  return p.externalUrl || p.id;
+}
+
 function buildSpecsSentence(p: ProductForGen): string {
   if (!p.specs) return '';
   const entries = Object.entries(p.specs).filter(([, v]) => v != null && String(v).trim() !== '');
   if (entries.length === 0) return '';
-  const intro = pick(SPEC_INTRO.default, p.id, 'specs-intro');
+  const intro = pick(SPEC_INTRO.default, seedOf(p), 'specs-intro');
   const list = entries.slice(0, 5).map(([k, v]) => `${k.toLowerCase()} — ${v}`).join(', ');
   return `${intro} ${list}.`;
 }
@@ -165,7 +173,7 @@ function buildFactsSentence(p: ProductForGen): string {
     `${parts[0][0].toUpperCase() + parts[0].slice(1)}${parts[1] ? ', ' + parts[1] : ''}.`,
     `Доступен в варианте: ${parts.join(', ')}.`,
   ];
-  return pick(templates, p.id, 'facts');
+  return pick(templates, seedOf(p), 'facts');
 }
 
 function buildPriceSentence(p: ProductForGen): string {
@@ -177,25 +185,26 @@ function buildPriceSentence(p: ProductForGen): string {
       `Сейчас ${price} ₽, было ${oldPrice} ₽.`,
       `${price} ₽ со скидкой (без скидки — ${oldPrice} ₽).`,
     ];
-    return pick(templates, p.id, 'price');
+    return pick(templates, seedOf(p), 'price');
   }
   const templates = [
     `Цена ${price} ₽.`,
     `Стоимость — ${price} ₽.`,
     `${price} ₽ за модель.`,
   ];
-  return pick(templates, p.id, 'price');
+  return pick(templates, seedOf(p), 'price');
 }
 
 export function generateUniqueDescription(p: ProductForGen): string {
-  const opener = pick(OPENERS[p.categoryId] ?? OPENERS.misc, p.id, 'opener');
+  const seed = seedOf(p);
+  const opener = pick(OPENERS[p.categoryId] ?? OPENERS.misc, seed, 'opener');
   const model = modelToken(p);
   const facts = buildFactsSentence(p);
   const specs = buildSpecsSentence(p);
   const price = buildPriceSentence(p);
-  const store = pick(STORE_VARIANTS, p.id, 'store');
-  const freeDelivery = pick(FREE_DELIVERY_VARIANTS, p.id, 'free');
-  const guarantee = pick(GUARANTEE_VARIANTS, p.id, 'guarantee');
+  const store = pick(STORE_VARIANTS, seed, 'store');
+  const freeDelivery = pick(FREE_DELIVERY_VARIANTS, seed, 'free');
+  const guarantee = pick(GUARANTEE_VARIANTS, seed, 'guarantee');
 
   const sentences: string[] = [];
   sentences.push(`${opener} ${p.brand}: ${model}.`);

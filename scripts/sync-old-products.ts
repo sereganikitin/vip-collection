@@ -2,6 +2,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { generateUniqueDescription } from '../src/lib/description-generator';
 
 const prisma = new PrismaClient();
 
@@ -143,7 +144,25 @@ async function main() {
         const newOld = sp.oldPrice > 0 ? sp.oldPrice : null;
         if ((match.oldPrice ?? null) !== newOld) diff.oldPrice = newOld;
         if (match.name !== sp.name) diff.name = sp.name;
-        if (match.description !== sp.description) diff.description = sp.description;
+
+        // Description is always regenerated from current product fields —
+        // we never copy the legacy site's wording into our DB, otherwise the
+        // sites become duplicates again.
+        const nextName = (diff.name as string | undefined) ?? match.name;
+        const nextPrice = (diff.price as number | undefined) ?? match.price;
+        const nextOldPrice =
+          diff.oldPrice !== undefined ? (diff.oldPrice as number | null) : match.oldPrice;
+        const regeneratedDesc = generateUniqueDescription({
+          id: match.id,
+          name: nextName,
+          brand: sp.brand,
+          categoryId: sp.newCategoryId,
+          price: nextPrice,
+          oldPrice: nextOldPrice,
+          specs: sp.specs,
+          externalUrl: sp.oldUrl,
+        });
+        if (regeneratedDesc !== match.description) diff.description = regeneratedDesc;
 
         let newImages: string[] | undefined;
         if (!imagesEqual(match.images, sp.localImages)) {
@@ -191,6 +210,20 @@ async function main() {
         const brandId = await findOrCreateBrand(sp.brand);
         const finalImages = await copyImages(sp, imagesDir, uploadRoot);
 
+        // Generate the unique description up front. externalUrl seeds the
+        // fragment picker so the same legacy product always produces the
+        // same description across sync runs and the initial uniquify pass.
+        const generatedDesc = generateUniqueDescription({
+          id: '',
+          name: sp.name,
+          brand: sp.brand,
+          categoryId: sp.newCategoryId,
+          price: sp.price,
+          oldPrice: sp.oldPrice > 0 ? sp.oldPrice : null,
+          specs: sp.specs,
+          externalUrl: sp.oldUrl,
+        });
+
         const newProd = await prisma.product.create({
           data: {
             name: sp.name,
@@ -198,7 +231,7 @@ async function main() {
             price: sp.price,
             oldPrice: sp.oldPrice > 0 ? sp.oldPrice : null,
             images: finalImages,
-            description: sp.description,
+            description: generatedDesc,
             specs: sp.specs,
             inStock: sp.price > 0,
             isNew: false,
