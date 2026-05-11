@@ -17,23 +17,54 @@ export async function generateMetadata(
 
   const categories = await getCategoriesForFrontend();
   const category = categories.find((c) => c.id === product.categoryId);
-  const title = `${product.name} — купить в Москве, цена ${product.price} ₽`;
-  const description = product.description
-    ? `${product.description} Цена ${product.price} ₽. Бренд ${product.brand}. Доставка по Москве и России. Гарантия. Оплата картой и наличными.`
-    : `${product.name}. Цена ${product.price} ₽. Бренд ${product.brand}. Доставка по Москве и России. Гарантия от производителя.`;
+  const priceFmt = new Intl.NumberFormat('ru-RU').format(product.price);
+
+  // Per-category title & description templates (different tone than the legacy
+  // vip-collection.ru, with emphasis on store features instead of brand pitch)
+  const TITLE_BY_CAT: Record<string, string> = {
+    suitcases: `${product.name}: ${priceFmt} ₽, в наличии — самовывоз Сормовский`,
+    'women-bags': `${product.name} ${product.brand} — ${priceFmt} ₽ | сумка из Москвы`,
+    briefcases: `${product.name} — портфель ${product.brand}, ${priceFmt} ₽ со склада`,
+    parts: `${product.name} — запчасть, ${priceFmt} ₽ | курьер по Москве`,
+    wallets: `${product.name} — портмоне ${product.brand}, ${priceFmt} ₽`,
+    backpacks: `${product.name} — рюкзак ${product.brand}, ${priceFmt} ₽ в Москве`,
+    covers: `${product.name} — чехол на чемодан, ${priceFmt} ₽`,
+    belts: `${product.name} — кожаный ремень, ${priceFmt} ₽`,
+    'waist-bags': `${product.name} — поясная сумка ${product.brand}, ${priceFmt} ₽`,
+    misc: `${product.name} — ${priceFmt} ₽ | VIP COLL Москва`,
+    sale: `${product.name} — ${priceFmt} ₽ со скидкой | самовывоз`,
+  };
+
+  const DESC_BY_CAT: Record<string, string> = {
+    suitcases: `Чемодан ${product.brand} ${product.name.replace(/^Чемодан\s+/i, '')}. Цена ${priceFmt} ₽. Поликарбонат, четыре двойных колеса, телескопическая ручка. Самовывоз на Сормовском проезде 11 или курьер по Москве и Подмосковью. Гарантия 1 год.`,
+    'women-bags': `Женская сумка ${product.brand} — ${priceFmt} ₽. Самовывоз с нашего склада в Москве (Сормовский 11) или курьерская доставка по Москве и области.`,
+    briefcases: `Кожаный портфель ${product.brand}. Цена ${priceFmt} ₽. Самовывоз — Сормовский проезд 11, курьер по Москве и Подмосковью.`,
+    parts: `${product.name}. ${priceFmt} ₽. Запчасти для чемоданов в наличии — приходите за самовывозом на Сормовский проезд 11 или заказывайте курьера по Москве.`,
+    wallets: `Портмоне ${product.brand}, натуральная кожа. Цена ${priceFmt} ₽. Москва, Сормовский 11 — самовывоз. Курьер по МКАД от 250 ₽.`,
+    backpacks: `Рюкзак ${product.brand}. ${priceFmt} ₽. Отделение для ноутбука, удобные лямки, водоотталкивающий материал. Самовывоз и доставка по Москве и области.`,
+    covers: `Чехол для чемодана. ${priceFmt} ₽. Защита от царапин и грязи в багажном отделении. Самовывоз бесплатно, курьер по Москве — 100 ₽.`,
+    belts: `Кожаный ремень. ${priceFmt} ₽. Самовывоз — Сормовский проезд 11, курьер по Москве и Подмосковью.`,
+    'waist-bags': `Поясная сумка для бега, фитнеса и путешествий. ${priceFmt} ₽. Лёгкая, водостойкая, регулируемый ремень. Самовывоз в Москве или курьер.`,
+    misc: `${product.name}. Цена ${priceFmt} ₽. Самовывоз — Москва, Сормовский проезд 11. Курьер по Москве и Подмосковью.`,
+    sale: `${product.name} в разделе «Распродажа». Цена со скидкой — ${priceFmt} ₽. Количество ограничено. Самовывоз и курьер по Москве.`,
+  };
+
+  const title = TITLE_BY_CAT[product.categoryId] ?? `${product.name} — ${priceFmt} ₽ | VIP COLL`;
+  const description = DESC_BY_CAT[product.categoryId] ?? `${product.name}. Цена ${priceFmt} ₽. Самовывоз — Сормовский проезд 11. Курьер по Москве и Подмосковью.`;
+
   const url = `${SITE_URL}/product/${product.slug}`;
   const image = product.images[0] ? `${SITE_URL}${product.images[0]}` : undefined;
 
   const keywords = [
     product.name,
-    `${product.name} купить`,
+    `${product.name} купить недорого`,
     `${product.name} цена`,
     product.brand,
-    `${product.brand} ${category?.name}`,
+    `${product.brand} ${category?.name ?? ''}`.trim(),
     category?.name,
-    'купить в Москве',
-    'интернет-магазин',
-    'VIP COLLECTION',
+    'самовывоз сормовский',
+    'купить со склада москва',
+    'курьер по москве',
   ].filter(Boolean) as string[];
 
   return {

@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import * as cheerio from 'cheerio';
+import { makeEnglishSlug } from '../src/lib/slug';
 
 const BASE = 'https://www.vip-collection.ru';
 const OUT_DIR = path.resolve('tmp-recon');
@@ -62,27 +63,24 @@ async function fetchBuffer(url: string): Promise<Buffer> {
   throw new Error('unreachable');
 }
 
-function transliterate(s: string): string {
-  const map: Record<string, string> = {
-    а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z', и: 'i',
-    й: 'j', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't',
-    у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y',
-    ь: '', э: 'e', ю: 'yu', я: 'ya',
-  };
-  return s
+function safeFilenameFromName(s: string): string {
+  // Used only for image filenames; not the product slug.
+  const transliterated = s
     .toLowerCase()
-    .split('')
-    .map((c) => map[c] ?? c)
-    .join('')
+    .replace(/[а-я]/g, (c) => {
+      const map: Record<string, string> = {
+        а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z', и: 'i',
+        й: 'j', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't',
+        у: 'u', ф: 'f', х: 'kh', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'shch', ъ: '', ы: 'y',
+        ь: '', э: 'e', ю: 'yu', я: 'ya',
+      };
+      return map[c] ?? c;
+    })
     .replace(/[^a-z0-9-]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
-}
-
-function makeSlug(name: string, url: string): string {
-  const base = transliterate(name).slice(0, 70).replace(/-+$/, '');
-  const hash = crypto.createHash('md5').update(url).digest('hex').slice(0, 6);
-  return `${base}-${hash}`;
+  const hash = crypto.createHash('md5').update(s).digest('hex').slice(0, 6);
+  return `${transliterated.slice(0, 50)}-${hash}`;
 }
 
 function parsePrice(s: string): number {
@@ -158,12 +156,13 @@ async function scrapeProduct(productPath: string, cat: CategoryMap): Promise<Scr
   }
   const imageUrls = Array.from(imgUrls).slice(0, 10);
 
-  const slug = makeSlug(name, url);
+  const slug = makeEnglishSlug({ name, brand, categoryId: cat.newId, stableKey: url });
+  const fileBase = safeFilenameFromName(name);
   const localImages: string[] = [];
   for (let i = 0; i < imageUrls.length; i++) {
     const u = imageUrls[i];
     const ext = (path.extname(new URL(u).pathname).toLowerCase() || '.jpg').slice(0, 5);
-    const fileName = `${slug}-${i + 1}${ext}`;
+    const fileName = `${fileBase}-${i + 1}${ext}`;
     const localRel = `${cat.newId}/${fileName}`;
     const localAbs = path.join(IMG_DIR, localRel);
     try {
