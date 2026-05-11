@@ -49,7 +49,7 @@ const EMPTY: FormState = {
   contact_city: 'Москва',
   contact_hours: 'Пн–Пт 10:00–18:00, по предварительной договорённости',
   legal_name: 'ИП Исмагилов К.Я.',
-  legal_full_name: 'Исмагилов Кирилл Яковлевич',
+  legal_full_name: 'Исмагилов Константин Яковлевич',
   legal_inn: '',
   legal_ogrnip: '',
   legal_address: '',
@@ -189,7 +189,7 @@ export default function AdminSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">ФИО полностью</label>
-                <input className={fieldClass} value={form.legal_full_name} onChange={(e) => set('legal_full_name', e.target.value)} placeholder="Исмагилов Кирилл Яковлевич" />
+                <input className={fieldClass} value={form.legal_full_name} onChange={(e) => set('legal_full_name', e.target.value)} placeholder="Исмагилов Константин Яковлевич" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">ИНН</label>

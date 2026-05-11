@@ -18,7 +18,7 @@ export interface SiteContacts {
   hours: string;
   // Legal entity
   legalName: string;        // e.g. "ИП Исмагилов К.Я."
-  legalFullName: string;    // e.g. "Исмагилов Кирилл Яковлевич"
+  legalFullName: string;    // e.g. "Исмагилов Константин Яковлевич"
   inn: string;
   ogrnip: string;
   legalAddress: string;
@@ -37,7 +37,7 @@ export const DEFAULT_CONTACTS: SiteContacts = {
   city: 'Москва',
   hours: 'Пн–Пт 10:00–18:00, по предварительной договорённости',
   legalName: 'ИП Исмагилов К.Я.',
-  legalFullName: 'Исмагилов Кирилл Яковлевич',
+  legalFullName: 'Исмагилов Константин Яковлевич',
   inn: '',
   ogrnip: '',
   legalAddress: '',
