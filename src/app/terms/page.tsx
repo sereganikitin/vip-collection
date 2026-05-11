@@ -1,0 +1,132 @@
+import type { Metadata } from 'next';
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { INDEXABLE_ROBOTS } from '@/lib/seo';
+import { getSiteContacts } from '@/lib/settings';
+
+export const metadata: Metadata = {
+  robots: INDEXABLE_ROBOTS,
+  title: 'Договор-оферта на продажу товаров',
+  description:
+    'Публичный договор-оферта розничной купли-продажи товаров через сайт vipcoll.ru. Условия заказа, оплаты, доставки, возврата.',
+  alternates: { canonical: 'https://vipcoll.ru/terms' },
+};
+
+export default async function TermsPage() {
+  const c = await getSiteContacts();
+  const today = new Date();
+  const effectiveDate = today.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-6">
+      <nav className="flex items-center gap-2 text-sm text-text-muted mb-6">
+        <Link href="/" className="hover:text-accent transition-colors">Главная</Link>
+        <ChevronRight size={14} />
+        <span className="text-text font-medium">Договор-оферта</span>
+      </nav>
+
+      <article className="bg-surface rounded-xl border border-border p-6 md:p-10 prose prose-sm max-w-none">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Публичный договор-оферта</h1>
+        <p className="text-text-muted text-sm mb-8">Редакция от {effectiveDate}</p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">1. Общие положения</h2>
+        <p>
+          Настоящий документ является публичной офертой (далее — «Оферта») <strong>{c.legalName}</strong>
+          {c.inn && `, ИНН ${c.inn}`}
+          {c.ogrnip && `, ОГРНИП ${c.ogrnip}`} (далее — «Продавец»), и адресован любому
+          дееспособному физическому лицу (далее — «Покупатель»), оформляющему заказ через сайт
+          <strong> https://vipcoll.ru</strong> (далее — «Сайт»).
+        </p>
+        <p>
+          Полным и безоговорочным принятием условий настоящей Оферты (акцептом) является оформление
+          Покупателем заказа на Сайте. Договор розничной купли-продажи считается заключённым с момента
+          подтверждения заказа Продавцом.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">2. Предмет договора</h2>
+        <p>
+          Продавец обязуется передать в собственность Покупателя товар, выбранный из ассортимента,
+          представленного на Сайте, а Покупатель обязуется оплатить и принять товар на условиях
+          настоящей Оферты.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">3. Цена товара и порядок оплаты</h2>
+        <p>
+          Цена товара указывается на Сайте в рублях РФ и включает все необходимые налоги. Продавец
+          вправе изменить цену до момента подтверждения заказа. После подтверждения цена изменению не
+          подлежит.
+        </p>
+        <p>Оплата производится одним из следующих способов:</p>
+        <ul className="list-disc pl-6 space-y-1">
+          <li>банковской картой онлайн через защищённый платёжный шлюз;</li>
+          <li>переводом по СБП по QR-коду;</li>
+          <li>наличными или картой курьеру при получении (в пределах Москвы);</li>
+          <li>наличными или картой при самовывозе.</li>
+        </ul>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">4. Доставка и самовывоз</h2>
+        <p>
+          Доставка осуществляется силами Продавца или привлечённых им курьерских служб в пределах
+          Москвы и Московской области. Самовывоз — бесплатно, по адресу: {c.addressFull}, по
+          предварительному согласованию. Сроки и стоимость доставки уточняются Продавцом при
+          подтверждении заказа.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">5. Возврат и обмен</h2>
+        <p>
+          В соответствии с Законом РФ «О защите прав потребителей» и Постановлением Правительства РФ
+          № 612, Покупатель вправе отказаться от товара надлежащего качества в течение 7 дней после
+          получения, а при дистанционном способе продажи — в любое время до его передачи. Возврат
+          возможен при условии сохранения товарного вида, потребительских свойств, ярлыков и
+          документа, подтверждающего покупку. Возврат не распространяется на товары, изготовленные по
+          индивидуальному заказу.
+        </p>
+        <p>
+          При обнаружении недостатков товара Покупатель вправе предъявить требования, предусмотренные
+          статьёй 18 Закона «О защите прав потребителей».
+        </p>
+        <p>Возврат денежных средств производится в течение 10 рабочих дней с момента поступления товара Продавцу.</p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">6. Гарантия</h2>
+        <p>
+          На все товары распространяется гарантия производителя сроком 1 год, если иное не указано в
+          описании конкретного товара. Гарантийный ремонт (замена колёс, ручек, замков для чемоданов)
+          осуществляется в сервисном центре Продавца по адресу: {c.addressFull}.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">7. Ответственность сторон</h2>
+        <p>
+          Стороны несут ответственность в соответствии с законодательством Российской Федерации.
+          Продавец не несёт ответственность за ущерб, возникший вследствие неправильной эксплуатации
+          товара Покупателем.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">8. Персональные данные</h2>
+        <p>
+          Оформляя заказ, Покупатель даёт согласие на обработку своих персональных данных в
+          соответствии с{' '}
+          <Link className="text-accent hover:underline" href="/privacy">Политикой обработки персональных данных</Link>.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">9. Разрешение споров</h2>
+        <p>
+          Споры решаются путём переговоров. При недостижении согласия спор подлежит рассмотрению в
+          порядке, установленном законодательством РФ, по месту жительства Покупателя или по выбору
+          истца.
+        </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">10. Реквизиты Продавца</h2>
+        <p>
+          <strong>{c.legalName}</strong>
+          {c.legalFullName && <><br />{c.legalFullName}</>}
+          {c.inn && <><br />ИНН: {c.inn}</>}
+          {c.ogrnip && <><br />ОГРНИП: {c.ogrnip}</>}
+          {c.legalAddress && <><br />Адрес: {c.legalAddress}</>}
+          {c.addressFull && !c.legalAddress && <><br />Фактический адрес: {c.addressFull}</>}
+          <br />Телефон: <a className="text-accent hover:underline" href={`tel:${c.phone}`}>{c.phoneDisplay}</a>
+          <br />Email: <a className="text-accent hover:underline" href={`mailto:${c.email}`}>{c.email}</a>
+        </p>
+      </article>
+    </div>
+  );
+}

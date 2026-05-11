@@ -6,19 +6,61 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LogOut, ArrowLeft, Save, CheckCircle } from 'lucide-react';
 
+interface FormState {
+  // notification + smtp
+  admin_email: string;
+  smtp_host: string;
+  smtp_port: string;
+  smtp_user: string;
+  smtp_pass: string;
+  smtp_from: string;
+  // contacts
+  contact_phone: string;
+  contact_phone_display: string;
+  contact_email: string;
+  contact_telegram_url: string;
+  contact_telegram_username: string;
+  contact_whatsapp_url: string;
+  contact_address_full: string;
+  contact_address_short: string;
+  contact_postal_code: string;
+  contact_city: string;
+  contact_hours: string;
+  // legal
+  legal_name: string;
+  legal_full_name: string;
+  legal_inn: string;
+  legal_ogrnip: string;
+  legal_address: string;
+}
+
+const EMPTY: FormState = {
+  admin_email: 'k959em177@gmail.com',
+  smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
+  contact_phone: '+79175741130',
+  contact_phone_display: '+7 (917) 574-11-30',
+  contact_email: 'vipcoll@mail.ru',
+  contact_telegram_url: 'https://t.me/VIP_CHEMODAN',
+  contact_telegram_username: '@VIP_CHEMODAN',
+  contact_whatsapp_url: 'https://wa.me/79175741130',
+  contact_address_full: '115088, г. Москва, Сормовский проезд, д. 11, стр. 1',
+  contact_address_short: 'Москва, Сормовский пр-д, 11, стр. 1',
+  contact_postal_code: '115088',
+  contact_city: 'Москва',
+  contact_hours: 'Пн–Пт 10:00–18:00, по предварительной договорённости',
+  legal_name: 'ИП Исмагилов К.Я.',
+  legal_full_name: 'Исмагилов Кирилл Яковлевич',
+  legal_inn: '',
+  legal_ogrnip: '',
+  legal_address: '',
+};
+
 export default function AdminSettings() {
   const { status } = useSession();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState({
-    admin_email: 'k959em177@gmail.com',
-    smtp_host: '',
-    smtp_port: '587',
-    smtp_user: '',
-    smtp_pass: '',
-    smtp_from: '',
-  });
+  const [form, setForm] = useState<FormState>(EMPTY);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/admin/login');
@@ -30,6 +72,10 @@ export default function AdminSettings() {
       });
     }
   }, [status, router]);
+
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +94,8 @@ export default function AdminSettings() {
   if (status !== 'authenticated') {
     return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
   }
+
+  const fieldClass = 'w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm';
 
   return (
     <div className="min-h-screen bg-bg">
@@ -77,59 +125,125 @@ export default function AdminSettings() {
         </div>
 
         <form onSubmit={handleSave} className="space-y-6">
-          {/* Admin Email */}
+          {/* Контакты */}
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h3 className="font-semibold mb-1">Контакты в футере и на странице «Контакты»</h3>
+            <p className="text-xs text-text-muted mb-4">Эти значения подставляются автоматически везде: футер, страница контактов, юр.документы.</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Телефон (tel:)</label>
+                <input className={fieldClass} value={form.contact_phone} onChange={(e) => set('contact_phone', e.target.value)} placeholder="+79175741130" />
+                <p className="text-xs text-text-muted mt-1">Без пробелов, для ссылки tel:</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Телефон (отображение)</label>
+                <input className={fieldClass} value={form.contact_phone_display} onChange={(e) => set('contact_phone_display', e.target.value)} placeholder="+7 (917) 574-11-30" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input className={fieldClass} value={form.contact_email} onChange={(e) => set('contact_email', e.target.value)} placeholder="vipcoll@mail.ru" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Город</label>
+                <input className={fieldClass} value={form.contact_city} onChange={(e) => set('contact_city', e.target.value)} placeholder="Москва" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Telegram URL</label>
+                <input className={fieldClass} value={form.contact_telegram_url} onChange={(e) => set('contact_telegram_url', e.target.value)} placeholder="https://t.me/..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Telegram username</label>
+                <input className={fieldClass} value={form.contact_telegram_username} onChange={(e) => set('contact_telegram_username', e.target.value)} placeholder="@VIP_CHEMODAN" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">WhatsApp URL</label>
+                <input className={fieldClass} value={form.contact_whatsapp_url} onChange={(e) => set('contact_whatsapp_url', e.target.value)} placeholder="https://wa.me/..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Почтовый индекс</label>
+                <input className={fieldClass} value={form.contact_postal_code} onChange={(e) => set('contact_postal_code', e.target.value)} placeholder="115088" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Адрес (полный)</label>
+                <input className={fieldClass} value={form.contact_address_full} onChange={(e) => set('contact_address_full', e.target.value)} placeholder="115088, г. Москва, Сормовский пр-д, д. 11, стр. 1" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Адрес (короткий, для футера)</label>
+                <input className={fieldClass} value={form.contact_address_short} onChange={(e) => set('contact_address_short', e.target.value)} placeholder="Москва, Сормовский пр-д, 11, стр. 1" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Режим работы</label>
+                <input className={fieldClass} value={form.contact_hours} onChange={(e) => set('contact_hours', e.target.value)} placeholder="Пн–Пт 10:00–18:00, по предварительной договорённости" />
+              </div>
+            </div>
+          </div>
+
+          {/* Реквизиты */}
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h3 className="font-semibold mb-1">Реквизиты продавца</h3>
+            <p className="text-xs text-text-muted mb-4">Используются в футере, договоре-оферте, политике обработки ПД и на странице контактов.</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Юр. наименование</label>
+                <input className={fieldClass} value={form.legal_name} onChange={(e) => set('legal_name', e.target.value)} placeholder="ИП Исмагилов К.Я." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ФИО полностью</label>
+                <input className={fieldClass} value={form.legal_full_name} onChange={(e) => set('legal_full_name', e.target.value)} placeholder="Исмагилов Кирилл Яковлевич" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ИНН</label>
+                <input className={fieldClass} value={form.legal_inn} onChange={(e) => set('legal_inn', e.target.value)} placeholder="770000000000" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ОГРНИП</label>
+                <input className={fieldClass} value={form.legal_ogrnip} onChange={(e) => set('legal_ogrnip', e.target.value)} placeholder="320000000000000" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Юридический адрес</label>
+                <input className={fieldClass} value={form.legal_address} onChange={(e) => set('legal_address', e.target.value)} placeholder="Если отличается от фактического" />
+              </div>
+            </div>
+          </div>
+
+          {/* Уведомления */}
           <div className="bg-surface rounded-xl border border-border p-6">
             <h3 className="font-semibold mb-4">Уведомления о заказах</h3>
             <div>
-              <label className="block text-sm font-medium mb-1">Email для уведомлений *</label>
-              <input type="email" required value={form.admin_email}
-                onChange={(e) => setForm({ ...form, admin_email: e.target.value })}
-                className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
-              <p className="text-xs text-text-muted mt-1">На этот адрес будут приходить уведомления о новых заказах</p>
+              <label className="block text-sm font-medium mb-1">Email для уведомлений</label>
+              <input className={fieldClass} type="email" value={form.admin_email} onChange={(e) => set('admin_email', e.target.value)} required />
+              <p className="text-xs text-text-muted mt-1">На этот адрес приходят уведомления о новых заказах</p>
             </div>
           </div>
 
-          {/* SMTP Settings */}
+          {/* SMTP */}
           <div className="bg-surface rounded-xl border border-border p-6">
             <h3 className="font-semibold mb-4">Настройки почты (SMTP)</h3>
-            <p className="text-sm text-text-muted mb-4">
-              Для отправки уведомлений нужно указать SMTP-сервер. Можно использовать Gmail, Yandex, Mail.ru и др.
-            </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">SMTP-сервер</label>
-                <input type="text" value={form.smtp_host} placeholder="smtp.gmail.com"
-                  onChange={(e) => setForm({ ...form, smtp_host: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
+                <input className={fieldClass} value={form.smtp_host} onChange={(e) => set('smtp_host', e.target.value)} placeholder="smtp.gmail.com" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Порт</label>
-                <input type="text" value={form.smtp_port} placeholder="587"
-                  onChange={(e) => setForm({ ...form, smtp_port: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
+                <input className={fieldClass} value={form.smtp_port} onChange={(e) => set('smtp_port', e.target.value)} placeholder="587" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Логин (email)</label>
-                <input type="text" value={form.smtp_user} placeholder="your@gmail.com"
-                  onChange={(e) => setForm({ ...form, smtp_user: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
+                <label className="block text-sm font-medium mb-1">Логин</label>
+                <input className={fieldClass} value={form.smtp_user} onChange={(e) => set('smtp_user', e.target.value)} placeholder="your@gmail.com" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Пароль приложения</label>
-                <input type="password" value={form.smtp_pass}
-                  onChange={(e) => setForm({ ...form, smtp_pass: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
+                <input className={fieldClass} type="password" value={form.smtp_pass} onChange={(e) => set('smtp_pass', e.target.value)} />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Адрес отправителя</label>
-                <input type="email" value={form.smtp_from} placeholder="noreply@vip-collection.ru"
-                  onChange={(e) => setForm({ ...form, smtp_from: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent text-sm" />
+                <input className={fieldClass} type="email" value={form.smtp_from} onChange={(e) => set('smtp_from', e.target.value)} placeholder="noreply@vipcoll.ru" />
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pb-4">
             <button type="submit" disabled={saving}
               className="flex items-center gap-2 px-6 py-2.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50">
               <Save size={18} /> {saving ? 'Сохранение...' : 'Сохранить настройки'}

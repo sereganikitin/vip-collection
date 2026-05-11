@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Phone, Mail, MapPin, Send } from 'lucide-react';
+import type { SiteContacts } from '@/lib/settings';
 
-export default function Footer() {
+export default function Footer({ contacts }: { contacts: SiteContacts }) {
   return (
     <footer className="bg-primary text-white mt-auto">
       <div className="mx-auto max-w-7xl px-4 py-12">
@@ -16,17 +17,19 @@ export default function Footer() {
               Интернет-магазин кожгалантереи, чемоданов и аксессуаров для путешествий.
               Собственные бренды и лучшие мировые производители.
             </p>
-            <div className="flex gap-3">
-              <a
-                href="https://t.me/VIP_CHEMODAN"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
-                aria-label="Telegram"
-              >
-                <Send size={16} />
-              </a>
-            </div>
+            {contacts.telegramUrl && (
+              <div className="flex gap-3">
+                <a
+                  href={contacts.telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
+                  aria-label="Telegram"
+                >
+                  <Send size={16} />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Catalog */}
@@ -51,6 +54,8 @@ export default function Footer() {
               <li><Link href="/wholesale" className="hover:text-accent transition-colors">Оптовикам</Link></li>
               <li><Link href="/repair" className="hover:text-accent transition-colors">Ремонт</Link></li>
               <li><Link href="/pickup" className="hover:text-accent transition-colors">Где купить</Link></li>
+              <li><Link href="/privacy" className="hover:text-accent transition-colors">Политика конфиденциальности</Link></li>
+              <li><Link href="/terms" className="hover:text-accent transition-colors">Договор-оферта</Link></li>
             </ul>
           </div>
 
@@ -61,17 +66,17 @@ export default function Footer() {
               <li className="flex items-start gap-2">
                 <Phone size={16} className="mt-0.5 flex-shrink-0 text-accent" />
                 <div>
-                  <a href="tel:+79175741130" className="hover:text-accent transition-colors">+7 (917) 574-11-30</a>
+                  <a href={`tel:${contacts.phone}`} className="hover:text-accent transition-colors">{contacts.phoneDisplay}</a>
                   <p className="text-xs text-gray-500">WhatsApp / Telegram</p>
                 </div>
               </li>
               <li className="flex items-start gap-2">
                 <Mail size={16} className="mt-0.5 flex-shrink-0 text-accent" />
-                <a href="mailto:vipcoll@mail.ru" className="hover:text-accent transition-colors">vipcoll@mail.ru</a>
+                <a href={`mailto:${contacts.email}`} className="hover:text-accent transition-colors">{contacts.email}</a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin size={16} className="mt-0.5 flex-shrink-0 text-accent" />
-                <span>115088, Москва, Сормовский пр-д, 11, стр. 1</span>
+                <span>{contacts.addressFull}</span>
               </li>
             </ul>
           </div>
@@ -79,7 +84,11 @@ export default function Footer() {
 
         <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-gray-500">
           <p>&copy; {new Date().getFullYear()} VIP COLLECTION. Все права защищены.</p>
-          <p>ИП Исмагилов К.Я.</p>
+          <p>
+            {contacts.legalName}
+            {contacts.inn && ` · ИНН ${contacts.inn}`}
+            {contacts.ogrnip && ` · ОГРНИП ${contacts.ogrnip}`}
+          </p>
         </div>
       </div>
     </footer>

@@ -19,6 +19,7 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '',
     delivery: 'courier', address: '', comment: '',
+    consent: false,
   });
 
   function updateField(field: string, value: string) {
@@ -59,6 +60,10 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.consent) {
+      setError('Подтвердите согласие на обработку персональных данных');
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -175,6 +180,24 @@ export default function CheckoutPage() {
               <textarea rows={3} value={form.comment} onChange={(e) => updateField('comment', e.target.value)}
                 placeholder="Дополнительная информация к заказу..."
                 className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent resize-none" />
+            </div>
+
+            <div className="bg-surface rounded-xl border border-border p-6">
+              <label className="flex items-start gap-3 cursor-pointer text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.consent}
+                  onChange={(e) => setForm((f) => ({ ...f, consent: e.target.checked }))}
+                  required
+                  className="mt-1 w-4 h-4 accent-accent flex-shrink-0"
+                />
+                <span className="text-text-muted">
+                  Оформляя заказ, я соглашаюсь с условиями{' '}
+                  <Link href="/terms" target="_blank" className="text-accent hover:underline">договора-оферты</Link>{' '}
+                  и даю согласие на обработку своих персональных данных согласно{' '}
+                  <Link href="/privacy" target="_blank" className="text-accent hover:underline">Политике конфиденциальности</Link>.
+                </span>
+              </label>
             </div>
           </div>
 

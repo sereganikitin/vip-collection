@@ -6,6 +6,8 @@ import Footer from '@/components/layout/Footer';
 import { CartProvider } from '@/context/CartContext';
 import YandexMetrika from '@/components/YandexMetrika';
 import { getCategoriesForFrontend } from '@/lib/categories';
+import { getSiteContacts } from '@/lib/settings';
+import CookieBanner from '@/components/CookieBanner';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -88,15 +90,19 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const categories = await getCategoriesForFrontend();
+  const [categories, contacts] = await Promise.all([
+    getCategoriesForFrontend(),
+    getSiteContacts(),
+  ]);
   return (
     <html lang="ru" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
         <CartProvider>
           <Header categories={categories} />
           <main className="flex-1">{children}</main>
-          <Footer />
+          <Footer contacts={contacts} />
         </CartProvider>
+        <CookieBanner />
         <YandexMetrika />
       </body>
     </html>
