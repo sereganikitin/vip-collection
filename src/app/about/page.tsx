@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { INDEXABLE_ROBOTS } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  robots: INDEXABLE_ROBOTS,
   title: 'О компании VIP COLLECTION — итальянские традиции качества',
   description:
     'VIP COLLECTION — российский интернет-магазин чемоданов и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT. Корни в Италии, производство в Тоскане. Магазин в Москве на Сормовском проезде.',

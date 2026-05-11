@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { ChevronRight, MapPin, Phone, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { INDEXABLE_ROBOTS } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  robots: INDEXABLE_ROBOTS,
   title: 'Где купить чемоданы VIP COLLECTION в Москве — самовывоз',
   description:
     'Магазин-склад VIP COLLECTION в Москве: Сормовский проезд, 11, стр. 1. Самовывоз заказов, осмотр товара, консультация по выбору чемодана. Удобный подъезд, метро Кожуховская / Печатники.',

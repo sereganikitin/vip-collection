@@ -3,9 +3,10 @@ import { ChevronRight, Truck, MapPin, CreditCard, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { DELIVERY_FAQ } from '@/data/seo-content';
 import JsonLd from '@/components/JsonLd';
-import { SITE_URL, SITE_NAME, buildBreadcrumbList } from '@/lib/seo';
+import { SITE_URL, SITE_NAME, buildBreadcrumbList, INDEXABLE_ROBOTS } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  robots: INDEXABLE_ROBOTS,
   title: 'Доставка по Москве и Подмосковью, самовывоз',
   description:
     'Доставка чемоданов, сумок и кожгалантереи по Москве курьером (от 100 ₽), бесплатно от 20 000 ₽ в пределах МКАД. Курьер в Подмосковье — расчёт по адресу. Самовывоз — Сормовский проезд 11. Оплата картой и наличными.',

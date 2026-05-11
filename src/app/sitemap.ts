@@ -1,6 +1,18 @@
 import type { MetadataRoute } from 'next';
 
-// Secondary site — closed from indexing. Sitemap intentionally empty.
+// Only the pages opened for indexing (home + content). Catalog and product
+// pages stay out of the sitemap because each carries a noindex <meta>.
+const BASE_URL = 'https://vipcoll.ru';
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [];
+  const now = new Date();
+  return [
+    { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
+    { url: `${BASE_URL}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/delivery`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/pickup`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/repair`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/wholesale`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${BASE_URL}/contacts`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+  ];
 }

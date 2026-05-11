@@ -1,15 +1,18 @@
 import type { MetadataRoute } from 'next';
 
-// Secondary site — closed from indexing. Primary site is vip-collection.ru.
-// Yandex.Market feed (/feed.xml) is allowed so the merchant cabinet can pull it.
+// Secondary site — most pages are noindex via <meta>. robots.txt itself
+// allows crawling so search engines can fetch the open pages (home and
+// content pages), and follow noindex meta on catalog/product pages.
+// Admin and API are always closed.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
-        disallow: '/',
-        allow: '/feed.xml',
+        allow: '/',
+        disallow: ['/admin', '/admin/*', '/api/*', '/cart', '/checkout'],
       },
     ],
+    sitemap: 'https://vipcoll.ru/sitemap.xml',
   };
 }

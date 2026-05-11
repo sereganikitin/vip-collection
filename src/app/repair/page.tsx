@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { ChevronRight, Wrench, Settings, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
+import { INDEXABLE_ROBOTS } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  robots: INDEXABLE_ROBOTS,
   title: 'Ремонт чемоданов в Москве — VIP COLLECTION',
   description:
     'Ремонт чемоданов VIP COLLECTION, ARISTOCRAT и других брендов в Москве. Замена колёс, ручек, замков, телескопических ручек. Сервисный центр на Сормовском проезде, 11. Гарантийный ремонт бесплатно.',
