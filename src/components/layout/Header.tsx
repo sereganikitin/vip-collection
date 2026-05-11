@@ -5,6 +5,7 @@ import { ShoppingBag, Phone, Mail, Search, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import type { CategoryView } from '@/lib/categories';
+import type { SiteContacts } from '@/lib/settings';
 
 const SHORT_NAMES: Record<string, string> = {
   'suitcases': 'Чемоданы',
@@ -20,7 +21,7 @@ const SHORT_NAMES: Record<string, string> = {
   'sale': 'РАСПРОДАЖА',
 };
 
-export default function Header({ categories }: { categories: CategoryView[] }) {
+export default function Header({ categories, contacts }: { categories: CategoryView[]; contacts: SiteContacts }) {
   const { totalItems } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -32,13 +33,13 @@ export default function Header({ categories }: { categories: CategoryView[] }) {
       <div className="bg-primary text-white">
         <div className="mx-auto max-w-7xl px-4 py-2 flex items-center justify-between text-sm">
           <div className="hidden sm:flex items-center gap-6">
-            <a href="tel:+79175741130" className="flex items-center gap-1.5 hover:text-accent transition-colors">
+            <a href={`tel:${contacts.phone}`} className="flex items-center gap-1.5 hover:text-accent transition-colors">
               <Phone size={14} />
-              +7 (917) 574-11-30
+              {contacts.phoneDisplay}
             </a>
-            <a href="mailto:vipcoll@mail.ru" className="flex items-center gap-1.5 hover:text-accent transition-colors">
+            <a href={`mailto:${contacts.email}`} className="flex items-center gap-1.5 hover:text-accent transition-colors">
               <Mail size={14} />
-              vipcoll@mail.ru
+              {contacts.email}
             </a>
           </div>
           <nav className="flex items-center gap-4">
@@ -162,8 +163,8 @@ export default function Header({ categories }: { categories: CategoryView[] }) {
                 </li>
               ))}
               <li className="sm:hidden">
-                <a href="tel:+79175741130" className="block py-3 text-sm text-text-muted">
-                  +7 (917) 574-11-30
+                <a href={`tel:${contacts.phone}`} className="block py-3 text-sm text-text-muted">
+                  {contacts.phoneDisplay}
                 </a>
               </li>
             </ul>

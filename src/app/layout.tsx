@@ -98,7 +98,7 @@ export default async function RootLayout({
     <html lang="ru" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
         <CartProvider>
-          <Header categories={categories} />
+          <Header categories={categories} contacts={contacts} />
           <main className="flex-1">{children}</main>
           <Footer contacts={contacts} />
         </CartProvider>
