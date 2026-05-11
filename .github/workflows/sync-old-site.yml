@@ -43,14 +43,14 @@ jobs:
 
       - name: Upload scrape result to server
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'rm -rf /var/lib/vip-sync && mkdir -p /var/lib/vip-sync'
-          rsync -az --delete tmp-recon/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/lib/vip-sync/
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'rm -rf ~/vip-sync && mkdir -p ~/vip-sync'
+          rsync -az --delete tmp-recon/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:vip-sync/
 
       - name: Run sync on server
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '
             cd /var/www/vip-collection &&
-            npx tsx scripts/sync-old-products.ts /var/lib/vip-sync/products.json /var/lib/vip-sync/images
+            npx tsx scripts/sync-old-products.ts ~/vip-sync/products.json ~/vip-sync/images
           ' 2>&1 | tee sync.log
 
       - name: Upload sync log as artifact
