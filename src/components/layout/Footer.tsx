@@ -33,12 +33,12 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-lg mb-4">Каталог</h3>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li><Link href="/catalog/chemodany" className="hover:text-accent transition-colors">Чемоданы</Link></li>
-              <li><Link href="/catalog/sumki-zhenskie" className="hover:text-accent transition-colors">Сумки женские</Link></li>
-              <li><Link href="/catalog/portfeli" className="hover:text-accent transition-colors">Портфели</Link></li>
-              <li><Link href="/catalog/ryukzaki" className="hover:text-accent transition-colors">Рюкзаки</Link></li>
-              <li><Link href="/catalog/portmone" className="hover:text-accent transition-colors">Портмоне</Link></li>
-              <li><Link href="/catalog/rasprodazha" className="hover:text-accent transition-colors text-danger font-medium">Распродажа</Link></li>
+              <li><Link href="/catalog/suitcases" className="hover:text-accent transition-colors">Чемоданы</Link></li>
+              <li><Link href="/catalog/women-bags" className="hover:text-accent transition-colors">Сумки женские</Link></li>
+              <li><Link href="/catalog/briefcases" className="hover:text-accent transition-colors">Портфели</Link></li>
+              <li><Link href="/catalog/backpacks" className="hover:text-accent transition-colors">Рюкзаки</Link></li>
+              <li><Link href="/catalog/wallets" className="hover:text-accent transition-colors">Портмоне</Link></li>
+              <li><Link href="/catalog/sale" className="hover:text-accent transition-colors text-danger font-medium">Распродажа</Link></li>
             </ul>
           </div>
 
@@ -47,10 +47,10 @@ export default function Footer() {
             <h3 className="font-semibold text-lg mb-4">Информация</h3>
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link href="/about" className="hover:text-accent transition-colors">О компании</Link></li>
-              <li><Link href="/dostavka" className="hover:text-accent transition-colors">Доставка</Link></li>
-              <li><Link href="/optovikam" className="hover:text-accent transition-colors">Оптовикам</Link></li>
-              <li><Link href="/remont" className="hover:text-accent transition-colors">Ремонт</Link></li>
-              <li><Link href="/samovyvoz" className="hover:text-accent transition-colors">Где купить</Link></li>
+              <li><Link href="/delivery" className="hover:text-accent transition-colors">Доставка</Link></li>
+              <li><Link href="/wholesale" className="hover:text-accent transition-colors">Оптовикам</Link></li>
+              <li><Link href="/repair" className="hover:text-accent transition-colors">Ремонт</Link></li>
+              <li><Link href="/pickup" className="hover:text-accent transition-colors">Где купить</Link></li>
             </ul>
           </div>
 

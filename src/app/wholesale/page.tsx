@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     'оптовый поставщик чемоданов', 'дистрибуция VIP COLLECTION',
     'опт Москва', 'B2B чемоданы', 'оптовая продажа сумок',
   ],
-  alternates: { canonical: 'https://vipcoll.ru/optovikam' },
+  alternates: { canonical: 'https://vipcoll.ru/wholesale' },
   openGraph: {
     title: 'Чемоданы и сумки оптом — VIP COLLECTION',
     description: 'Опт для торговых компаний, ИП и интернет-магазинов. Индивидуальные цены, отгрузка со склада в Москве.',
-    url: 'https://vipcoll.ru/optovikam',
+    url: 'https://vipcoll.ru/wholesale',
     type: 'website',
     locale: 'ru_RU',
   },

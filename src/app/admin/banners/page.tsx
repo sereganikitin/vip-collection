@@ -139,7 +139,7 @@ export default function AdminBanners() {
           type="text"
           value={form.link}
           onChange={(e) => setForm({ ...form, link: e.target.value })}
-          placeholder="/catalog/chemodany"
+          placeholder="/catalog/suitcases"
           className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm"
         />
       </div>

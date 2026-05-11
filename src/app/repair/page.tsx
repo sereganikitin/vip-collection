@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     'замена ручки чемодана', 'починить чемодан', 'сервис чемоданов',
     'мастерская чемоданов Москва', 'VIP COLLECTION ремонт', 'ARISTOCRAT сервис',
   ],
-  alternates: { canonical: 'https://vipcoll.ru/remont' },
+  alternates: { canonical: 'https://vipcoll.ru/repair' },
   openGraph: {
     title: 'Ремонт чемоданов в Москве — VIP COLLECTION',
     description: 'Замена колёс, ручек, замков. Сервисный центр на Сормовском проезде, 11.',
-    url: 'https://vipcoll.ru/remont',
+    url: 'https://vipcoll.ru/repair',
     type: 'website',
     locale: 'ru_RU',
   },
@@ -62,7 +62,7 @@ export default function RepairPage() {
             В нашем каталоге представлен широкий выбор запчастей: колёса, ручки, замки и другие комплектующие.
           </p>
           <Link
-            href="/catalog/zapchasti"
+            href="/catalog/parts"
             className="inline-flex items-center gap-2 text-sm text-accent font-medium hover:underline"
           >
             Перейти в раздел запчастей

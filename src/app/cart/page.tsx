@@ -19,7 +19,7 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold mb-3">Корзина пуста</h1>
         <p className="text-text-muted mb-6">Добавьте товары из каталога</p>
         <Link
-          href="/catalog/chemodany"
+          href="/catalog/suitcases"
           className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors"
         >
           Перейти в каталог

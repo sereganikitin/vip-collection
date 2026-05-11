@@ -107,9 +107,9 @@ export default function CatalogContent({ slug, seo, categories, items }: Catalog
 
             <h3 className="font-semibold text-lg mb-4">Информация</h3>
             <ul className="space-y-1 text-sm">
-              <li><Link href="/dostavka" className="block px-3 py-2 rounded-lg text-text-muted hover:bg-gray-50 hover:text-text transition-colors">Доставка</Link></li>
-              <li><Link href="/remont" className="block px-3 py-2 rounded-lg text-text-muted hover:bg-gray-50 hover:text-text transition-colors">Ремонт</Link></li>
-              <li><Link href="/optovikam" className="block px-3 py-2 rounded-lg text-text-muted hover:bg-gray-50 hover:text-text transition-colors">Оптовикам</Link></li>
+              <li><Link href="/delivery" className="block px-3 py-2 rounded-lg text-text-muted hover:bg-gray-50 hover:text-text transition-colors">Доставка</Link></li>
+              <li><Link href="/repair" className="block px-3 py-2 rounded-lg text-text-muted hover:bg-gray-50 hover:text-text transition-colors">Ремонт</Link></li>
+              <li><Link href="/wholesale" className="block px-3 py-2 rounded-lg text-text-muted hover:bg-gray-50 hover:text-text transition-colors">Оптовикам</Link></li>
             </ul>
           </div>
         </aside>

@@ -59,14 +59,14 @@ export default async function Home() {
                 </p>
                 <div className="flex flex-wrap gap-3 sm:gap-4 pointer-events-auto">
                   <Link
-                    href="/catalog/chemodany"
+                    href="/catalog/suitcases"
                     className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors text-sm sm:text-base shadow-lg"
                   >
                     В каталог
                     <ArrowRight size={18} />
                   </Link>
                   <Link
-                    href="/catalog/rasprodazha"
+                    href="/catalog/sale"
                     className="inline-flex items-center gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/15 transition-colors text-sm sm:text-base backdrop-blur-sm"
                   >
                     Акции и скидки
@@ -106,7 +106,7 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl md:text-3xl font-bold">Каталог</h2>
-          <Link href="/catalog/chemodany" className="text-accent font-medium hover:underline text-sm flex items-center gap-1">
+          <Link href="/catalog/suitcases" className="text-accent font-medium hover:underline text-sm flex items-center gap-1">
             Все категории <ArrowRight size={16} />
           </Link>
         </div>
@@ -168,7 +168,7 @@ export default async function Home() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Распродажа</h2>
             <p className="text-red-100 mb-6">Скидки до 45% на чемоданы и сумки из прошлых коллекций. Количество ограничено!</p>
             <Link
-              href="/catalog/rasprodazha"
+              href="/catalog/sale"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-danger font-semibold rounded-lg hover:bg-red-50 transition-colors"
             >
               Смотреть товары <ArrowRight size={18} />
@@ -194,7 +194,7 @@ export default async function Home() {
         <section className="mx-auto max-w-7xl px-4 py-12">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-danger">Распродажа</h2>
-            <Link href="/catalog/rasprodazha" className="text-accent font-medium hover:underline text-sm flex items-center gap-1">
+            <Link href="/catalog/sale" className="text-accent font-medium hover:underline text-sm flex items-center gap-1">
               Все товары <ArrowRight size={16} />
             </Link>
           </div>

@@ -43,7 +43,7 @@ export default function Header({ categories }: { categories: CategoryView[] }) {
           </div>
           <nav className="flex items-center gap-4">
             <Link href="/about" className="hover:text-accent transition-colors">О компании</Link>
-            <Link href="/dostavka" className="hover:text-accent transition-colors">Доставка</Link>
+            <Link href="/delivery" className="hover:text-accent transition-colors">Доставка</Link>
             <Link href="/contacts" className="hover:text-accent transition-colors">Контакты</Link>
           </nav>
         </div>

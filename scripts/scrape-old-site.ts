@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import * as cheerio from 'cheerio';
 import { makeEnglishSlug } from '../src/lib/slug';
+import { cleanDescription } from '../src/lib/clean-description';
 
 const BASE = 'https://www.vip-collection.ru';
 const OUT_DIR = path.resolve('tmp-recon');
@@ -132,7 +133,8 @@ async function scrapeProduct(productPath: string, cat: CategoryMap): Promise<Scr
   const price = parsePrice($('#block_price').first().text());
   const oldPrice = parsePrice($('#old_price').first().text());
 
-  const description = $('.jshop_prod_description').first().text().trim().replace(/\s+/g, ' ').slice(0, 4000);
+  const descriptionRaw = $('.jshop_prod_description').first().text().trim().replace(/\s+/g, ' ').slice(0, 8000);
+  const description = cleanDescription(descriptionRaw).slice(0, 4000);
 
   const specs: Record<string, string> = {};
   $('.extra_fields .name').each((_, el) => {

@@ -16,7 +16,7 @@ export interface CategorySeoContent {
 
 export const categorySeoContent: Record<string, CategorySeoContent> = {
   // =============== Чемоданы ===============
-  chemodany: {
+  suitcases: {
     metaTitle: 'Купить чемодан в Москве — VIP COLLECTION',
     metaDescription:
       'Чемоданы на колёсах из 100% поликарбоната под брендом VIP COLLECTION. Размеры S, M, L, наборы из 3 чемоданов. TSA-замок, 4 двойных колеса, телескопическая ручка. Самовывоз и курьер по Москве и Подмосковью, гарантия.',
@@ -60,7 +60,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Сумки женские David Jones ===============
-  'sumki-zhenskie': {
+  'women-bags': {
     metaTitle: 'Женские сумки David Jones — купить в Москве',
     metaDescription:
       'Женские сумки David Jones: классические сумки, кросс-боди, рюкзаки, тоут-бэги. Натуральная экокожа, актуальные цвета. Самовывоз — Сормовский проезд 11, курьер по Москве и Подмосковью.',
@@ -90,7 +90,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Портфели и сумки дорожные ===============
-  portfeli: {
+  briefcases: {
     metaTitle: 'Кожаные портфели и дорожные сумки — VIP COLLECTION',
     metaDescription:
       'Мужские кожаные портфели VIP COLLECTION и дорожные сумки из натуральной кожи. Классические и современные модели, отделения для ноутбука, документов. Натуральная итальянская кожа растительного дубления. Самовывоз и курьер по Москве и Подмосковью.',
@@ -120,7 +120,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Рюкзаки ===============
-  ryukzaki: {
+  backpacks: {
     metaTitle: 'Рюкзаки для ноутбука — купить в Москве',
     metaDescription:
       'Рюкзаки и сумки для ноутбука 14, 15.6, 17 дюймов: ARISTOCRAT, OLIDIK, VIP COLLECTION. Городские рюкзаки, рюкзаки-портфели, сумки через плечо. USB-разъём, водоотталкивающий нейлон, самовывоз и курьер по Москве.',
@@ -150,7 +150,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Портмоне и обложки ===============
-  portmone: {
+  wallets: {
     metaTitle: 'Портмоне и обложки из натуральной кожи — NERI KARRA',
     metaDescription:
       'Портмоне, кошельки, обложки для паспорта и автодокументов из натуральной кожи NERI KARRA. Турецкая кожа, RFID-защита, классические и современные модели. Самовывоз и курьер по Москве и Подмосковью.',
@@ -181,7 +181,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Чехлы ===============
-  chekhly: {
+  covers: {
     metaTitle: 'Чехлы для чемоданов — защита и стиль',
     metaDescription:
       'Эластичные чехлы для чемоданов размеров S (20"), M (24"), L (28"). Защита от царапин, грязи и повреждений в багажном отделении. Десятки расцветок и принтов, машинная стирка, самовывоз и курьер по Москве.',
@@ -206,7 +206,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Ремни ===============
-  remni: {
+  belts: {
     metaTitle: 'Кожаные мужские ремни — купить в Москве',
     metaDescription:
       'Мужские ремни из натуральной кожи. Классические и джинсовые модели, ширина 35-40 мм, длина 110-130 см. Прочные металлические пряжки, чёрные и коричневые расцветки.',
@@ -226,7 +226,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Сумки на пояс ===============
-  'sumki-na-poyas': {
+  'waist-bags': {
     metaTitle: 'Сумки на пояс — купить поясную сумку в Москве',
     metaDescription:
       'Поясные сумки и сумки через плечо. Лёгкие, водостойкие модели для спорта, путешествий и города. Регулируемый ремень, несколько отделений, разные расцветки.',
@@ -246,7 +246,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Запчасти ===============
-  zapchasti: {
+  parts: {
     metaTitle: 'Запчасти для чемоданов — колёса, ручки, замки',
     metaDescription:
       'Колёса, телескопические ручки, замки и другие запчасти для чемоданов VIP COLLECTION. Замена комплектующих, ремонт чемоданов в Москве. Совместимые модели и универсальные детали. Самовывоз и курьер по Москве.',
@@ -275,7 +275,7 @@ export const categorySeoContent: Record<string, CategorySeoContent> = {
   },
 
   // =============== Распродажа ===============
-  rasprodazha: {
+  sale: {
     metaTitle: 'Распродажа — скидки до 70% на чемоданы и сумки',
     metaDescription:
       'Распродажа: чемоданы, сумки, рюкзаки и аксессуары со скидками до 70%. Прошлогодние коллекции, единичные экземпляры, ликвидация остатков. Количество товаров ограничено.',

@@ -10,11 +10,11 @@ export const metadata: Metadata = {
     'где купить чемодан', 'магазин чемоданов Москва', 'самовывоз чемоданов',
     'Сормовский проезд 11', 'магазин кожгалантереи', 'офлайн магазин чемоданов',
   ],
-  alternates: { canonical: 'https://vipcoll.ru/samovyvoz' },
+  alternates: { canonical: 'https://vipcoll.ru/pickup' },
   openGraph: {
     title: 'Где купить чемоданы — Самовывоз VIP COLLECTION',
     description: 'Магазин-склад на Сормовском проезде, 11. Самовывоз и осмотр товара.',
-    url: 'https://vipcoll.ru/samovyvoz',
+    url: 'https://vipcoll.ru/pickup',
     type: 'website',
     locale: 'ru_RU',
   },

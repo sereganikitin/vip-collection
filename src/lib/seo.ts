@@ -58,7 +58,7 @@ export const WEBSITE_JSONLD = {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: `${SITE_URL}/catalog/chemodany?search={search_term_string}`,
+      urlTemplate: `${SITE_URL}/catalog/suitcases?search={search_term_string}`,
     },
     'query-input': 'required name=search_term_string',
   },

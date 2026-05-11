@@ -14,11 +14,11 @@ export const metadata: Metadata = {
     'самовывоз чемоданов москва', 'оплата при получении',
     'бесплатная доставка чемоданов', 'Сормовский проезд 11', 'доставка подмосковье',
   ],
-  alternates: { canonical: `${SITE_URL}/dostavka` },
+  alternates: { canonical: `${SITE_URL}/delivery` },
   openGraph: {
     title: 'Доставка по Москве и Подмосковью — VIP COLLECTION',
     description: 'Доставка по Москве от 100 ₽, бесплатно от 20 000 ₽. Самовывоз на Сормовском проезде.',
-    url: `${SITE_URL}/dostavka`,
+    url: `${SITE_URL}/delivery`,
     type: 'website',
     locale: 'ru_RU',
     siteName: SITE_NAME,
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 export default function DeliveryPage() {
   const breadcrumbJsonLd = buildBreadcrumbList([
     { name: 'Главная', url: SITE_URL },
-    { name: 'Доставка', url: `${SITE_URL}/dostavka` },
+    { name: 'Доставка', url: `${SITE_URL}/delivery` },
   ]);
 
   const faqJsonLd = {
@@ -130,7 +130,6 @@ export default function DeliveryPage() {
             </div>
           </div>
 
-          {/* FAQ block */}
           <section className="mt-10 pt-8 border-t border-border">
             <h2 className="text-2xl font-bold mb-4">Частые вопросы о доставке</h2>
             <div className="divide-y divide-border">
