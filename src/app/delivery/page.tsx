@@ -97,7 +97,7 @@ export default function DeliveryPage() {
                   Заберите заказ самостоятельно по адресу:<br />
                   <strong className="text-text">115088, Москва, Сормовский пр-д, 11, стр. 1</strong><br />
                   Предварительно согласуйте время визита по телефону{' '}
-                  <a href="tel:+79175741130" className="text-accent hover:underline">+7 (917) 574-11-30</a>{' '}
+                  <a href="tel:+79257437135" className="text-accent hover:underline">+7 (925) 743-71-35</a>{' '}
                   или в Telegram <a href="https://t.me/VIP_CHEMODAN" className="text-accent hover:underline">@VIP_CHEMODAN</a>.
                   В магазине можно осмотреть товар перед покупкой.
                 </p>

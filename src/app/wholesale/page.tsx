@@ -62,7 +62,7 @@ export default function WholesalePage() {
         <div className="p-5 bg-accent/5 border border-accent/20 rounded-xl">
           <h3 className="font-semibold mb-2">Как начать сотрудничество?</h3>
           <p className="text-sm text-text-muted mb-3">
-            Свяжитесь с нами по телефону +7 (917) 574-11-30 или напишите на vipcoll@mail.ru.
+            Свяжитесь с нами по телефону +7 (925) 743-71-35 или напишите на vipcoll@mail.ru.
             Условия сотрудничества обсуждаются индивидуально. После согласования вы получите
             доступ к оптовым ценам.
           </p>

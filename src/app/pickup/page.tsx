@@ -52,8 +52,8 @@ export default function PickupPage() {
             <Phone size={20} className="text-accent flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Телефон</p>
-              <a href="tel:+79175741130" className="text-text-muted hover:text-accent transition-colors text-sm">
-                +7 (917) 574-11-30
+              <a href="tel:+79257437135" className="text-text-muted hover:text-accent transition-colors text-sm">
+                +7 (925) 743-71-35
               </a>
             </div>
           </div>

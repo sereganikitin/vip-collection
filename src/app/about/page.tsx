@@ -65,7 +65,7 @@ export default function AboutPage() {
           </p>
 
           <h2 className="text-xl font-bold text-text mt-8 mb-3">Реквизиты</h2>
-          <p>ИП Исмагилов Константин Яковлевич</p>
+          <p>ИП Никитин Сергей Владимирович</p>
           <p>Адрес: 115088, г. Москва, Сормовский пр-д, д. 11, стр. 1</p>
         </div>
       </div>

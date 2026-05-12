@@ -17,27 +17,27 @@ export interface SiteContacts {
   city: string;
   hours: string;
   // Legal entity
-  legalName: string;        // e.g. "ИП Исмагилов К.Я."
-  legalFullName: string;    // e.g. "Исмагилов Константин Яковлевич"
+  legalName: string;        // e.g. "ИП Никитин С.В."
+  legalFullName: string;    // e.g. "Никитин Сергей Владимирович"
   inn: string;
   ogrnip: string;
   legalAddress: string;
 }
 
 export const DEFAULT_CONTACTS: SiteContacts = {
-  phone: '+79175741130',
-  phoneDisplay: '+7 (917) 574-11-30',
+  phone: '+79257437135',
+  phoneDisplay: '+7 (925) 743-71-35',
   email: 'vipcoll@mail.ru',
   telegramUrl: 'https://t.me/VIP_CHEMODAN',
   telegramUsername: '@VIP_CHEMODAN',
-  whatsappUrl: 'https://wa.me/79175741130',
+  whatsappUrl: 'https://wa.me/79257437135',
   addressFull: '115088, г. Москва, Сормовский проезд, д. 11, стр. 1',
   addressShort: 'Москва, Сормовский пр-д, 11, стр. 1',
   postalCode: '115088',
   city: 'Москва',
   hours: 'Пн–Пт 10:00–18:00, по предварительной договорённости',
-  legalName: 'ИП Исмагилов К.Я.',
-  legalFullName: 'Исмагилов Константин Яковлевич',
+  legalName: 'ИП Никитин С.В.',
+  legalFullName: 'Никитин Сергей Владимирович',
   inn: '',
   ogrnip: '',
   legalAddress: '',

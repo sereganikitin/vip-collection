@@ -28,7 +28,7 @@ export const ORGANIZATION_JSONLD = {
   description:
     'Интернет-магазин чемоданов, сумок, портфелей, рюкзаков и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT.',
   email: 'vipcoll@mail.ru',
-  telephone: '+7-917-574-11-30',
+  telephone: '+7-925-743-71-35',
   priceRange: '500₽-50000₽',
   paymentAccepted: 'Cash, Credit Card',
   currenciesAccepted: 'RUB',

@@ -37,19 +37,19 @@ interface FormState {
 const EMPTY: FormState = {
   admin_email: 'k959em177@gmail.com',
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
-  contact_phone: '+79175741130',
-  contact_phone_display: '+7 (917) 574-11-30',
+  contact_phone: '+79257437135',
+  contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipcoll@mail.ru',
   contact_telegram_url: 'https://t.me/VIP_CHEMODAN',
   contact_telegram_username: '@VIP_CHEMODAN',
-  contact_whatsapp_url: 'https://wa.me/79175741130',
+  contact_whatsapp_url: 'https://wa.me/79257437135',
   contact_address_full: '115088, г. Москва, Сормовский проезд, д. 11, стр. 1',
   contact_address_short: 'Москва, Сормовский пр-д, 11, стр. 1',
   contact_postal_code: '115088',
   contact_city: 'Москва',
   contact_hours: 'Пн–Пт 10:00–18:00, по предварительной договорённости',
-  legal_name: 'ИП Исмагилов К.Я.',
-  legal_full_name: 'Исмагилов Константин Яковлевич',
+  legal_name: 'ИП Никитин С.В.',
+  legal_full_name: 'Никитин Сергей Владимирович',
   legal_inn: '',
   legal_ogrnip: '',
   legal_address: '',
@@ -132,12 +132,12 @@ export default function AdminSettings() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Телефон (tel:)</label>
-                <input className={fieldClass} value={form.contact_phone} onChange={(e) => set('contact_phone', e.target.value)} placeholder="+79175741130" />
+                <input className={fieldClass} value={form.contact_phone} onChange={(e) => set('contact_phone', e.target.value)} placeholder="+79257437135" />
                 <p className="text-xs text-text-muted mt-1">Без пробелов, для ссылки tel:</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Телефон (отображение)</label>
-                <input className={fieldClass} value={form.contact_phone_display} onChange={(e) => set('contact_phone_display', e.target.value)} placeholder="+7 (917) 574-11-30" />
+                <input className={fieldClass} value={form.contact_phone_display} onChange={(e) => set('contact_phone_display', e.target.value)} placeholder="+7 (925) 743-71-35" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
@@ -185,11 +185,11 @@ export default function AdminSettings() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Юр. наименование</label>
-                <input className={fieldClass} value={form.legal_name} onChange={(e) => set('legal_name', e.target.value)} placeholder="ИП Исмагилов К.Я." />
+                <input className={fieldClass} value={form.legal_name} onChange={(e) => set('legal_name', e.target.value)} placeholder="ИП Никитин С.В." />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">ФИО полностью</label>
-                <input className={fieldClass} value={form.legal_full_name} onChange={(e) => set('legal_full_name', e.target.value)} placeholder="Исмагилов Константин Яковлевич" />
+                <input className={fieldClass} value={form.legal_full_name} onChange={(e) => set('legal_full_name', e.target.value)} placeholder="Никитин Сергей Владимирович" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">ИНН</label>
