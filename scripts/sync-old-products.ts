@@ -253,10 +253,24 @@ async function main() {
     }
   }
 
-  // Log products that have externalUrl set but were not in this scrape.
-  // Do NOT auto-deactivate — a flaky scrape (WAF, timeout, half-failed
-  // category page) would silently hide the catalog. The site owner can
-  // un-publish such items manually via admin if they really are gone.
+  // Deactivation pass with two safety nets:
+  //  (1) Catastrophe guard — if the scrape returned far fewer products than we
+  //      already have active with externalUrl, the scrape was flaky (WAF,
+  //      timeout, half-failed categories). Skip deactivation entirely.
+  //  (2) Grace window — only deactivate products whose lastSyncAt is older
+  //      than DEACTIVATE_AFTER_MS. A product that simply missed one sync (e.g.
+  //      single flaky category) gets seen on the next run and its lastSyncAt
+  //      refreshes — it won't fall through.
+  const SAFE_SCRAPE_RATIO = 0.7;
+  const DEACTIVATE_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+  const cutoff = new Date(Date.now() - DEACTIVATE_AFTER_MS);
+
+  const dbActiveTracked = await prisma.product.count({
+    where: { externalUrl: { not: null }, noSync: false, isActive: true },
+  });
+  const scrapeRatio = dbActiveTracked === 0 ? 1 : data.length / dbActiveTracked;
+
+  // Products not seen this run, regardless of grace window — for logging only.
   const missingFromSource = await prisma.product.findMany({
     where: {
       externalUrl: { not: null },
@@ -264,15 +278,35 @@ async function main() {
       isActive: true,
       id: { notIn: Array.from(seenIds) },
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, lastSyncAt: true },
   });
-  for (const p of missingFromSource) {
-    console.log(`  ? ${p.name.slice(0, 60)} | missing from source (left active)`);
+
+  let deactivated = 0;
+  if (scrapeRatio < SAFE_SCRAPE_RATIO) {
+    console.warn(
+      `\n⚠ Catastrophe guard: scrape returned ${data.length} products vs ${dbActiveTracked} active in DB ` +
+      `(ratio ${scrapeRatio.toFixed(2)} < ${SAFE_SCRAPE_RATIO}). Skipping deactivation pass — ` +
+      `${missingFromSource.length} products would otherwise have been candidates.`,
+    );
+  } else {
+    for (const p of missingFromSource) {
+      const lastSeen = p.lastSyncAt?.getTime() ?? 0;
+      if (lastSeen >= cutoff.getTime()) {
+        // Inside grace window — leave active, will be re-checked next run.
+        console.log(`  ? ${p.name.slice(0, 60)} | missing (grace, left active)`);
+        continue;
+      }
+      const daysAgo = Math.round((Date.now() - lastSeen) / (24 * 60 * 60 * 1000));
+      await prisma.product.update({ where: { id: p.id }, data: { isActive: false } });
+      deactivated++;
+      console.log(`  - ${p.name.slice(0, 60)} | deactivated (missing ${daysAgo}d)`);
+    }
   }
 
   console.log(
     `\nResult: created=${created}, updated=${updated}, unchanged=${unchanged}, ` +
-    `missingFromSource=${missingFromSource.length}, skippedNoSync=${skippedNoSync}, failed=${failed}`,
+    `deactivated=${deactivated}, missingFromSource=${missingFromSource.length}, ` +
+    `skippedNoSync=${skippedNoSync}, failed=${failed}`,
   );
   await prisma.$disconnect();
 }
