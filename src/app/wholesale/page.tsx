@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
 import { ChevronRight, Users, TrendingUp, Shield, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { INDEXABLE_ROBOTS } from '@/lib/seo';
-
 export const metadata: Metadata = {
-  robots: INDEXABLE_ROBOTS,
   title: 'Чемоданы и сумки оптом — VIP COLLECTION для бизнеса',
   description:
     'Оптовая продажа чемоданов, сумок и кожгалантереи для торговых компаний, ИП, интернет-магазинов и тревел-агентств. Гибкие условия, индивидуальные цены, отгрузка со склада в Москве. Регистрация в личном кабинете.',

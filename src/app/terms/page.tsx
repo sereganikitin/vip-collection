@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { INDEXABLE_ROBOTS } from '@/lib/seo';
 import { getSiteContacts } from '@/lib/settings';
 
 export const metadata: Metadata = {
-  robots: INDEXABLE_ROBOTS,
   title: 'Договор-оферта на продажу товаров',
   description:
     'Публичный договор-оферта розничной купли-продажи товаров через сайт vipcoll.ru. Условия заказа, оплаты, доставки, возврата.',

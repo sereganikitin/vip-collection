@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import { ChevronRight, Phone, Mail, MapPin, Send, Clock, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { INDEXABLE_ROBOTS } from '@/lib/seo';
 import { getSiteContacts } from '@/lib/settings';
 
 export const metadata: Metadata = {
-  robots: INDEXABLE_ROBOTS,
   title: 'Контакты VIP COLLECTION — телефон, адрес, режим работы',
   description:
     'Контактные данные интернет-магазина VIP COLLECTION в Москве. Адрес: Сормовский проезд, 11, стр. 1. Телефон, email, Telegram, режим работы.',

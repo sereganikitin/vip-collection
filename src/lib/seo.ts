@@ -1,21 +1,6 @@
 export const SITE_URL = 'https://vipcoll.ru';
 export const SITE_NAME = 'VIP COLLECTION';
 
-// Override for individual pages that should be open to search engines while
-// the rest of the site stays noindex (set globally in app/layout.tsx).
-export const INDEXABLE_ROBOTS = {
-  index: true,
-  follow: true,
-  nocache: false,
-  googleBot: {
-    index: true,
-    follow: true,
-    noimageindex: false,
-    'max-video-preview': -1,
-    'max-image-preview': 'large' as const,
-    'max-snippet': -1,
-  },
-};
 
 export const ORGANIZATION_JSONLD = {
   '@context': 'https://schema.org',

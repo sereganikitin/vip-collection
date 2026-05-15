@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { INDEXABLE_ROBOTS } from '@/lib/seo';
 import { getSiteContacts } from '@/lib/settings';
 
 export const metadata: Metadata = {
-  robots: INDEXABLE_ROBOTS,
   title: 'Политика обработки персональных данных',
   description:
     'Политика обработки персональных данных интернет-магазина vipcoll.ru в соответствии с Федеральным законом № 152-ФЗ «О персональных данных».',

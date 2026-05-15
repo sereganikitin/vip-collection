@@ -6,17 +6,13 @@ import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
 import FadeSlider, { type FadeSlide } from '@/components/FadeSlider';
 import JsonLd from '@/components/JsonLd';
-import { ORGANIZATION_JSONLD, WEBSITE_JSONLD, INDEXABLE_ROBOTS } from '@/lib/seo';
+import { ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/lib/seo';
 import { prisma } from '@/lib/prisma';
 import { getCategoriesForFrontend } from '@/lib/categories';
 import { getProductsForFrontend } from '@/lib/products';
 import { getBrandsForFrontend } from '@/lib/brands';
 
 export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = {
-  robots: INDEXABLE_ROBOTS,
-};
 
 export default async function Home() {
   const [banners, categories, brands, newProducts, saleProducts, popularProducts, minSuitcase] = await Promise.all([
