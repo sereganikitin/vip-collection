@@ -253,8 +253,11 @@ async function main() {
     }
   }
 
-  // Deactivate products that have externalUrl set, are not in noSync, and were not seen in this run
-  const stale = await prisma.product.findMany({
+  // Log products that have externalUrl set but were not in this scrape.
+  // Do NOT auto-deactivate — a flaky scrape (WAF, timeout, half-failed
+  // category page) would silently hide the catalog. The site owner can
+  // un-publish such items manually via admin if they really are gone.
+  const missingFromSource = await prisma.product.findMany({
     where: {
       externalUrl: { not: null },
       noSync: false,
@@ -263,16 +266,13 @@ async function main() {
     },
     select: { id: true, name: true },
   });
-  let deactivated = 0;
-  for (const p of stale) {
-    await prisma.product.update({ where: { id: p.id }, data: { isActive: false } });
-    deactivated++;
-    console.log(`  - ${p.name.slice(0, 50)} | deactivated (gone from source)`);
+  for (const p of missingFromSource) {
+    console.log(`  ? ${p.name.slice(0, 60)} | missing from source (left active)`);
   }
 
   console.log(
     `\nResult: created=${created}, updated=${updated}, unchanged=${unchanged}, ` +
-    `deactivated=${deactivated}, skippedNoSync=${skippedNoSync}, failed=${failed}`,
+    `missingFromSource=${missingFromSource.length}, skippedNoSync=${skippedNoSync}, failed=${failed}`,
   );
   await prisma.$disconnect();
 }
