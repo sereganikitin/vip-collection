@@ -14,6 +14,9 @@ interface FormState {
   smtp_user: string;
   smtp_pass: string;
   smtp_from: string;
+  // telegram bot for new-feedback / new-order notifications
+  tg_bot_token: string;
+  tg_chat_id: string;
   // contacts
   contact_phone: string;
   contact_phone_display: string;
@@ -37,6 +40,7 @@ interface FormState {
 const EMPTY: FormState = {
   admin_email: 'k959em177@gmail.com',
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
+  tg_bot_token: '', tg_chat_id: '',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipcoll@mail.ru',
@@ -213,6 +217,28 @@ export default function AdminSettings() {
               <label className="block text-sm font-medium mb-1">Email для уведомлений</label>
               <input className={fieldClass} type="email" value={form.admin_email} onChange={(e) => set('admin_email', e.target.value)} required />
               <p className="text-xs text-text-muted mt-1">На этот адрес приходят уведомления о новых заказах</p>
+            </div>
+          </div>
+
+          {/* Telegram bot */}
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h3 className="font-semibold mb-1">Уведомления в Telegram</h3>
+            <p className="text-xs text-text-muted mb-4">
+              Один бот для всех уведомлений: новые заказы и сообщения с формы обратной связи.
+              Создайте бота через <a className="text-accent hover:underline" href="https://t.me/BotFather" target="_blank" rel="noreferrer">@BotFather</a>,
+              напишите ему «/start», скопируйте токен. Чтобы узнать chat_id — напишите боту,
+              затем откройте <span className="font-mono">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span>{' '}
+              и возьмите оттуда <span className="font-mono">chat.id</span>.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Токен бота</label>
+                <input className={fieldClass} type="password" value={form.tg_bot_token} onChange={(e) => set('tg_bot_token', e.target.value)} placeholder="1234567890:AAA..." autoComplete="off" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Chat ID</label>
+                <input className={fieldClass} value={form.tg_chat_id} onChange={(e) => set('tg_chat_id', e.target.value)} placeholder="например, 123456789 или -1001234567890 для группы" />
+              </div>
             </div>
           </div>
 

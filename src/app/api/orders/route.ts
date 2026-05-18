@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { sendOrderEmails } from '@/lib/mail';
+import { sendTelegramMessage, escapeTgHtml } from '@/lib/telegram';
+
+function formatPriceRu(p: number): string {
+  return new Intl.NumberFormat('ru-RU').format(p) + ' ₽';
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -95,6 +100,26 @@ export async function POST(req: NextRequest) {
         price: item.price,
       })),
     }).catch(console.error);
+
+    // Telegram notification (best-effort, same bot as feedback)
+    const itemsList = order.items
+      .map((i) => `• ${escapeTgHtml(i.product.name)} × ${i.quantity} — ${formatPriceRu(i.price * i.quantity)}`)
+      .join('\n');
+    const tgText = [
+      `🛍 <b>Новый заказ #${order.number}</b>`,
+      '',
+      `<b>Клиент:</b> ${escapeTgHtml(customerName)}`,
+      `<b>Телефон:</b> ${escapeTgHtml(customerPhone)}`,
+      customerEmail ? `<b>Email:</b> ${escapeTgHtml(customerEmail)}` : '',
+      deliveryMethod ? `<b>Доставка:</b> ${escapeTgHtml(deliveryMethod)}` : '',
+      deliveryAddress ? `<b>Адрес:</b> ${escapeTgHtml(deliveryAddress)}` : '',
+      comment ? `<b>Комментарий:</b> ${escapeTgHtml(comment)}` : '',
+      '',
+      itemsList,
+      '',
+      `<b>Итого: ${formatPriceRu(order.totalPrice)}</b>`,
+    ].filter(Boolean).join('\n');
+    sendTelegramMessage(tgText).catch((e) => console.error('order TG:', e));
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {

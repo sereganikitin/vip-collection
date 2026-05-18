@@ -8,6 +8,7 @@ import YandexMetrika from '@/components/YandexMetrika';
 import { getCategoriesForFrontend } from '@/lib/categories';
 import { getSiteContacts } from '@/lib/settings';
 import CookieBanner from '@/components/CookieBanner';
+import FeedbackWidget from '@/components/FeedbackWidget';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -105,6 +106,7 @@ export default async function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer contacts={contacts} />
         </CartProvider>
+        <FeedbackWidget />
         <CookieBanner />
         <YandexMetrika />
       </body>

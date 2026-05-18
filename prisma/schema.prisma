@@ -114,6 +114,18 @@ model Setting {
   value String
 }
 
+model Feedback {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([isRead])
+}
+
 model Banner {
   id          String  @id @default(cuid())
   image       String
