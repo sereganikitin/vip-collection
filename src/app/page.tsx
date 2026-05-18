@@ -286,37 +286,54 @@ export default async function Home() {
       {/* SEO content block */}
       <section className="mx-auto max-w-7xl px-4 py-12 border-t border-border">
         <article className="prose prose-sm max-w-none">
-          <h2 className="text-2xl md:text-3xl font-bold mb-6">Магазин чемоданов и сумок с самовывозом в Москве</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">Купить чемодан в Москве — VIP COLLECTION</h2>
           <div className="grid md:grid-cols-2 gap-6 text-text-muted text-sm leading-relaxed">
             <div>
-              <h3 className="text-base font-semibold text-text mb-2">Чемоданы VIP COLLECTION от 4 200 ₽</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Надёжные чемоданы на 4 колёсах</h3>
               <p className="mb-4">
-                В каталоге — <strong>чемоданы из поликарбоната</strong> размеров S (20&quot;), M (24&quot;), L (28&quot;) и наборы из трёх штук.
-                Все чемоданы под брендом <strong>VIP COLLECTION</strong> — TSA-замки, четыре двойных колеса с поворотом 360°,
-                телескопическая ручка, шёлковая внутренняя отделка. Подходят под нормы ручной клади большинства авиакомпаний.
+                В каталоге — <strong>надёжные чемоданы на 4 колёсах</strong> из 100% поликарбоната
+                под брендом <strong>VIP COLLECTION</strong> (Вип коллекшн). Корпус ударопрочный,
+                «неубиваемый» при перевозках в багажном отделении. Размеры S (20&quot;), M (24&quot;),
+                L (28&quot;) и наборы 3-в-1. Чемоданы доступны и в классических чёрных, и в
+                <strong> цветных</strong> вариантах: Sweet Pink, Watermelon Red, Burgundy, Pearl Blue.
+                Все модели — на четырёх двойных колёсах с поворотом 360°, с TSA-замком и
+                алюминиевой телескопической ручкой.
+              </p>
+              <h3 className="text-base font-semibold text-text mb-2">Кейс-пилоты для деловых поездок</h3>
+              <p className="mb-4">
+                <strong>Кейс-пилоты</strong> VIP COLLECTION — горизонтальный формат с фронтальным
+                отделением для ноутбука и документов. Идеален <strong>кейс-пилот для поездки</strong>
+                выходного дня и коротких командировок. Лёгкий, помещается в верхние полки самолётов.
               </p>
               <h3 className="text-base font-semibold text-text mb-2">Запчасти и ремонт</h3>
               <p>
-                Сломалось колесо или ручка — не выкидывайте чемодан. В разделе
-                <strong> «Запчасти»</strong> есть колёса, телескопические ручки, замки. Цены от 200 ₽.
-                Если ремонтировать самому неудобно — приносите в наш сервисный центр на Сормовском проезде,
-                <strong> чиним за 1–3 дня</strong>. Гарантийный ремонт чемоданов VIP COLLECTION — бесплатно.
+                Сломалось колесо или ручка — не выкидывайте чемодан. <strong>Запчасти для чемоданов</strong>:
+                колёса, телескопические ручки, замки — цены от 200 ₽. Сервисный центр на Сормовском
+                проезде чинит чемоданы любых брендов за 1-3 дня. Гарантийный ремонт чемоданов
+                VIP COLLECTION — бесплатно.
               </p>
             </div>
             <div>
-              <h3 className="text-base font-semibold text-text mb-2">Доставка по Москве и самовывоз</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Сумки женские, рюкзаки и кожгалантерея</h3>
               <p className="mb-4">
+                <strong>Сумки женские</strong> <strong>David Jones</strong> — модно и недорого, от 1 500 ₽:
+                классические, кросс-боди, тоут, рюкзаки. <strong>Рюкзаки</strong> и
+                <strong> сумки для ноутбуков</strong> ARISTOCRAT — с отделением до 16&quot;,
+                USB-выходом и ортопедической спинкой.
+              </p>
+              <h3 className="text-base font-semibold text-text mb-2">Кожгалантерея NERI KARRA</h3>
+              <p className="mb-4">
+                <strong>Кожгалантерея</strong> премиум-класса бренда <strong>NERI KARRA</strong>:
+                портмоне, кошельки, обложки для паспорта и автодокументов из натуральной кожи.
+                Турецкая кожа полного дубления, RFID-защита, классические и современные модели.
+                Также — кожаные ремни, поясные сумки, чехлы для чемоданов.
+              </p>
+              <h3 className="text-base font-semibold text-text mb-2">Доставка по Москве и самовывоз</h3>
+              <p>
                 <strong>Самовывоз бесплатно</strong> — Москва, Сормовский проезд 11, стр. 1.
                 <strong> Курьер по Москве</strong> — расчёт по адресу, от 20 000 ₽ бесплатно в пределах МКАД.
                 Доставка в <strong>Подмосковье</strong> — отдельно по тарифу. Оплата картой онлайн, по СБП
                 или наличными курьеру / при самовывозе.
-              </p>
-              <h3 className="text-base font-semibold text-text mb-2">Сумки, рюкзаки, мелочи</h3>
-              <p>
-                Рюкзаки и сумки <strong>ARISTOCRAT</strong> — с отделением для ноутбука до 16&quot;, USB-выходом
-                и ортопедической спинкой. Женские сумки <strong>David Jones</strong> — модно и недорого, цены от 1 500 ₽.
-                Поясные сумки для бега и поездок, портмоне и обложки <strong>NERI KARRA</strong>,
-                ремни, чехлы для чемоданов — всё для путешествий и повседневного быта.
               </p>
             </div>
           </div>
