@@ -27,7 +27,7 @@ export interface SiteContacts {
 export const DEFAULT_CONTACTS: SiteContacts = {
   phone: '+79257437135',
   phoneDisplay: '+7 (925) 743-71-35',
-  email: 'vipcoll@mail.ru',
+  email: 'vipshopp@yandex.ru',
   telegramUrl: 'https://t.me/VIP_CHEMODAN',
   telegramUsername: '@VIP_CHEMODAN',
   whatsappUrl: 'https://wa.me/79257437135',

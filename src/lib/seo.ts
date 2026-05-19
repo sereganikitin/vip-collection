@@ -12,7 +12,7 @@ export const ORGANIZATION_JSONLD = {
   image: `${SITE_URL}/images/banners/banner-1.jpg`,
   description:
     'Интернет-магазин чемоданов, сумок, портфелей, рюкзаков и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT.',
-  email: 'vipcoll@mail.ru',
+  email: 'vipshopp@yandex.ru',
   telephone: '+7-925-743-71-35',
   priceRange: '500₽-50000₽',
   paymentAccepted: 'Cash, Credit Card',

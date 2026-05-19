@@ -340,7 +340,7 @@ export default async function Home() {
           <p className="mt-6 text-sm text-text-muted">
             Магазин-склад: 115088, Москва, Сормовский проезд, 11, стр. 1.
             Звонок, WhatsApp, Telegram: <a href="tel:+79257437135" className="text-accent hover:underline">+7 (925) 743-71-35</a>.
-            Email: <a href="mailto:vipcoll@mail.ru" className="text-accent hover:underline">vipcoll@mail.ru</a>.
+            Email: <a href="mailto:vipshopp@yandex.ru" className="text-accent hover:underline">vipshopp@yandex.ru</a>.
             Работаем без выходных.
           </p>
         </article>
