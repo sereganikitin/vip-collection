@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { LogOut, ArrowLeft } from 'lucide-react';
+import { LogOut, ArrowLeft, ExternalLink, CreditCard, Wallet, Check } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -21,19 +21,39 @@ interface Order {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
+  deliveryMethod?: string;
   deliveryAddress?: string;
   comment?: string;
   items: OrderItem[];
+  paymentMethod: 'cash' | 'online';
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  paymentId?: string | null;
+  paymentUrl?: string | null;
+  paidAt?: string | null;
   createdAt: string;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
-  NEW: { label: 'Новый', color: 'bg-blue-100 text-blue-700' },
-  PROCESSING: { label: 'В обработке', color: 'bg-yellow-100 text-yellow-700' },
-  SHIPPED: { label: 'Отправлен', color: 'bg-purple-100 text-purple-700' },
-  DELIVERED: { label: 'Доставлен', color: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: 'Отменён', color: 'bg-red-100 text-red-700' },
+  NEW:        { label: 'Новый',        color: 'bg-blue-100 text-blue-700' },
+  PROCESSING: { label: 'В обработке',  color: 'bg-yellow-100 text-yellow-700' },
+  SHIPPED:    { label: 'Отправлен',    color: 'bg-purple-100 text-purple-700' },
+  DELIVERED:  { label: 'Доставлен',    color: 'bg-green-100 text-green-700' },
+  CANCELLED:  { label: 'Отменён',      color: 'bg-red-100 text-red-700' },
 };
+
+const paymentMethodLabels: Record<string, { label: string; icon: typeof CreditCard }> = {
+  online: { label: 'Онлайн', icon: CreditCard },
+  cash:   { label: 'При самовывозе', icon: Wallet },
+};
+
+const paymentStatusLabels: Record<string, { label: string; color: string }> = {
+  pending:  { label: 'Ожидает оплаты', color: 'bg-yellow-100 text-yellow-700' },
+  paid:     { label: 'Оплачен',        color: 'bg-green-100 text-green-700' },
+  failed:   { label: 'Не оплачен',     color: 'bg-red-100 text-red-700' },
+  refunded: { label: 'Возврат',        color: 'bg-gray-100 text-gray-700' },
+};
+
+type FilterKey = 'all' | 'unpaid' | 'paid';
 
 export default function AdminOrders() {
   const { status } = useSession();
@@ -41,6 +61,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterKey>('all');
 
   const fetchOrders = useCallback(async () => {
     const res = await fetch('/api/orders');
@@ -63,17 +84,40 @@ export default function AdminOrders() {
     fetchOrders();
   }
 
+  async function markPaid(orderId: string) {
+    if (!confirm('Отметить заказ как оплаченный?')) return;
+    await fetch(`/api/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentStatus: 'paid' }),
+    });
+    fetchOrders();
+  }
+
   function formatPrice(price: number) {
     return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
   }
 
-  function formatDate(date: string) {
+  function formatDate(date: string | null | undefined) {
+    if (!date) return '—';
     return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   if (status !== 'authenticated') {
     return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
   }
+
+  const counts = {
+    all: orders.length,
+    unpaid: orders.filter((o) => o.paymentMethod === 'online' && o.paymentStatus === 'pending').length,
+    paid: orders.filter((o) => o.paymentStatus === 'paid').length,
+  };
+
+  const visibleOrders = orders.filter((o) => {
+    if (filter === 'unpaid') return o.paymentMethod === 'online' && o.paymentStatus === 'pending';
+    if (filter === 'paid') return o.paymentStatus === 'paid';
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-bg">
@@ -104,85 +148,153 @@ export default function AdminOrders() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/admin" className="text-text-muted hover:text-text"><ArrowLeft size={20} /></Link>
-          <h2 className="text-2xl font-bold">Заказы ({orders.length})</h2>
+          <h2 className="text-2xl font-bold">Заказы</h2>
+        </div>
+
+        <div className="mb-6 flex flex-wrap gap-2">
+          {([
+            { k: 'all',    label: `Все · ${counts.all}` },
+            { k: 'unpaid', label: `Ожидают оплаты · ${counts.unpaid}` },
+            { k: 'paid',   label: `Оплачены · ${counts.paid}` },
+          ] as const).map((f) => (
+            <button
+              key={f.k}
+              onClick={() => setFilter(f.k)}
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                filter === f.k
+                  ? 'bg-accent text-primary border-accent font-medium'
+                  : 'border-border text-text-muted hover:border-accent hover:text-text'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
         {loading ? (
           <p className="text-text-muted">Загрузка...</p>
-        ) : orders.length === 0 ? (
+        ) : visibleOrders.length === 0 ? (
           <div className="bg-surface rounded-xl border border-border p-12 text-center">
-            <p className="text-text-muted">Заказов пока нет</p>
+            <p className="text-text-muted">
+              {filter === 'all' ? 'Заказов пока нет' : 'В этом фильтре пусто'}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-surface rounded-xl border border-border overflow-hidden">
-                <div
-                  className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
-                >
-                  <div className="flex items-center gap-6">
-                    <span className="font-bold text-lg">#{order.number}</span>
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusLabels[order.status]?.color}`}>
-                      {statusLabels[order.status]?.label}
-                    </span>
-                    <span className="text-text-muted text-sm">{formatDate(order.createdAt)}</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold">{formatPrice(order.totalPrice)}</span>
-                    <span className="text-text-muted">{expandedId === order.id ? '▲' : '▼'}</span>
-                  </div>
-                </div>
-
-                {expandedId === order.id && (
-                  <div className="px-6 py-4 border-t border-border">
-                    <div className="grid md:grid-cols-2 gap-6 mb-4">
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Клиент</h4>
-                        <p className="text-sm">{order.customerName}</p>
-                        <p className="text-sm text-text-muted">{order.customerPhone}</p>
-                        {order.customerEmail && <p className="text-sm text-text-muted">{order.customerEmail}</p>}
-                        {order.deliveryAddress && <p className="text-sm text-text-muted mt-1">Адрес: {order.deliveryAddress}</p>}
-                        {order.comment && <p className="text-sm text-text-muted mt-1">Комментарий: {order.comment}</p>}
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2">Изменить статус</h4>
-                        <select
-                          value={order.status}
-                          onChange={(e) => updateStatus(order.id, e.target.value)}
-                          className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
-                        >
-                          {Object.entries(statusLabels).map(([key, { label }]) => (
-                            <option key={key} value={key}>{label}</option>
-                          ))}
-                        </select>
-                      </div>
+            {visibleOrders.map((order) => {
+              const pm = paymentMethodLabels[order.paymentMethod] ?? paymentMethodLabels.cash;
+              const ps = paymentStatusLabels[order.paymentStatus] ?? paymentStatusLabels.pending;
+              const PmIcon = pm.icon;
+              return (
+                <div key={order.id} className="bg-surface rounded-xl border border-border overflow-hidden">
+                  <div
+                    className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors gap-4 flex-wrap"
+                    onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                  >
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <span className="font-bold text-lg">#{order.number}</span>
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusLabels[order.status]?.color}`}>
+                        {statusLabels[order.status]?.label}
+                      </span>
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${ps.color}`}>
+                        {ps.label}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-text-muted">
+                        <PmIcon size={14} /> {pm.label}
+                      </span>
+                      <span className="text-text-muted text-sm">{formatDate(order.createdAt)}</span>
                     </div>
-                    <h4 className="font-semibold text-sm mb-2">Товары</h4>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-text-muted">
-                          <th className="text-left py-1">Товар</th>
-                          <th className="text-center py-1">Кол-во</th>
-                          <th className="text-right py-1">Цена</th>
-                          <th className="text-right py-1">Сумма</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {order.items.map((item) => (
-                          <tr key={item.id} className="border-t border-border">
-                            <td className="py-2">{item.product.name}</td>
-                            <td className="text-center py-2">{item.quantity}</td>
-                            <td className="text-right py-2">{formatPrice(item.price)}</td>
-                            <td className="text-right py-2 font-medium">{formatPrice(item.price * item.quantity)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div className="flex items-center gap-4">
+                      <span className="font-bold">{formatPrice(order.totalPrice)}</span>
+                      <span className="text-text-muted">{expandedId === order.id ? '▲' : '▼'}</span>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {expandedId === order.id && (
+                    <div className="px-6 py-4 border-t border-border">
+                      <div className="grid md:grid-cols-3 gap-6 mb-4">
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Клиент</h4>
+                          <p className="text-sm">{order.customerName}</p>
+                          <p className="text-sm text-text-muted">{order.customerPhone}</p>
+                          {order.customerEmail && <p className="text-sm text-text-muted">{order.customerEmail}</p>}
+                          {order.deliveryMethod && <p className="text-sm text-text-muted mt-1">Доставка: {order.deliveryMethod}</p>}
+                          {order.deliveryAddress && <p className="text-sm text-text-muted mt-1">Адрес: {order.deliveryAddress}</p>}
+                          {order.comment && <p className="text-sm text-text-muted mt-1">Комментарий: {order.comment}</p>}
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Оплата</h4>
+                          <p className="text-sm">Способ: <span className="font-medium">{pm.label}</span></p>
+                          <p className="text-sm">Статус: <span className="font-medium">{ps.label}</span></p>
+                          {order.paidAt && (
+                            <p className="text-sm text-text-muted mt-1">Оплачен: {formatDate(order.paidAt)}</p>
+                          )}
+                          {order.paymentId && (
+                            <p className="text-xs text-text-muted mt-1 font-mono break-all">PaymentId: {order.paymentId}</p>
+                          )}
+                          {order.paymentStatus !== 'paid' && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {order.paymentMethod === 'online' && (
+                                <a
+                                  href={`/api/payment/tinkoff/init?orderId=${order.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-accent text-primary font-medium rounded-lg text-xs hover:bg-accent-hover transition-colors"
+                                >
+                                  <ExternalLink size={12} /> Открыть страницу оплаты
+                                </a>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); markPaid(order.id); }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 border border-success text-success font-medium rounded-lg text-xs hover:bg-success/5 transition-colors"
+                              >
+                                <Check size={12} /> Отметить как оплачен
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2">Изменить статус</h4>
+                          <select
+                            value={order.status}
+                            onChange={(e) => updateStatus(order.id, e.target.value)}
+                            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent w-full"
+                          >
+                            {Object.entries(statusLabels).map(([key, { label }]) => (
+                              <option key={key} value={key}>{label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <h4 className="font-semibold text-sm mb-2">Товары</h4>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-text-muted">
+                            <th className="text-left py-1">Товар</th>
+                            <th className="text-center py-1">Кол-во</th>
+                            <th className="text-right py-1">Цена</th>
+                            <th className="text-right py-1">Сумма</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.items.map((item) => (
+                            <tr key={item.id} className="border-t border-border">
+                              <td className="py-2">{item.product.name}</td>
+                              <td className="text-center py-2">{item.quantity}</td>
+                              <td className="text-right py-2">{formatPrice(item.price)}</td>
+                              <td className="text-right py-2 font-medium">{formatPrice(item.price * item.quantity)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
