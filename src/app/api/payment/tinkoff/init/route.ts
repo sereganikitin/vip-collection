@@ -31,8 +31,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(order.paymentUrl);
   }
 
+  // Тинькофф запрещает дважды использовать один и тот же OrderId. Если Init
+  // вызывался раньше (у заказа уже есть paymentId), добавляем уникальный
+  // суффикс — webhook /notify умеет вырезать его обратно по `split('-')[0]`.
+  const initOrderId = order.paymentId
+    ? `${order.id}-${Date.now().toString(36)}`
+    : order.id;
+
   const result = await tinkoffInit({
-    orderId: order.id,
+    orderId: initOrderId,
     amountRub: order.totalPrice,
     description: `Заказ №${order.number} на vipcoll.ru`,
     notificationURL: `${SITE_URL}/api/payment/tinkoff/notify`,
@@ -53,7 +60,11 @@ export async function GET(req: NextRequest) {
 
   await prisma.order.update({
     where: { id: order.id },
-    data: { paymentId: result.paymentId, paymentUrl: result.paymentUrl },
+    data: {
+      paymentId: result.paymentId,
+      paymentUrl: result.paymentUrl,
+      paymentStatus: 'pending',
+    },
   });
 
   return NextResponse.redirect(result.paymentUrl);

@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
     return new Response('BAD', { status: 400 });
   }
 
-  const orderId = String(body.OrderId ?? '');
+  // Init для retry-попыток шлёт OrderId вида "<dbId>-<suffix>" — отстригаем.
+  const rawOrderId = String(body.OrderId ?? '');
+  const orderId = rawOrderId.split('-')[0];
   const status = String(body.Status ?? '');
   const paymentId = body.PaymentId ? String(body.PaymentId) : undefined;
   if (!orderId) {
