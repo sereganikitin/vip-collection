@@ -25,6 +25,54 @@ export function escapeTgHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+const PAYMENT_STATUS_VIEW: Record<string, { emoji: string; label: string }> = {
+  pending:  { emoji: '⏳', label: 'Ожидает оплаты' },
+  paid:     { emoji: '✅', label: 'Оплачен' },
+  failed:   { emoji: '❌', label: 'Не оплачен' },
+  refunded: { emoji: '↩️', label: 'Возврат' },
+};
+
+const PAYMENT_METHOD_VIEW: Record<string, string> = {
+  online: 'Онлайн',
+  cash:   'При самовывозе',
+};
+
+function priceRu(p: number): string {
+  return new Intl.NumberFormat('ru-RU').format(p) + ' ₽';
+}
+
+export interface PaymentStatusNotificationInput {
+  orderNumber: number;
+  customerName: string;
+  customerPhone: string;
+  totalPrice: number;
+  paymentMethod: string;
+  oldStatus: string;
+  newStatus: string;
+  source: 'tinkoff' | 'admin'; // where the change came from
+}
+
+export async function notifyPaymentStatusChange(input: PaymentStatusNotificationInput): Promise<void> {
+  if (input.oldStatus === input.newStatus) return;
+  const oldView = PAYMENT_STATUS_VIEW[input.oldStatus] ?? { emoji: '❓', label: input.oldStatus };
+  const newView = PAYMENT_STATUS_VIEW[input.newStatus] ?? { emoji: '❓', label: input.newStatus };
+  const sourceLabel = input.source === 'tinkoff' ? 'Тинькофф' : 'админка';
+
+  const text = [
+    `💰 <b>Статус оплаты изменился</b> (${sourceLabel})`,
+    '',
+    `Заказ <b>#${input.orderNumber}</b>`,
+    `Клиент: ${escapeTgHtml(input.customerName)}`,
+    `Телефон: ${escapeTgHtml(input.customerPhone)}`,
+    `Сумма: <b>${priceRu(input.totalPrice)}</b>`,
+    `Способ: ${PAYMENT_METHOD_VIEW[input.paymentMethod] ?? input.paymentMethod}`,
+    '',
+    `${oldView.emoji} ${oldView.label}  →  ${newView.emoji} <b>${newView.label}</b>`,
+  ].join('\n');
+
+  await sendTelegramMessage(text);
+}
+
 /**
  * Send a Telegram message via Bot API. Returns true on success. Silent on
  * config-missing: lets callers fire-and-forget without breaking the request

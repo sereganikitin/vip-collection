@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyNotificationToken, mapTinkoffStatusToLocal } from '@/lib/tinkoff';
+import { notifyPaymentStatusChange } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
       console.warn('Tinkoff notify: order not found', orderId);
       return new Response('OK', { status: 200 }); // still ACK
     }
+    const oldStatus = order.paymentStatus;
     await prisma.order.update({
       where: { id: orderId },
       data: {
@@ -44,6 +46,19 @@ export async function POST(req: NextRequest) {
       },
     });
     console.log(`Tinkoff notify: order ${orderId} → ${status} (${local})`);
+
+    if (oldStatus !== local) {
+      notifyPaymentStatusChange({
+        orderNumber: order.number,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        totalPrice: order.totalPrice,
+        paymentMethod: order.paymentMethod,
+        oldStatus,
+        newStatus: local,
+        source: 'tinkoff',
+      }).catch((e) => console.error('Tinkoff notify TG:', e));
+    }
   } catch (e) {
     console.error('Tinkoff notify DB error:', e);
     // Still return OK so Tinkoff stops retrying; we logged the error.
