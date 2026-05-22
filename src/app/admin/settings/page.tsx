@@ -17,6 +17,10 @@ interface FormState {
   // telegram bot for new-feedback / new-order notifications
   tg_bot_token: string;
   tg_chat_id: string;
+  // МойСклад — receive customer orders as "Заказ покупателя"
+  ms_token: string;
+  ms_organization_id: string;
+  ms_store_id: string;
   // contacts
   contact_phone: string;
   contact_phone_display: string;
@@ -41,6 +45,7 @@ const EMPTY: FormState = {
   admin_email: 'k959em177@gmail.com',
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
   tg_bot_token: '', tg_chat_id: '',
+  ms_token: '', ms_organization_id: '', ms_store_id: '',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipshopp@yandex.ru',
@@ -238,6 +243,37 @@ export default function AdminSettings() {
               <div>
                 <label className="block text-sm font-medium mb-1">Chat ID</label>
                 <input className={fieldClass} value={form.tg_chat_id} onChange={(e) => set('tg_chat_id', e.target.value)} placeholder="например, 123456789 или -1001234567890 для группы" />
+              </div>
+            </div>
+          </div>
+
+          {/* МойСклад */}
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h3 className="font-semibold mb-1">МойСклад — приём заявок</h3>
+            <p className="text-xs text-text-muted mb-4">
+              Каждый новый заказ с сайта будет создавать «Заказ покупателя» в МойСклад.
+              Товары создаются автоматически при первом упоминании (externalCode = slug).
+              Контрагент — новый «розничный покупатель» на каждый заказ.
+              <br /><br />
+              <strong>Где взять данные:</strong>
+              <br />• <span className="font-mono">Токен</span> — Настройки → Профиль → API → «Создать токен доступа».
+              <br />• <span className="font-mono">ID организации</span> и <span className="font-mono">ID склада</span> — откройте в браузере{' '}
+              <span className="font-mono break-all">https://api.moysklad.ru/api/remap/1.2/entity/organization</span>{' '}
+              (логин — ваш токен, пароль пустой). Возьмите <span className="font-mono">rows[0].id</span>. Аналогично для{' '}
+              <span className="font-mono">/entity/store</span>.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Токен МойСклад</label>
+                <input className={fieldClass} type="password" value={form.ms_token} onChange={(e) => set('ms_token', e.target.value)} autoComplete="off" placeholder="Bearer-токен из настроек профиля" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ID организации</label>
+                <input className={fieldClass} value={form.ms_organization_id} onChange={(e) => set('ms_organization_id', e.target.value)} placeholder="UUID" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ID склада</label>
+                <input className={fieldClass} value={form.ms_store_id} onChange={(e) => set('ms_store_id', e.target.value)} placeholder="UUID" />
               </div>
             </div>
           </div>

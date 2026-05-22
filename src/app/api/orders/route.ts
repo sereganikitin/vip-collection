@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { sendOrderEmails } from '@/lib/mail';
 import { sendTelegramMessage, escapeTgHtml } from '@/lib/telegram';
+import { pushOrderToMoysklad } from '@/lib/moysklad';
 
 function formatPriceRu(p: number): string {
   return new Intl.NumberFormat('ru-RU').format(p) + ' ₽';
@@ -120,6 +121,24 @@ export async function POST(req: NextRequest) {
       `<b>Итого: ${formatPriceRu(order.totalPrice)}</b>`,
     ].filter(Boolean).join('\n');
     sendTelegramMessage(tgText).catch((e) => console.error('order TG:', e));
+
+    // МойСклад — best-effort customer-order push (does nothing without config)
+    pushOrderToMoysklad({
+      orderNumber: order.number,
+      customerName,
+      customerPhone,
+      customerEmail,
+      deliveryMethod,
+      deliveryAddress,
+      comment,
+      totalPrice: order.totalPrice,
+      items: order.items.map((item) => ({
+        productSlug: item.product.slug,
+        productName: item.product.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    }).catch((e) => console.error('order MS:', e));
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {
