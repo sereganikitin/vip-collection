@@ -84,6 +84,11 @@ model Order {
   deliveryMethod  String?
   comment         String?
   items           OrderItem[]
+  paymentMethod   String      @default("cash")     // "cash" (при самовывозе) | "online" (через Тинькофф)
+  paymentStatus   String      @default("pending")  // pending | paid | failed | refunded
+  paymentId       String?                          // Тинькофф PaymentId
+  paymentUrl      String?                          // Сохранённая ссылка на оплату (для повторного открытия)
+  paidAt          DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }

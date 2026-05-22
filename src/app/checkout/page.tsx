@@ -19,6 +19,7 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '',
     delivery: 'courier', address: '', comment: '',
+    payment: 'online' as 'online' | 'cash',
     consent: false,
   });
 
@@ -57,6 +58,9 @@ export default function CheckoutPage() {
   const deliveryLabels: Record<string, string> = {
     courier: 'Курьер по Москве и области', pickup: 'Самовывоз',
   };
+  // Cash on pickup only — courier deliveries must be paid online.
+  const allowCashOnPickup = form.delivery === 'pickup';
+  const effectivePayment = allowCashOnPickup ? form.payment : 'online';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,6 +82,7 @@ export default function CheckoutPage() {
           deliveryMethod: deliveryLabels[form.delivery] || form.delivery,
           deliveryAddress: form.delivery !== 'pickup' ? form.address : 'Самовывоз: Москва, Сормовский пр-д, 11',
           comment: form.comment || undefined,
+          paymentMethod: effectivePayment,
           items: items.map(({ product, quantity }) => ({
             productId: product.id,
             productSlug: product.slug,
@@ -92,8 +97,15 @@ export default function CheckoutPage() {
       }
 
       const order = await res.json();
-      setOrderNumber(order.number);
       clearCart();
+
+      if (effectivePayment === 'online') {
+        // Tinkoff init redirects to its payment page (and caches PaymentURL on Order).
+        window.location.href = `/api/payment/tinkoff/init?orderId=${order.id}`;
+        return;
+      }
+
+      setOrderNumber(order.number);
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка');
@@ -176,6 +188,35 @@ export default function CheckoutPage() {
             </div>
 
             <div className="bg-surface rounded-xl border border-border p-6">
+              <h2 className="font-semibold text-lg mb-4">Оплата</h2>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
+                  <input type="radio" name="payment" value="online" checked={effectivePayment === 'online'}
+                    onChange={() => setForm((f) => ({ ...f, payment: 'online' }))}
+                    className="mt-1 accent-accent" />
+                  <div>
+                    <p className="font-medium text-sm">Картой или СБП онлайн</p>
+                    <p className="text-xs text-text-muted">Защищённая оплата через Тинькофф. После подтверждения заказа вы будете перенаправлены на платёжную страницу.</p>
+                  </div>
+                </label>
+                {allowCashOnPickup && (
+                  <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
+                    <input type="radio" name="payment" value="cash" checked={effectivePayment === 'cash'}
+                      onChange={() => setForm((f) => ({ ...f, payment: 'cash' }))}
+                      className="mt-1 accent-accent" />
+                    <div>
+                      <p className="font-medium text-sm">При самовывозе</p>
+                      <p className="text-xs text-text-muted">Оплата наличными или картой на месте: Москва, Сормовский пр-д, 11.</p>
+                    </div>
+                  </label>
+                )}
+                {!allowCashOnPickup && (
+                  <p className="text-xs text-text-muted px-3">При доставке курьером доступна только онлайн-оплата.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-surface rounded-xl border border-border p-6">
               <h2 className="font-semibold text-lg mb-4">Комментарий</h2>
               <textarea rows={3} value={form.comment} onChange={(e) => updateField('comment', e.target.value)}
                 placeholder="Дополнительная информация к заказу..."
@@ -219,7 +260,7 @@ export default function CheckoutPage() {
               </div>
               <button type="submit" disabled={loading}
                 className="block w-full text-center py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50">
-                {loading ? 'Оформление...' : 'Подтвердить заказ'}
+                {loading ? 'Оформление...' : effectivePayment === 'online' ? 'Перейти к оплате' : 'Подтвердить заказ'}
               </button>
             </div>
           </div>

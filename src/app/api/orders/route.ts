@@ -24,7 +24,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const { items, customerName, customerPhone, customerEmail, deliveryAddress, deliveryMethod, comment } = data;
+    const { items, customerName, customerPhone, customerEmail, deliveryAddress, deliveryMethod, comment, paymentMethod } = data;
+    const pm: 'cash' | 'online' = paymentMethod === 'online' ? 'online' : 'cash';
 
     if (!items?.length || !customerName || !customerPhone) {
       return NextResponse.json({ error: 'Заполните обязательные поля' }, { status: 400 });
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
         deliveryAddress,
         deliveryMethod,
         comment,
+        paymentMethod: pm,
         items: { create: orderItems },
       },
       include: { items: { include: { product: true } } },

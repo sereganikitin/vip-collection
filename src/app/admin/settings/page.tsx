@@ -35,12 +35,16 @@ interface FormState {
   legal_inn: string;
   legal_ogrnip: string;
   legal_address: string;
+  // tinkoff acquiring
+  tinkoff_terminal_key: string;
+  tinkoff_password: string;
 }
 
 const EMPTY: FormState = {
   admin_email: 'k959em177@gmail.com',
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
   tg_bot_token: '', tg_chat_id: '',
+  tinkoff_terminal_key: '', tinkoff_password: '',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipshopp@yandex.ru',
@@ -240,6 +244,34 @@ export default function AdminSettings() {
                 <input className={fieldClass} value={form.tg_chat_id} onChange={(e) => set('tg_chat_id', e.target.value)} placeholder="например, 123456789 или -1001234567890 для группы" />
               </div>
             </div>
+          </div>
+
+          {/* Tinkoff Acquiring */}
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h3 className="font-semibold mb-1">Тинькофф — интернет-эквайринг</h3>
+            <p className="text-xs text-text-muted mb-4">
+              Приём онлайн-платежей картой и СБП. Заказы со способом оплаты «онлайн» автоматически
+              отправляются на страницу Тинькоффа, статус возвращается через server-to-server webhook.
+              <br /><br />
+              <strong>Где взять ключи:</strong> после одобрения заявки на эквайринг в ЛК Т-Бизнеса откройте
+              «Интернет-эквайринг → Терминал», там <span className="font-mono">TerminalKey</span> и
+              <span className="font-mono"> Password</span>. Для тестов можно использовать
+              <span className="font-mono"> TinkoffBankTest</span> / <span className="font-mono">TinkoffBankTest</span>.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">TerminalKey</label>
+                <input className={fieldClass} value={form.tinkoff_terminal_key} onChange={(e) => set('tinkoff_terminal_key', e.target.value)} placeholder="1234567890123" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Password</label>
+                <input className={fieldClass} type="password" value={form.tinkoff_password} onChange={(e) => set('tinkoff_password', e.target.value)} autoComplete="off" placeholder="секретный пароль терминала" />
+              </div>
+            </div>
+            <p className="text-xs text-text-muted mt-3">
+              В личном кабинете Тинькоффа также пропишите Webhook URL:{' '}
+              <span className="font-mono">https://vipcoll.ru/api/payment/tinkoff/notify</span>
+            </p>
           </div>
 
           {/* SMTP */}
