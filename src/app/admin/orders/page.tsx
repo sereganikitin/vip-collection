@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { LogOut, ArrowLeft, ExternalLink, CreditCard, Wallet, Check } from 'lucide-react';
+import { LogOut, ArrowLeft, ExternalLink, CreditCard, Wallet, Check, Send } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -92,6 +92,18 @@ export default function AdminOrders() {
       body: JSON.stringify({ paymentStatus: 'paid' }),
     });
     fetchOrders();
+  }
+
+  async function resendNotifications(orderId: string) {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/notify`, { method: 'POST' });
+      const data = await res.json();
+      const tg = data?.telegram?.ok ? '✓ TG' : '✗ TG';
+      const mail = data?.email?.ok ? '✓ Email' : '✗ Email';
+      alert(`Уведомления переотправлены:\n${tg}\n${mail}\n\nЕсли что-то не сработало — посмотрите server logs или проверьте настройки в админке.`);
+    } catch (e) {
+      alert(`Ошибка переотправки: ${String(e)}`);
+    }
   }
 
   function formatPrice(price: number) {
@@ -266,6 +278,14 @@ export default function AdminOrders() {
                               <option key={key} value={key}>{label}</option>
                             ))}
                           </select>
+
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); resendNotifications(order.id); }}
+                            className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 border border-border text-text font-medium rounded-lg text-xs hover:border-accent hover:text-accent transition-colors w-full justify-center"
+                          >
+                            <Send size={12} /> Переотправить TG и email
+                          </button>
                         </div>
                       </div>
 

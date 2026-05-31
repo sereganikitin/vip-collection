@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LogOut, ArrowLeft, Save, CheckCircle } from 'lucide-react';
+import { LogOut, ArrowLeft, Save, CheckCircle, Send, AlertCircle } from 'lucide-react';
 
 interface FormState {
   // notification + smtp
@@ -69,6 +69,29 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [tgTesting, setTgTesting] = useState(false);
+  const [tgTestResult, setTgTestResult] = useState<{
+    ok: boolean;
+    botUsername?: string;
+    chatId?: string;
+    error?: string;
+    hint?: string | null;
+    step?: string;
+  } | null>(null);
+
+  async function testTelegram() {
+    setTgTesting(true);
+    setTgTestResult(null);
+    try {
+      const res = await fetch('/api/settings/telegram-test', { method: 'POST' });
+      const data = await res.json();
+      setTgTestResult(data);
+    } catch (e) {
+      setTgTestResult({ ok: false, error: String(e) });
+    } finally {
+      setTgTesting(false);
+    }
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/admin/login');
@@ -243,6 +266,56 @@ export default function AdminSettings() {
                 <label className="block text-sm font-medium mb-1">Chat ID</label>
                 <input className={fieldClass} value={form.tg_chat_id} onChange={(e) => set('tg_chat_id', e.target.value)} placeholder="например, 123456789 или -1001234567890 для группы" />
               </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border">
+              <button
+                type="button"
+                onClick={testTelegram}
+                disabled={tgTesting}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-bg border border-border rounded-lg hover:border-accent hover:text-accent transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                <Send size={14} />
+                {tgTesting ? 'Отправляем…' : 'Отправить тестовое сообщение'}
+              </button>
+              <p className="text-xs text-text-muted mt-2">
+                Сначала сохраните токен и chat_id, потом нажмите кнопку.
+                Бот должен прислать сообщение в чат — если не пришло, причина будет ниже.
+              </p>
+
+              {tgTestResult && (
+                <div
+                  className={`mt-3 p-3 rounded-lg text-sm flex items-start gap-2 ${
+                    tgTestResult.ok
+                      ? 'bg-green-50 border border-green-200 text-green-900'
+                      : 'bg-red-50 border border-red-200 text-red-900'
+                  }`}
+                >
+                  {tgTestResult.ok ? (
+                    <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    {tgTestResult.ok ? (
+                      <>
+                        <p className="font-medium">Тестовое сообщение отправлено ✓</p>
+                        <p className="text-xs mt-1 opacity-80">
+                          Бот: @{tgTestResult.botUsername} → чат {tgTestResult.chatId}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium">Не удалось отправить{tgTestResult.step ? ` (${tgTestResult.step})` : ''}</p>
+                        <p className="text-xs mt-1 break-words">{tgTestResult.error}</p>
+                        {tgTestResult.hint && (
+                          <p className="text-xs mt-2 italic opacity-80">{tgTestResult.hint}</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

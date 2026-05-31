@@ -27,6 +27,39 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  // Подсказка по типичным опечаткам в email — чтобы реже получать bounce.
+  // Покрывает 90% случаев: домены без точки, .con/.cmo/.copm/.ru вместо популярных,
+  // gmial/gnail/yndex/ramber и т.п.
+  function emailTypoHint(email: string): string | null {
+    if (!email || !email.includes('@')) return null;
+    const [, raw] = email.split('@');
+    const domain = (raw || '').toLowerCase().trim();
+    if (!domain) return null;
+
+    const DOMAIN_FIXES: Record<string, string> = {
+      'gmail.con': 'gmail.com', 'gmail.cmo': 'gmail.com', 'gmail.copm': 'gmail.com',
+      'gmail.co': 'gmail.com', 'gmail.cm': 'gmail.com', 'gmail.ocm': 'gmail.com',
+      'gmial.com': 'gmail.com', 'gmaill.com': 'gmail.com', 'gnail.com': 'gmail.com',
+      'gmail.ru': 'gmail.com',
+      'yandex.con': 'yandex.ru', 'yndex.ru': 'yandex.ru', 'yandex.r': 'yandex.ru',
+      'yandex.com.ru': 'yandex.ru', 'yndx.ru': 'yandex.ru',
+      'mail.con': 'mail.ru', 'mial.ru': 'mail.ru', 'mali.ru': 'mail.ru',
+      'rambler.com': 'rambler.ru', 'ramber.ru': 'rambler.ru',
+      'inbox.con': 'inbox.ru', 'list.con': 'list.ru', 'bk.con': 'bk.ru',
+      'hotmail.con': 'hotmail.com', 'outlook.con': 'outlook.com',
+      'yahoo.con': 'yahoo.com', 'icloud.con': 'icloud.com',
+    };
+    const fix = DOMAIN_FIXES[domain];
+    if (fix) return `Возможно, имели в виду ${email.split('@')[0]}@${fix}?`;
+
+    // Домен без точки или с одной буквой в TLD
+    if (!/\.[a-z]{2,}$/i.test(domain)) {
+      return 'Похоже, в адресе ошибка — проверьте часть после @ (например, gmail.com).';
+    }
+    return null;
+  }
+  const emailHint = emailTypoHint(form.email);
+
   if (submitted) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
@@ -155,6 +188,9 @@ export default function CheckoutPage() {
                   <input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)}
                     placeholder="Для получения уведомлений"
                     className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  {emailHint && (
+                    <p className="mt-1.5 text-xs text-danger">{emailHint}</p>
+                  )}
                 </div>
               </div>
             </div>

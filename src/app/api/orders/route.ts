@@ -121,7 +121,21 @@ export async function POST(req: NextRequest) {
       '',
       `<b>Итого: ${formatPriceRu(order.totalPrice)}</b>`,
     ].filter(Boolean).join('\n');
-    sendTelegramMessage(tgText).catch((e) => console.error('order TG:', e));
+    // Telegram — fire-and-forget, но логируем результат:
+    // sendTelegramMessage возвращает false на «тихих» ошибках (нет токена,
+    // API вернул не-ok), поэтому отдельно ловим этот случай и пишем в логи
+    // громкий warning. На production это видно в `pm2 logs vip-collection`.
+    sendTelegramMessage(tgText)
+      .then((ok) => {
+        if (!ok) {
+          console.warn(
+            `[ORDER #${order.number}] Telegram notification FAILED. ` +
+              'Проверьте tg_bot_token / tg_chat_id в админке и нажмите «Тест Telegram». ' +
+              'Можно переотправить уведомление кнопкой «Переотправить TG и email» на странице заказа.'
+          );
+        }
+      })
+      .catch((e) => console.error(`[ORDER #${order.number}] Telegram threw:`, e));
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {
