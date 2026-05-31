@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { pingProduct, pingCategory, pingHome } from '@/lib/indexnow';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,5 +41,12 @@ export async function POST(req: NextRequest) {
 
   const data = await req.json();
   const product = await prisma.product.create({ data, include: { category: true, brand: true } });
+
+  // IndexNow: пингуем новый товар + категорию + главную (товар может попасть
+  // в «Новинки»/«Популярные»). Без await — не блокируем ответ админке.
+  void pingProduct(product.slug);
+  if (product.category?.slug) void pingCategory(product.category.slug);
+  void pingHome();
+
   return NextResponse.json(product, { status: 201 });
 }
