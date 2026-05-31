@@ -47,19 +47,23 @@ async function main() {
   }
   console.log(`${Object.keys(brands).length} brands created`);
 
-  // Create categories
+  // Create categories.
+  // ВАЖНО: slug категорий совпадает с id — на production все URL-ы
+  // используют английские slug'и (см. scripts/migrate-category-slugs.ts).
+  // SEO-словари в src/data/seo-content.ts и subcategory-content.ts
+  // тоже привязаны к этим английским ключам.
   const categoriesData = [
-    { id: 'suitcases', name: 'Чемоданы и кейс-пилоты', slug: 'chemodany', image: '/images/categories/suitcases.jpg', sortOrder: 1 },
-    { id: 'women-bags', name: 'Сумки женские David Jones', slug: 'sumki-zhenskie', image: '/images/categories/women-bags.jpg', sortOrder: 2 },
-    { id: 'briefcases', name: 'Портфели и сумки дорожные', slug: 'portfeli', image: '/images/categories/briefcases.jpg', sortOrder: 3 },
-    { id: 'parts', name: 'Запчасти для чемоданов', slug: 'zapchasti', image: '/images/categories/parts.jpg', sortOrder: 4 },
-    { id: 'wallets', name: 'Портмоне и обложки', slug: 'portmone', image: '/images/categories/wallets.jpg', sortOrder: 5 },
-    { id: 'backpacks', name: 'Рюкзаки и сумки для ноутбука', slug: 'ryukzaki', image: '/images/categories/backpacks.jpg', sortOrder: 6 },
-    { id: 'covers', name: 'Чехлы для чемоданов', slug: 'chekhly', image: '/images/categories/covers.jpg', sortOrder: 7 },
-    { id: 'belts', name: 'Ремни', slug: 'remni', image: '/images/categories/belts.jpg', sortOrder: 8 },
-    { id: 'waist-bags', name: 'Сумки на пояс', slug: 'sumki-na-poyas', image: '/images/categories/waist-bags.jpg', sortOrder: 9 },
-    { id: 'misc', name: 'Разное', slug: 'raznoe', image: '/images/categories/misc.jpg', sortOrder: 10 },
-    { id: 'sale', name: 'РАСПРОДАЖА', slug: 'rasprodazha', image: '/images/categories/sale.jpg', sortOrder: 11 },
+    { id: 'suitcases', name: 'Чемоданы и кейс-пилоты', slug: 'suitcases', image: '/images/categories/suitcases.jpg', sortOrder: 1 },
+    { id: 'women-bags', name: 'Сумки женские David Jones', slug: 'women-bags', image: '/images/categories/women-bags.jpg', sortOrder: 2 },
+    { id: 'briefcases', name: 'Портфели и сумки дорожные', slug: 'briefcases', image: '/images/categories/briefcases.jpg', sortOrder: 3 },
+    { id: 'parts', name: 'Запчасти для чемоданов', slug: 'parts', image: '/images/categories/parts.jpg', sortOrder: 4 },
+    { id: 'wallets', name: 'Портмоне и обложки', slug: 'wallets', image: '/images/categories/wallets.jpg', sortOrder: 5 },
+    { id: 'backpacks', name: 'Рюкзаки и сумки для ноутбука', slug: 'backpacks', image: '/images/categories/backpacks.jpg', sortOrder: 6 },
+    { id: 'covers', name: 'Чехлы для чемоданов', slug: 'covers', image: '/images/categories/covers.jpg', sortOrder: 7 },
+    { id: 'belts', name: 'Ремни', slug: 'belts', image: '/images/categories/belts.jpg', sortOrder: 8 },
+    { id: 'waist-bags', name: 'Сумки на пояс', slug: 'waist-bags', image: '/images/categories/waist-bags.jpg', sortOrder: 9 },
+    { id: 'misc', name: 'Разное', slug: 'misc', image: '/images/categories/misc.jpg', sortOrder: 10 },
+    { id: 'sale', name: 'РАСПРОДАЖА', slug: 'sale', image: '/images/categories/sale.jpg', sortOrder: 11 },
   ];
 
   const categories: Record<string, string> = {};

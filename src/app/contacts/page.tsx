@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { ChevronRight, Phone, Mail, MapPin, Send, Clock, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { getSiteContacts } from '@/lib/settings';
+import JsonLd from '@/components/JsonLd';
+import { SITE_URL, buildBreadcrumbList } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'Контакты VIP COLLECTION — телефон, адрес, режим работы',
@@ -21,8 +23,30 @@ export const metadata: Metadata = {
 export default async function ContactsPage() {
   const c = await getSiteContacts();
 
+  const breadcrumbJsonLd = buildBreadcrumbList([
+    { name: 'Главная', url: SITE_URL },
+    { name: 'Контакты', url: `${SITE_URL}/contacts` },
+  ]);
+
+  const contactPageJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    '@id': `${SITE_URL}/contacts#webpage`,
+    url: `${SITE_URL}/contacts`,
+    name: 'Контакты VIP COLLECTION',
+    inLanguage: 'ru-RU',
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    mainEntity: { '@id': `${SITE_URL}/#organization` },
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', '.speakable-summary'],
+    },
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
+      <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={contactPageJsonLd} />
       <nav className="flex items-center gap-2 text-sm text-text-muted mb-6">
         <Link href="/" className="hover:text-accent transition-colors">Главная</Link>
         <ChevronRight size={14} />

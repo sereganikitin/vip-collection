@@ -1,34 +1,51 @@
 export const SITE_URL = 'https://vipcoll.ru';
 export const SITE_NAME = 'VIP COLLECTION';
+export const SITE_PHONE = '+7-925-743-71-35';
+export const SITE_EMAIL = 'vipshopp@yandex.ru';
+export const SITE_ADDRESS = {
+  streetAddress: 'Сормовский проезд, 11, стр. 1',
+  addressLocality: 'Москва',
+  postalCode: '115088',
+  addressCountry: 'RU',
+};
 
-
+// Главная сущность — магазин-склад. Используем мульти-тип
+// ["Store", "LocalBusiness"], чтобы поисковики и LLM-аггрегаторы
+// видели и e-commerce-витрину, и физический магазин с адресом.
 export const ORGANIZATION_JSONLD = {
   '@context': 'https://schema.org',
-  '@type': 'Store',
+  '@type': ['Store', 'LocalBusiness'],
   '@id': `${SITE_URL}/#organization`,
   name: SITE_NAME,
+  alternateName: ['Вип Коллекшн', 'VIP COLL', 'VIP Collection Москва'],
   url: SITE_URL,
   logo: `${SITE_URL}/images/ui/logo.png`,
-  image: `${SITE_URL}/images/banners/banner-1.jpg`,
+  image: [
+    `${SITE_URL}/images/banners/banner-1.jpg`,
+    `${SITE_URL}/images/ui/logo.png`,
+  ],
   description:
-    'Интернет-магазин чемоданов, сумок, портфелей, рюкзаков и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT.',
-  email: 'vipshopp@yandex.ru',
-  telephone: '+7-925-743-71-35',
-  priceRange: '500₽-50000₽',
-  paymentAccepted: 'Cash, Credit Card',
+    'Интернет-магазин и магазин-склад в Москве: чемоданы, сумки, портфели, рюкзаки и кожгалантерея. Собственные бренды VIP COLLECTION и ARISTOCRAT. Свой сервисный центр для ремонта чемоданов любых брендов.',
+  slogan: 'Надёжные чемоданы и кожгалантерея с самовывозом в Москве',
+  email: SITE_EMAIL,
+  telephone: SITE_PHONE,
+  priceRange: '500₽–50000₽',
+  paymentAccepted: ['Cash', 'Credit Card', 'СБП', 'Bank Transfer'],
   currenciesAccepted: 'RUB',
+  areaServed: [
+    { '@type': 'City', name: 'Москва' },
+    { '@type': 'AdministrativeArea', name: 'Московская область' },
+  ],
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Сормовский проезд, 11, стр. 1',
-    addressLocality: 'Москва',
-    postalCode: '115088',
-    addressCountry: 'RU',
+    ...SITE_ADDRESS,
   },
   geo: {
     '@type': 'GeoCoordinates',
     latitude: 55.7080,
     longitude: 37.6906,
   },
+  hasMap: 'https://yandex.ru/maps/?text=Сормовский+проезд+11+стр+1+Москва',
   openingHoursSpecification: [
     {
       '@type': 'OpeningHoursSpecification',
@@ -43,6 +60,26 @@ export const ORGANIZATION_JSONLD = {
       closes: '17:00',
     },
   ],
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    reviewCount: '247',
+    bestRating: '5',
+    worstRating: '1',
+  },
+  knowsAbout: [
+    'Чемоданы из поликарбоната',
+    'Кейс-пилоты для деловых поездок',
+    'Ремонт чемоданов любых брендов',
+    'Запчасти для чемоданов',
+    'Кожгалантерея NERI KARRA',
+    'Женские сумки David Jones',
+    'Рюкзаки ARISTOCRAT',
+  ],
+  brand: [
+    { '@type': 'Brand', name: 'VIP COLLECTION' },
+    { '@type': 'Brand', name: 'ARISTOCRAT' },
+  ],
   sameAs: ['https://t.me/VIP_CHEMODAN'],
 };
 
@@ -52,7 +89,8 @@ export const WEBSITE_JSONLD = {
   '@id': `${SITE_URL}/#website`,
   url: SITE_URL,
   name: SITE_NAME,
-  description: 'Интернет-магазин чемоданов и кожгалантереи',
+  description:
+    'Интернет-магазин чемоданов VIP COLLECTION, женских сумок David Jones, кожгалантереи NERI KARRA, рюкзаков ARISTOCRAT и запчастей для чемоданов в Москве.',
   publisher: { '@id': `${SITE_URL}/#organization` },
   inLanguage: 'ru-RU',
   potentialAction: {
@@ -62,6 +100,72 @@ export const WEBSITE_JSONLD = {
       urlTemplate: `${SITE_URL}/catalog/suitcases?search={search_term_string}`,
     },
     'query-input': 'required name=search_term_string',
+  },
+};
+
+// Speakable — секции для голосовых ассистентов (Алиса, Google Assistant, Siri).
+// Указывает фрагменты, которые AI может зачитать как «короткий ответ».
+export const HOME_SPEAKABLE_JSONLD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  '@id': `${SITE_URL}/#webpage`,
+  url: SITE_URL,
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    cssSelector: ['h1', '.speakable-summary'],
+  },
+};
+
+// Service-схемы — для запросов «ремонт чемоданов» и «доставка по Москве».
+export const REPAIR_SERVICE_JSONLD = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  '@id': `${SITE_URL}/repair#service`,
+  name: 'Ремонт чемоданов',
+  description:
+    'Замена колёс, телескопических ручек, кодовых и TSA-замков, бегунков и молний для чемоданов любых брендов. Гарантийный ремонт чемоданов VIP COLLECTION и ARISTOCRAT — бесплатно в течение 12 месяцев.',
+  serviceType: 'Ремонт чемоданов и сумок',
+  provider: { '@id': `${SITE_URL}/#organization` },
+  areaServed: [
+    { '@type': 'City', name: 'Москва' },
+    { '@type': 'AdministrativeArea', name: 'Московская область' },
+  ],
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'RUB',
+    price: '200',
+    priceSpecification: {
+      '@type': 'PriceSpecification',
+      minPrice: '200',
+      maxPrice: '2500',
+      priceCurrency: 'RUB',
+    },
+  },
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Виды работ',
+    itemListElement: [
+      {
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: 'Замена колёс' },
+        priceSpecification: { '@type': 'PriceSpecification', minPrice: '500', maxPrice: '2500', priceCurrency: 'RUB' },
+      },
+      {
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: 'Замена телескопической ручки' },
+        priceSpecification: { '@type': 'PriceSpecification', minPrice: '800', maxPrice: '1500', priceCurrency: 'RUB' },
+      },
+      {
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: 'Замена замка (кодовый, TSA)' },
+        priceSpecification: { '@type': 'PriceSpecification', minPrice: '500', maxPrice: '1200', priceCurrency: 'RUB' },
+      },
+      {
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: 'Ремонт молнии и бегунков' },
+        priceSpecification: { '@type': 'PriceSpecification', minPrice: '300', maxPrice: '800', priceCurrency: 'RUB' },
+      },
+    ],
   },
 };
 
@@ -113,6 +217,18 @@ export function buildItemList(products: ItemListProduct[], categoryName: string)
           availability: 'https://schema.org/InStock',
         },
       },
+    })),
+  };
+}
+
+export function buildFaqJsonLd(faq: { q: string; a: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
     })),
   };
 }

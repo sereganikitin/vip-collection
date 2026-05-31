@@ -6,7 +6,23 @@ import ProductCard from '@/components/ProductCard';
 import Carousel from '@/components/Carousel';
 import FadeSlider, { type FadeSlide } from '@/components/FadeSlider';
 import JsonLd from '@/components/JsonLd';
-import { ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/lib/seo';
+import {
+  ORGANIZATION_JSONLD,
+  WEBSITE_JSONLD,
+  HOME_SPEAKABLE_JSONLD,
+  buildFaqJsonLd,
+} from '@/lib/seo';
+import { HOME_FAQ } from '@/data/seo-content';
+
+// Маппинг названий брендов из БД на slug их бренд-страницы.
+// Если бренда нет в маппинге — логотип на главной отображается без ссылки.
+const BRAND_PAGE_BY_NAME: Record<string, string> = {
+  'VIP COLLECTION': 'vip-collection',
+  ARISTOCRAT: 'aristocrat',
+  'David Jones': 'david-jones',
+  'NERI KARRA': 'neri-karra',
+  OLIDIK: 'olidik',
+};
 import { prisma } from '@/lib/prisma';
 import { getCategoriesForFrontend } from '@/lib/categories';
 import { getProductsForFrontend } from '@/lib/products';
@@ -41,6 +57,8 @@ export default async function Home() {
     <>
       <JsonLd data={ORGANIZATION_JSONLD} />
       <JsonLd data={WEBSITE_JSONLD} />
+      <JsonLd data={HOME_SPEAKABLE_JSONLD} />
+      <JsonLd data={buildFaqJsonLd(HOME_FAQ)} />
       {/* Hero with slider */}
       <section className="relative bg-black overflow-hidden">
         <div className="relative">
@@ -54,7 +72,7 @@ export default async function Home() {
                 <h1 className="text-3xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-3 sm:mb-6">
                   Чемоданы на колёсах от {minSuitcasePriceFmt} ₽
                 </h1>
-                <p className="text-gray-100 text-sm sm:text-base md:text-lg mb-5 sm:mb-8 leading-relaxed">
+                <p className="speakable-summary text-gray-100 text-sm sm:text-base md:text-lg mb-5 sm:mb-8 leading-relaxed">
                   Магазин-склад на Сормовском проезде 11. Чемоданы VIP COLLECTION,
                   рюкзаки и сумки ARISTOCRAT, портмоне NERI KARRA, запчасти для ремонта.
                 </p>
@@ -212,25 +230,41 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-4 py-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Наши бренды</h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6">
-            {brands.map((brand) => (
-              <div
-                key={brand.id}
-                className="aspect-[3/2] bg-white border border-border rounded-xl flex items-center justify-center p-4 hover:shadow-md transition-shadow cursor-pointer relative"
-              >
-                {brand.logo ? (
-                  <Image
-                    src={brand.logo}
-                    alt={brand.name}
-                    fill
-                    className="object-contain p-3"
-                    sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
-                    unoptimized={brand.logo.startsWith('/uploads/')}
-                  />
-                ) : (
-                  <span className="text-sm font-medium text-text-muted">{brand.name}</span>
-                )}
-              </div>
-            ))}
+            {brands.map((brand) => {
+              const brandSlug = BRAND_PAGE_BY_NAME[brand.name];
+              const inner = brand.logo ? (
+                <Image
+                  src={brand.logo}
+                  alt={brand.name}
+                  fill
+                  className="object-contain p-3"
+                  sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
+                  unoptimized={brand.logo.startsWith('/uploads/')}
+                />
+              ) : (
+                <span className="text-sm font-medium text-text-muted">{brand.name}</span>
+              );
+              if (brandSlug) {
+                return (
+                  <Link
+                    key={brand.id}
+                    href={`/brand/${brandSlug}`}
+                    aria-label={`${brand.name} — каталог`}
+                    className="aspect-[3/2] bg-white border border-border rounded-xl flex items-center justify-center p-4 hover:shadow-md hover:border-accent transition-all relative"
+                  >
+                    {inner}
+                  </Link>
+                );
+              }
+              return (
+                <div
+                  key={brand.id}
+                  className="aspect-[3/2] bg-white border border-border rounded-xl flex items-center justify-center p-4 relative"
+                >
+                  {inner}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -344,6 +378,24 @@ export default async function Home() {
             Работаем без выходных.
           </p>
         </article>
+      </section>
+
+      {/* FAQ — для FAQPage Schema и GEO (AI-цитирование) */}
+      <section className="mx-auto max-w-7xl px-4 pb-12">
+        <div className="bg-surface rounded-2xl border border-border p-6 md:p-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">Частые вопросы</h2>
+          <div className="divide-y divide-border">
+            {HOME_FAQ.map((item) => (
+              <details key={item.q} className="group py-4">
+                <summary className="flex justify-between items-start cursor-pointer text-base font-semibold hover:text-accent transition-colors">
+                  <span>{item.q}</span>
+                  <ArrowRight size={18} className="flex-shrink-0 ml-3 mt-0.5 transition-transform group-open:rotate-90" />
+                </summary>
+                <p className="mt-3 text-sm text-text-muted leading-relaxed">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
       </section>
     </>
   );

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { categorySeoContent, GLOBAL_KEYWORDS } from '@/data/seo-content';
 import CatalogContent from './CatalogContent';
 import JsonLd from '@/components/JsonLd';
-import { SITE_URL, SITE_NAME, buildBreadcrumbList, buildItemList } from '@/lib/seo';
+import { SITE_URL, SITE_NAME, buildBreadcrumbList, buildItemList, buildFaqJsonLd } from '@/lib/seo';
 import { getCategoriesForFrontend } from '@/lib/categories';
 import { getProductsForFrontend } from '@/lib/products';
 
@@ -82,21 +82,27 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
     : null;
 
   // FAQPage Schema if there are FAQ items for this category
-  const faqJsonLd = seo?.faq && seo.faq.length > 0
+  const faqJsonLd = seo?.faq && seo.faq.length > 0 ? buildFaqJsonLd(seo.faq) : null;
+
+  // CollectionPage Schema — главная сущность страницы каталога
+  const collectionPageJsonLd = category
     ? {
         '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: seo.faq.map((item) => ({
-          '@type': 'Question',
-          name: item.q,
-          acceptedAnswer: { '@type': 'Answer', text: item.a },
-        })),
+        '@type': 'CollectionPage',
+        '@id': `${SITE_URL}/catalog/${category.slug}#webpage`,
+        url: `${SITE_URL}/catalog/${category.slug}`,
+        name: seo?.metaTitle ?? category.name,
+        description: seo?.metaDescription,
+        inLanguage: 'ru-RU',
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        about: category.name,
       }
     : null;
 
   return (
     <>
       <JsonLd data={breadcrumbJsonLd} />
+      {collectionPageJsonLd && <JsonLd data={collectionPageJsonLd} />}
       {itemListJsonLd && <JsonLd data={itemListJsonLd} />}
       {faqJsonLd && <JsonLd data={faqJsonLd} />}
       <CatalogContent slug={slug} seo={seo} categories={categories} items={items} />

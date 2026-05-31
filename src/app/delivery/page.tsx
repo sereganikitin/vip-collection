@@ -3,7 +3,7 @@ import { ChevronRight, Truck, MapPin, CreditCard, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { DELIVERY_FAQ } from '@/data/seo-content';
 import JsonLd from '@/components/JsonLd';
-import { SITE_URL, SITE_NAME, buildBreadcrumbList } from '@/lib/seo';
+import { SITE_URL, SITE_NAME, buildBreadcrumbList, buildFaqJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'Доставка по Москве и Подмосковью, самовывоз',
@@ -31,19 +31,27 @@ export default function DeliveryPage() {
     { name: 'Доставка', url: `${SITE_URL}/delivery` },
   ]);
 
-  const faqJsonLd = {
+  const faqJsonLd = buildFaqJsonLd(DELIVERY_FAQ);
+
+  const webPageJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: DELIVERY_FAQ.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a },
-    })),
+    '@type': 'WebPage',
+    '@id': `${SITE_URL}/delivery#webpage`,
+    url: `${SITE_URL}/delivery`,
+    name: 'Доставка по Москве и Подмосковью — VIP COLLECTION',
+    inLanguage: 'ru-RU',
+    isPartOf: { '@id': `${SITE_URL}/#website` },
+    primaryImageOfPage: { '@id': `${SITE_URL}/images/banners/banner-1.jpg` },
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', '.speakable-summary'],
+    },
   };
 
   return (
     <>
       <JsonLd data={breadcrumbJsonLd} />
+      <JsonLd data={webPageJsonLd} />
       <JsonLd data={faqJsonLd} />
 
       <div className="mx-auto max-w-4xl px-4 py-6">
@@ -55,7 +63,7 @@ export default function DeliveryPage() {
 
         <div className="bg-surface rounded-xl border border-border p-6 md:p-10">
           <h1 className="text-3xl font-bold mb-3">Доставка по Москве и Подмосковью</h1>
-          <p className="text-text-muted leading-relaxed mb-6">
+          <p className="speakable-summary text-text-muted leading-relaxed mb-6">
             Работаем только в пределах Москвы и Московской области. Курьер привозит на дом,
             в офис или другой удобный адрес. Также возможен самовывоз с нашего магазина-склада
             на Сормовском проезде. Доставка в другие регионы России не осуществляется.

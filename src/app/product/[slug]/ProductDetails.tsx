@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import ProductCard from '@/components/ProductCard';
 import type { CategoryView } from '@/lib/categories';
 import type { ProductView } from '@/lib/products';
+import { enrichProductDescription } from '@/lib/product-enrich';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
@@ -21,6 +22,7 @@ interface ProductDetailsProps {
 
 export default function ProductDetails({ product, category, relatedProducts }: ProductDetailsProps) {
   const { addItem } = useCart();
+  const enriched = product ? enrichProductDescription(product, category?.name ?? null) : null;
 
   if (!product) {
     return (
@@ -89,7 +91,7 @@ export default function ProductDetails({ product, category, relatedProducts }: P
             )}
           </div>
 
-          <p className="text-text-muted leading-relaxed mb-6">{product.description}</p>
+          <p className="text-text-muted leading-relaxed mb-6">{enriched?.base ?? product.description}</p>
 
           <button
             onClick={() => addItem(product)}
@@ -131,6 +133,18 @@ export default function ProductDetails({ product, category, relatedProducts }: P
           </div>
         </div>
       </div>
+
+      {/* Расширенное описание — для SEO и AI-цитирования */}
+      {enriched && enriched.extra.length > 0 && (
+        <section className="mb-12 bg-surface rounded-2xl border border-border p-6 md:p-8">
+          <h2 className="text-xl md:text-2xl font-bold mb-4">О товаре</h2>
+          <div className="space-y-3 text-text-muted leading-relaxed text-sm md:text-base">
+            {enriched.extra.map((para, i) => (
+              <p key={i}>{para}</p>
+            ))}
+          </div>
+        </section>
+      )}
 
       {relatedProducts.length > 0 && (
         <section>
