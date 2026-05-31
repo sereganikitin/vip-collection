@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import type { CategorySeoContent } from '@/data/seo-content';
 import type { CategoryView } from '@/lib/categories';
 import type { ProductView } from '@/lib/products';
+import { categoryVariants } from '@/data/subcategory-content';
 
 type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name';
 
@@ -26,6 +27,7 @@ export default function CatalogContent({ slug, seo, categories, items }: Catalog
 
   const category = categories.find((c) => c.slug === slug);
   const categoryName = category?.name || 'Каталог';
+  const variants = (category && categoryVariants[category.id]) || [];
 
   const filteredProducts = useMemo(() => {
     switch (sort) {
@@ -141,6 +143,25 @@ export default function CatalogContent({ slug, seo, categories, items }: Catalog
               </select>
             </div>
           </div>
+
+          {variants.length > 0 && (
+            <section className="mb-6 -mt-2">
+              <p className="text-xs text-text-muted font-medium uppercase tracking-wide mb-2">
+                Подборки в категории
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {variants.map((v) => (
+                  <Link
+                    key={v.slug}
+                    href={`/catalog/${slug}/${v.slug}`}
+                    className="px-3 py-1.5 bg-surface border border-border rounded-lg hover:border-accent hover:text-accent transition-colors text-sm"
+                  >
+                    {v.h1}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {paginatedProducts.length > 0 ? (
             <>
