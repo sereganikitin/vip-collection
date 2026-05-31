@@ -54,6 +54,7 @@ export default function Footer({ contacts }: { contacts: SiteContacts }) {
               <li><Link href="/wholesale" className="hover:text-accent transition-colors">Оптовикам</Link></li>
               <li><Link href="/repair" className="hover:text-accent transition-colors">Ремонт</Link></li>
               <li><Link href="/pickup" className="hover:text-accent transition-colors">Где купить</Link></li>
+              <li><Link href="/blog" className="hover:text-accent transition-colors">Блог и гайды</Link></li>
               <li><Link href="/privacy" className="hover:text-accent transition-colors">Политика конфиденциальности</Link></li>
               <li><Link href="/terms" className="hover:text-accent transition-colors">Договор-оферта</Link></li>
             </ul>
