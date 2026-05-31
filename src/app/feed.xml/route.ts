@@ -8,6 +8,21 @@ export const revalidate = 3600;
 const SITE_URL = 'https://vipcoll.ru';
 const SALES_NOTES = 'Самовывоз: Москва, Сормовский проезд, 11, стр. 1';
 
+// Точка самовывоза для Я.Товаров/Я.Маркета. С блоком <outlets>
+// каждый оффер привязывается к конкретному складу — это даёт Я.Товарам
+// геоданные «товар доступен в магазине рядом с пользователем» и сильно
+// повышает шансы показа в выдаче для жителей Москвы.
+const PICKUP_OUTLET_ID = 1;
+const PICKUP_OUTLET = {
+  id: PICKUP_OUTLET_ID,
+  type: 'depot' as const,
+  region: 'Москва',
+  name: 'Магазин-склад на Сормовском',
+  address: '115088, Москва, Сормовский проезд, 11, стр. 1',
+  phone: '+7 925 743-71-35',
+  workingDays: 'пн-пт 10:00-18:00; сб 11:00-17:00',
+};
+
 function xmlEscape(str: string | null | undefined): string {
   if (!str) return '';
   return String(str)
@@ -154,6 +169,13 @@ export async function GET() {
             .join('\n')
         : '';
 
+      // Привязываем оффер к складу на Сормовском (точка самовывоза).
+      // instock — приблизительный остаток (Я.Товары не требует точного,
+      // важен сам факт наличия в данной точке).
+      const outletsTag = p.inStock
+        ? `      <outlets>\n        <outlet id="${PICKUP_OUTLET_ID}" instock="3"/>\n      </outlets>\n`
+        : '';
+
       return `    <offer id="${offerId}" available="${p.inStock ? 'true' : 'false'}">
       <url>${xmlEscape(url)}</url>
       <price>${p.price}</price>
@@ -167,13 +189,21 @@ ${pictures ? pictures + '\n' : ''}      <store>true</store>
       <vendorCode>${xmlEscape(p.id)}</vendorCode>
       <description><![CDATA[${description}]]></description>
       <sales_notes>${xmlEscape(SALES_NOTES)}</sales_notes>
-${params ? params + '\n' : ''}    </offer>`;
+${outletsTag}${params ? params + '\n' : ''}    </offer>`;
     })
     .join('\n');
 
   const categoriesXml = usedCategories
     .map((c) => `    <category id="${hashId(c.id)}">${xmlEscape(c.name)}</category>`)
     .join('\n');
+
+  const outletsXml = `    <outlets>
+      <outlet id="${PICKUP_OUTLET.id}" type="${PICKUP_OUTLET.type}" region="${xmlEscape(PICKUP_OUTLET.region)}" name="${xmlEscape(PICKUP_OUTLET.name)}">
+        <phone>${xmlEscape(PICKUP_OUTLET.phone)}</phone>
+        <address>${xmlEscape(PICKUP_OUTLET.address)}</address>
+        <working_days>${xmlEscape(PICKUP_OUTLET.workingDays)}</working_days>
+      </outlet>
+    </outlets>`;
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <yml_catalog date="${formatYmlDate(new Date())}">
@@ -187,6 +217,7 @@ ${params ? params + '\n' : ''}    </offer>`;
     <categories>
 ${categoriesXml}
     </categories>
+${outletsXml}
     <offers>
 ${offers}
     </offers>
