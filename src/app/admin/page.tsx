@@ -78,6 +78,9 @@ export default function AdminDashboard() {
           <Link href="/admin/orders" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
             Заказы
           </Link>
+          <Link href="/admin/feedback" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
+            Обращения
+          </Link>
           <Link href="/admin/banners" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text transition-colors whitespace-nowrap">
             Баннеры
           </Link>

@@ -136,3 +136,85 @@ export async function sendOrderEmails(order: OrderEmailData) {
     }
   }
 }
+
+// ──────────────────────────────────────────────────────────────
+// Уведомление администратора о сообщении с формы обратной связи
+// ──────────────────────────────────────────────────────────────
+
+interface FeedbackEmailData {
+  name: string;
+  phone: string;
+  message: string;
+  receivedAt: Date;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildFeedbackHtml(fb: FeedbackEmailData): string {
+  const date = fb.receivedAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+  const messageHtml = escapeHtml(fb.message).replace(/\n/g, '<br>');
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#62221C;color:white;padding:20px;text-align:center">
+        <h1 style="margin:0;font-size:20px">VIP COLLECTION</h1>
+      </div>
+      <div style="padding:20px">
+        <h2 style="color:#62221C">Новое сообщение с формы обратной связи</h2>
+        <p style="color:#666;font-size:13px">Получено: ${date} (МСК)</p>
+        <p><strong>Имя:</strong> ${escapeHtml(fb.name)}</p>
+        <p><strong>Телефон:</strong> <a href="tel:${escapeHtml(fb.phone)}">${escapeHtml(fb.phone)}</a></p>
+        <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
+        <p style="white-space:pre-wrap;line-height:1.5">${messageHtml}</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0 16px">
+        <p style="font-size:12px;color:#888">
+          Просмотреть и ответить можно в админке:
+          <a href="https://vipcoll.ru/admin/feedback">vipcoll.ru/admin/feedback</a>
+        </p>
+      </div>
+      <div style="background:#f5f5f5;padding:15px;text-align:center;font-size:12px;color:#666">
+        VIP COLLECTION — Чемоданы и аксессуары для путешествий
+      </div>
+    </div>
+  `;
+}
+
+export async function sendFeedbackEmail(fb: FeedbackEmailData): Promise<void> {
+  const smtp = await getSmtpConfig();
+  const adminEmails = await getAdminEmails();
+
+  if (!smtp.smtp_host || !smtp.smtp_user || !smtp.smtp_pass) {
+    console.log('SMTP not configured, skipping feedback email');
+    return;
+  }
+  if (adminEmails.length === 0) {
+    console.warn('No admin email configured — cannot send feedback notification');
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtp.smtp_host,
+    port: parseInt(smtp.smtp_port || '587'),
+    secure: smtp.smtp_port === '465',
+    auth: { user: smtp.smtp_user, pass: smtp.smtp_pass },
+  });
+
+  const from = smtp.smtp_from || smtp.smtp_user;
+
+  try {
+    await transporter.sendMail({
+      from,
+      to: adminEmails,
+      subject: `Новое обращение: ${fb.name} — VIP COLLECTION`,
+      html: buildFeedbackHtml(fb),
+    });
+    console.log(`Feedback notification sent to ${adminEmails.join(', ')}`);
+  } catch (e) {
+    console.error('Failed to send feedback email:', e);
+  }
+}
