@@ -104,6 +104,7 @@ export default function AdminFeedback() {
           <Link href="/admin/feedback" className="px-4 py-3 text-sm font-medium text-accent border-b-2 border-accent whitespace-nowrap">
             Обращения{unread > 0 ? ` · ${unread}` : ''}
           </Link>
+          <Link href="/admin/pages" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Страницы</Link>
           <Link href="/admin/banners" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Баннеры</Link>
           <Link href="/admin/settings" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Настройки</Link>
         </div>

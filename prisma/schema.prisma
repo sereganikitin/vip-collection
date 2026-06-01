@@ -140,3 +140,16 @@ model Banner {
   title       String?
   link        String?
 }
+
+// Контент статической страницы (доставка, о компании, ремонт, опт, самовывоз).
+// Если строки нет — страница рендерится с дефолтным контентом
+// из src/lib/page-defaults.ts (бекап-копия исходного хардкода).
+model PageContent {
+  slug      String   @id           // 'delivery' | 'about' | 'repair' | 'wholesale' | 'pickup'
+  title     String                 // H1
+  intro     String   @default("")  // markdown под H1
+  sections  Json     @default("[]") // [{ icon?: string, title: string, body: string (markdown) }]
+  body      String   @default("")  // markdown после sections
+  faq       Json     @default("[]") // [{ q: string, a: string }]
+  updatedAt DateTime @updatedAt
+}
