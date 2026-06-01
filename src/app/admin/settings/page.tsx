@@ -242,8 +242,18 @@ export default function AdminSettings() {
             <h3 className="font-semibold mb-4">Уведомления о заказах</h3>
             <div>
               <label className="block text-sm font-medium mb-1">Email для уведомлений</label>
-              <input className={fieldClass} type="email" value={form.admin_email} onChange={(e) => set('admin_email', e.target.value)} required />
-              <p className="text-xs text-text-muted mt-1">На этот адрес приходят уведомления о новых заказах</p>
+              <input
+                className={fieldClass}
+                type="text"
+                value={form.admin_email}
+                onChange={(e) => set('admin_email', e.target.value)}
+                placeholder="admin@example.com, второй@example.com"
+                required
+              />
+              <p className="text-xs text-text-muted mt-1">
+                На этот адрес приходят уведомления о новых заказах. Можно указать несколько
+                адресов через запятую — каждый получит копию письма.
+              </p>
             </div>
           </div>
 

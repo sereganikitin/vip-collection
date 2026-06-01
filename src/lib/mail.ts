@@ -10,9 +10,16 @@ async function getSmtpConfig() {
   return config;
 }
 
-async function getAdminEmail() {
+// Возвращает массив email-адресов админов из настройки admin_email.
+// Поддерживает несколько адресов через запятую / точку с запятой / перевод строки —
+// все они получают уведомления о каждом новом заказе.
+async function getAdminEmails(): Promise<string[]> {
   const setting = await prisma.setting.findUnique({ where: { key: 'admin_email' } });
-  return setting?.value || 'k959em177@gmail.com';
+  const raw = setting?.value || 'k959em177@gmail.com';
+  return raw
+    .split(/[,;\n]/)
+    .map((e) => e.trim())
+    .filter((e) => e.length > 0 && e.includes('@'));
 }
 
 function formatPrice(price: number) {
@@ -80,10 +87,14 @@ function buildOrderHtml(order: OrderEmailData, forAdmin: boolean) {
 
 export async function sendOrderEmails(order: OrderEmailData) {
   const smtp = await getSmtpConfig();
-  const adminEmail = await getAdminEmail();
+  const adminEmails = await getAdminEmails();
 
   if (!smtp.smtp_host || !smtp.smtp_user || !smtp.smtp_pass) {
     console.log('SMTP not configured, skipping email notifications');
+    return;
+  }
+  if (adminEmails.length === 0) {
+    console.warn('No admin email configured — cannot send admin notification');
     return;
   }
 
@@ -96,15 +107,16 @@ export async function sendOrderEmails(order: OrderEmailData) {
 
   const from = smtp.smtp_from || smtp.smtp_user;
 
-  // Send to admin
+  // Send to all admin emails в одном письме (To: copy для всех адресов).
+  // Nodemailer принимает массив строк или строку с запятыми.
   try {
     await transporter.sendMail({
       from,
-      to: adminEmail,
+      to: adminEmails,
       subject: `Новый заказ #${order.orderNumber} — VIP COLLECTION`,
       html: buildOrderHtml(order, true),
     });
-    console.log(`Admin notification sent to ${adminEmail}`);
+    console.log(`Admin notification sent to ${adminEmails.join(', ')}`);
   } catch (e) {
     console.error('Failed to send admin email:', e);
   }
