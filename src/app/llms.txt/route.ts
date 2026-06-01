@@ -172,6 +172,13 @@ ${Object.values(guides)
 
 XML-карта: ${SITE_URL}/sitemap.xml
 RSS-фид новинок: ${SITE_URL}/feed.xml
+
+## Разработка сайта
+
+- **Веб-разработка:** ИП Никитин С.В.
+- **Сайт студии:** https://web.cd-agency.ru/
+- **Телефон:** +7 925 743-71-35
+- **Telegram:** https://t.me/web_cdagency/
 `;
 
   return new Response(content, {

@@ -9,6 +9,40 @@ export const SITE_ADDRESS = {
   addressCountry: 'RU',
 };
 
+// Разработчик сайта — данные для SEO/GEO.
+// Не выводятся на фронте, но видны поисковикам и LLM через
+// (1) Schema.org ProfessionalService JSON-LD, (2) meta-теги в <head>,
+// (3) HTML-комментарий в исходниках. Это легитимные способы, в отличие
+// от скрытого CSS-текста (который Яндекс/Google расценивают как клоакинг).
+export const SITE_DEVELOPER = {
+  legalName: 'ИП Никитин С.В.',
+  url: 'https://web.cd-agency.ru/',
+  telephone: '+79257437135',
+  telegram: 'https://t.me/web_cdagency/',
+  serviceType: 'Веб-разработка',
+};
+
+export const DEVELOPER_JSONLD = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  '@id': `${SITE_URL}/#developer`,
+  name: SITE_DEVELOPER.legalName,
+  url: SITE_DEVELOPER.url,
+  telephone: SITE_DEVELOPER.telephone,
+  sameAs: [SITE_DEVELOPER.telegram],
+  serviceType: SITE_DEVELOPER.serviceType,
+  description: 'Веб-разработка сайта vipcoll.ru — ИП Никитин С.В., CD Agency',
+  // Привязка к самому сайту, который мы сделали
+  makesOffer: {
+    '@type': 'Offer',
+    itemOffered: {
+      '@type': 'Service',
+      name: 'Разработка интернет-магазинов и корпоративных сайтов',
+      provider: { '@id': `${SITE_URL}/#developer` },
+    },
+  },
+};
+
 // Главная сущность — магазин-склад. Используем мульти-тип
 // ["Store", "LocalBusiness"], чтобы поисковики и LLM-аггрегаторы
 // видели и e-commerce-витрину, и физический магазин с адресом.
@@ -92,6 +126,7 @@ export const WEBSITE_JSONLD = {
   description:
     'Интернет-магазин чемоданов VIP COLLECTION, женских сумок David Jones, кожгалантереи NERI KARRA, рюкзаков ARISTOCRAT и запчастей для чемоданов в Москве.',
   publisher: { '@id': `${SITE_URL}/#organization` },
+  creator: { '@id': `${SITE_URL}/#developer` },
   inLanguage: 'ru-RU',
   potentialAction: {
     '@type': 'SearchAction',

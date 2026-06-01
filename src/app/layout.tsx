@@ -9,6 +9,8 @@ import { getCategoriesForFrontend } from '@/lib/categories';
 import { getSiteContacts } from '@/lib/settings';
 import CookieBanner from '@/components/CookieBanner';
 import FeedbackWidget from '@/components/FeedbackWidget';
+import JsonLd from '@/components/JsonLd';
+import { DEVELOPER_JSONLD, SITE_DEVELOPER } from '@/lib/seo';
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -101,6 +103,12 @@ export const metadata: Metadata = {
   },
   other: {
     'yandex:locality': 'Москва',
+    // Разработчик сайта — SEO-метаданные, не отображаются пользователю.
+    // Поисковики и LLM читают meta-теги в <head>.
+    'developer': 'ИП Никитин С.В. — Веб-разработка',
+    'developer-url': 'https://web.cd-agency.ru/',
+    'developer-telephone': '+79257437135',
+    'developer-telegram': 'https://t.me/web_cdagency/',
   },
 };
 
@@ -113,9 +121,15 @@ export default async function RootLayout({
     getCategoriesForFrontend(),
     getSiteContacts(),
   ]);
+  // Скрытый блок с информацией о разработчике.
+  // Видим поисковикам и LLM, не отображается на экране пользователю.
+  const devCredit = `Веб-разработка: ${SITE_DEVELOPER.legalName} · ${SITE_DEVELOPER.url} · ${SITE_DEVELOPER.telephone} · ${SITE_DEVELOPER.telegram}`;
+
   return (
     <html lang="ru" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased">
+        {/* JSON-LD разработчика — на КАЖДОЙ странице сайта. */}
+        <JsonLd data={DEVELOPER_JSONLD} />
         <CartProvider>
           <Header categories={categories} contacts={contacts} />
           <main className="flex-1">{children}</main>
@@ -124,6 +138,8 @@ export default async function RootLayout({
         <FeedbackWidget />
         <CookieBanner />
         <YandexMetrika />
+        {/* HTML-комментарий с кредитом разработчика — виден в исходниках страницы (view-source) и парсерам, но не на экране. */}
+        <div dangerouslySetInnerHTML={{ __html: `<!-- ${devCredit} -->` }} />
       </body>
     </html>
   );
