@@ -63,6 +63,12 @@ model Product {
   externalUrl String?     @unique
   noSync      Boolean     @default(false)
   lastSyncAt  DateTime?
+  // Габариты для расчёта стоимости доставки. В см и кг. Если пусто —
+  // используется дефолт категории (см. src/lib/delivery-defaults.ts).
+  length      Float?      // см
+  width       Float?      // см
+  height      Float?      // см
+  weight      Float?      // кг
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -89,6 +95,15 @@ model Order {
   paymentId       String?                          // Тинькофф PaymentId
   paymentUrl      String?                          // Сохранённая ссылка на оплату (для повторного открытия)
   paidAt          DateTime?
+  // Яндекс Доставка (заявки на курьерскую / интергородную доставку).
+  // Заполняются при ручном создании заявки из админки.
+  yandexClaimId        String?
+  yandexClaimStatus    String?       // new, pickuped, delivered, cancelled, ...
+  yandexClaimTariff    String?       // "courier" | "express" | "cargo" | "intercity" и т.п.
+  yandexClaimPrice     Float?        // оценочная стоимость, RUB
+  yandexClaimEta       String?       // ETA от Я.Доставки
+  yandexClaimUrl       String?       // публичная трекинг-ссылка
+  yandexClaimCreatedAt DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }

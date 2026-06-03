@@ -38,6 +38,14 @@ interface FormState {
   // tinkoff acquiring
   tinkoff_terminal_key: string;
   tinkoff_password: string;
+  // yandex delivery
+  yd_token: string;
+  yd_geocoder_key: string;
+  yd_pickup_address: string;
+  yd_pickup_lat: string;
+  yd_pickup_lng: string;
+  yd_pickup_contact_name: string;
+  yd_pickup_contact_phone: string;
 }
 
 const EMPTY: FormState = {
@@ -45,6 +53,11 @@ const EMPTY: FormState = {
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
   tg_bot_token: '', tg_chat_id: '',
   tinkoff_terminal_key: '', tinkoff_password: '',
+  yd_token: '', yd_geocoder_key: '',
+  yd_pickup_address: '115088, Москва, Сормовский проезд, 11, стр. 1',
+  yd_pickup_lat: '55.708', yd_pickup_lng: '37.6906',
+  yd_pickup_contact_name: 'VIP COLLECTION',
+  yd_pickup_contact_phone: '+79257437135',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipshopp@yandex.ru',
@@ -357,6 +370,58 @@ export default function AdminSettings() {
               В личном кабинете Тинькоффа также пропишите Webhook URL:{' '}
               <span className="font-mono">https://vipcoll.ru/api/payment/tinkoff/notify</span>
             </p>
+          </div>
+
+          {/* Yandex Delivery */}
+          <div className="bg-surface rounded-xl border border-border p-6">
+            <h3 className="font-semibold mb-1">Яндекс Доставка</h3>
+            <p className="text-xs text-text-muted mb-4">
+              Расчёт стоимости и создание заявок на курьерскую доставку (Москва) и доставку по России.
+              Сейчас интеграция работает только в админке заказов (вручную); в чекауте на сайте — будет добавлено позже.
+              <br /><br />
+              <strong>Где взять токен:</strong> ЛК Я.Доставки → «API» → создать OAuth-токен.
+              <br />
+              <strong>Где взять ключ Геокодера:</strong> developer.tech.yandex.ru → «Геокодер JS API» (бесплатно, 25 000 запросов/сутки).
+            </p>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">OAuth-токен Я.Доставки</label>
+                <input className={fieldClass} type="password" value={form.yd_token} onChange={(e) => set('yd_token', e.target.value)} placeholder="y0_AgAAAAA..." autoComplete="off" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Ключ Я.Геокодера</label>
+                <input className={fieldClass} type="password" value={form.yd_geocoder_key} onChange={(e) => set('yd_geocoder_key', e.target.value)} placeholder="abcd1234-xxxx-..." autoComplete="off" />
+              </div>
+            </div>
+
+            <h4 className="font-medium text-sm mt-5 mb-2">Пункт забора (склад)</h4>
+            <p className="text-xs text-text-muted mb-3">
+              Откуда курьер забирает товар. Координаты — для точного расчёта (latitude, longitude).
+              Подсмотреть можно в Яндекс Картах: правый клик на точку → «Что здесь?» → скопировать.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1">Адрес</label>
+                <input className={fieldClass} value={form.yd_pickup_address} onChange={(e) => set('yd_pickup_address', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Широта (lat)</label>
+                <input className={fieldClass} value={form.yd_pickup_lat} onChange={(e) => set('yd_pickup_lat', e.target.value)} placeholder="55.708" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Долгота (lng)</label>
+                <input className={fieldClass} value={form.yd_pickup_lng} onChange={(e) => set('yd_pickup_lng', e.target.value)} placeholder="37.6906" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Контактное имя</label>
+                <input className={fieldClass} value={form.yd_pickup_contact_name} onChange={(e) => set('yd_pickup_contact_name', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Контактный телефон</label>
+                <input className={fieldClass} value={form.yd_pickup_contact_phone} onChange={(e) => set('yd_pickup_contact_phone', e.target.value)} placeholder="+79257437135" />
+              </div>
+            </div>
           </div>
 
           {/* SMTP */}

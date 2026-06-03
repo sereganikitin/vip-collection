@@ -24,6 +24,7 @@ export default function EditProduct({ params }: { params: Promise<{ id: string }
     images: [''], description: '', categoryId: '', brandId: '',
     inStock: true, isNew: false, isSale: false, isActive: true,
     specs: '{}',
+    length: '', width: '', height: '', weight: '',
   });
 
   useEffect(() => {
@@ -59,6 +60,10 @@ export default function EditProduct({ params }: { params: Promise<{ id: string }
             categoryId: p.categoryId, brandId: p.brandId,
             inStock: p.inStock, isNew: p.isNew, isSale: p.isSale, isActive: p.isActive,
             specs: JSON.stringify(p.specs, null, 2),
+            length: p.length != null ? String(p.length) : '',
+            width:  p.width != null ? String(p.width) : '',
+            height: p.height != null ? String(p.height) : '',
+            weight: p.weight != null ? String(p.weight) : '',
           });
         }
       });
@@ -97,6 +102,10 @@ export default function EditProduct({ params }: { params: Promise<{ id: string }
       isSale: form.isSale,
       isActive: form.isActive,
       specs: JSON.parse(form.specs || '{}'),
+      length: form.length ? Number(form.length) : null,
+      width:  form.width ? Number(form.width) : null,
+      height: form.height ? Number(form.height) : null,
+      weight: form.weight ? Number(form.weight) : null,
     };
 
     const url = isNew ? '/api/products' : `/api/products/${id}`;
@@ -244,6 +253,56 @@ export default function EditProduct({ params }: { params: Promise<{ id: string }
               onChange={(e) => updateField('specs', e.target.value)}
               className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent font-mono text-sm"
             />
+          </div>
+
+          {/* Габариты и вес — для расчёта стоимости доставки */}
+          <div className="bg-bg border border-border rounded-lg p-4">
+            <h3 className="font-semibold text-sm mb-1">Габариты и вес (для доставки)</h3>
+            <p className="text-xs text-text-muted mb-3">
+              Используются для расчёта стоимости Яндекс Доставки. Если пусто — берётся дефолт категории.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-text-muted">Длина, см</label>
+                <input
+                  type="number" step="0.1" min="0"
+                  value={form.length}
+                  onChange={(e) => updateField('length', e.target.value)}
+                  placeholder="например, 55"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-text-muted">Ширина, см</label>
+                <input
+                  type="number" step="0.1" min="0"
+                  value={form.width}
+                  onChange={(e) => updateField('width', e.target.value)}
+                  placeholder="например, 40"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-text-muted">Высота, см</label>
+                <input
+                  type="number" step="0.1" min="0"
+                  value={form.height}
+                  onChange={(e) => updateField('height', e.target.value)}
+                  placeholder="например, 20"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-text-muted">Вес, кг</label>
+                <input
+                  type="number" step="0.01" min="0"
+                  value={form.weight}
+                  onChange={(e) => updateField('weight', e.target.value)}
+                  placeholder="например, 3.2"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-accent text-sm"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-6">
