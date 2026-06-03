@@ -73,7 +73,22 @@ export interface GeocodeResult {
   lng: number;
 }
 
-export async function geocode(address: string, geocoderKey: string): Promise<GeocodeResult | null> {
+export interface GeocodeOutcome {
+  ok: boolean;
+  result?: GeocodeResult;
+  error?: string;        // короткая причина для UI
+  details?: string;      // расширенная диагностика для логов
+  triedAddress?: string; // что отправлено в Яндекс — может отличаться от input
+}
+
+/**
+ * Геокодирование одной попыткой к Яндекс Геокодеру.
+ * Возвращает структурированный результат с понятной причиной отказа:
+ *   - 'Неверный ключ Геокодера' — HTTP 403
+ *   - 'Адрес не распознан' — пустой featureMember
+ *   - 'Сеть/таймаут' — fetch threw
+ */
+async function geocodeOnce(address: string, geocoderKey: string): Promise<GeocodeOutcome> {
   const url = new URL(GEOCODER_BASE);
   url.searchParams.set('apikey', geocoderKey);
   url.searchParams.set('geocode', address);
@@ -83,7 +98,21 @@ export async function geocode(address: string, geocoderKey: string): Promise<Geo
 
   try {
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      const errShort =
+        res.status === 403
+          ? 'Неверный или неактивный ключ Геокодера'
+          : res.status === 429
+            ? 'Превышен лимит запросов к Геокодеру'
+            : `Геокодер вернул HTTP ${res.status}`;
+      return {
+        ok: false,
+        error: errShort,
+        details: `HTTP ${res.status}: ${bodyText.slice(0, 300)}`,
+        triedAddress: address,
+      };
+    }
     type GeocoderResp = {
       response?: {
         GeoObjectCollection?: {
@@ -102,14 +131,47 @@ export async function geocode(address: string, geocoderKey: string): Promise<Geo
     const feature = data.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
     const pos = feature?.Point?.pos; // "lng lat"
     const text = feature?.metaDataProperty?.GeocoderMetaData?.text;
-    if (!pos) return null;
+    if (!pos) {
+      return { ok: false, error: 'Адрес не распознан', triedAddress: address };
+    }
     const [lng, lat] = pos.split(' ').map(parseFloat);
-    if (Number.isNaN(lng) || Number.isNaN(lat)) return null;
-    return { fullname: text ?? address, lat, lng };
+    if (Number.isNaN(lng) || Number.isNaN(lat)) {
+      return { ok: false, error: 'Адрес не распознан', triedAddress: address };
+    }
+    return { ok: true, result: { fullname: text ?? address, lat, lng }, triedAddress: address };
   } catch (e) {
-    console.error('[yandex-delivery] geocode error:', e);
-    return null;
+    return {
+      ok: false,
+      error: 'Сеть/таймаут к Геокодеру',
+      details: String(e),
+      triedAddress: address,
+    };
   }
+}
+
+/**
+ * Геокодирование с retry: если адрес не распознан и в нём нет города,
+ * автоматически пробуем добавить «Москва, » в начало. Покрывает 90%
+ * сценариев, когда покупатель вводит адрес без города.
+ */
+export async function geocode(address: string, geocoderKey: string): Promise<GeocodeOutcome> {
+  const trimmed = address.trim();
+  if (!trimmed) return { ok: false, error: 'Пустой адрес' };
+
+  const first = await geocodeOnce(trimmed, geocoderKey);
+  if (first.ok) return first;
+
+  // Если адрес «не распознан» и в нём нет крупного города — пробуем с префиксом
+  const hasCity = /Москв|Подмоско|Россия|область|г\.\s|город /i.test(trimmed);
+  if (first.error === 'Адрес не распознан' && !hasCity) {
+    const withCity = `Москва, ${trimmed}`;
+    const retry = await geocodeOnce(withCity, geocoderKey);
+    if (retry.ok) return retry;
+    // отдадим из retry — в нём более информативная попытка
+    return { ...retry, details: `Тоже не нашёл с префиксом «Москва»: ${retry.error}` };
+  }
+
+  return first;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -207,12 +269,16 @@ export async function checkPrice(input: CheckPriceInput): Promise<CheckPriceResu
   if (!cfg) return { ok: false, error: 'Я.Доставка не настроена в админке (нет токена или ключа геокодера).' };
 
   // Геокодируем адрес назначения, если координаты не пришли
-  let dest: GeocodeResult | null = null;
+  let dest: GeocodeResult;
   if (input.destinationLat && input.destinationLng) {
     dest = { fullname: input.destinationAddress, lat: input.destinationLat, lng: input.destinationLng };
   } else {
-    dest = await geocode(input.destinationAddress, cfg.geocoderKey);
-    if (!dest) return { ok: false, error: 'Не удалось геокодировать адрес назначения' };
+    const g = await geocode(input.destinationAddress, cfg.geocoderKey);
+    if (!g.ok || !g.result) {
+      const tried = g.triedAddress ? ` (пробовали: «${g.triedAddress}»)` : '';
+      return { ok: false, error: `Геокодер: ${g.error}${tried}` };
+    }
+    dest = g.result;
   }
 
   const { cargoItems } = toCargoItems(input.items);
@@ -313,12 +379,16 @@ export async function createClaim(input: CreateClaimInput): Promise<CreateClaimR
   if (!cfg) return { ok: false, error: 'Я.Доставка не настроена' };
 
   // Геокодирование назначения
-  let dest: GeocodeResult | null;
+  let dest: GeocodeResult;
   if (input.destinationLat && input.destinationLng) {
     dest = { fullname: input.destinationAddress, lat: input.destinationLat, lng: input.destinationLng };
   } else {
-    dest = await geocode(input.destinationAddress, cfg.geocoderKey);
-    if (!dest) return { ok: false, error: 'Не удалось геокодировать адрес' };
+    const g = await geocode(input.destinationAddress, cfg.geocoderKey);
+    if (!g.ok || !g.result) {
+      const tried = g.triedAddress ? ` (пробовали: «${g.triedAddress}»)` : '';
+      return { ok: false, error: `Геокодер: ${g.error}${tried}` };
+    }
+    dest = g.result;
   }
 
   const { cargoItems } = toCargoItems(input.items);

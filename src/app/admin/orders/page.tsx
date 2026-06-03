@@ -128,7 +128,11 @@ export default function AdminOrders() {
   }
 
   // ── Yandex Delivery ────────────────────────────────────────────
-  const [quotesByOrder, setQuotesByOrder] = useState<Record<string, QuoteTariff[] | { error: string } | 'loading'>>({});
+  interface QuoteState {
+    quotes: QuoteTariff[];
+    destination?: { fullname: string; lat: number; lng: number };
+  }
+  const [quotesByOrder, setQuotesByOrder] = useState<Record<string, QuoteState | { error: string } | 'loading'>>({});
 
   async function checkDeliveryPrice(orderId: string) {
     setQuotesByOrder((p) => ({ ...p, [orderId]: 'loading' }));
@@ -139,7 +143,10 @@ export default function AdminOrders() {
         setQuotesByOrder((p) => ({ ...p, [orderId]: { error: data.error || res.statusText } }));
         return;
       }
-      setQuotesByOrder((p) => ({ ...p, [orderId]: data.quotes ?? [] }));
+      setQuotesByOrder((p) => ({
+        ...p,
+        [orderId]: { quotes: data.quotes ?? [], destination: data.destination },
+      }));
     } catch (e) {
       setQuotesByOrder((p) => ({ ...p, [orderId]: { error: String(e) } }));
     }
@@ -437,14 +444,19 @@ export default function AdminOrders() {
                                   <p className="text-xs text-danger break-words">Ошибка: {q.error}</p>
                                 );
                               }
-                              if (!Array.isArray(q) || q.length === 0) {
+                              if (!q.quotes || q.quotes.length === 0) {
                                 return <p className="text-xs text-text-muted">Тарифы не получены</p>;
                               }
                               return (
                                 <div className="space-y-2">
+                                  {q.destination && (
+                                    <p className="text-xs text-text-muted">
+                                      Геокодер распознал: <span className="text-text">{q.destination.fullname}</span>
+                                    </p>
+                                  )}
                                   <p className="text-xs text-text-muted">Доступные тарифы:</p>
                                   <div className="flex flex-wrap gap-2">
-                                    {q.map((t, i) => (
+                                    {q.quotes.map((t, i) => (
                                       <button
                                         key={`${t.tariff}-${i}`}
                                         onClick={(e) => { e.stopPropagation(); createClaim(order.id, t.tariff); }}

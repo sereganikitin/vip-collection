@@ -18,7 +18,7 @@ export default function CheckoutPage() {
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '',
-    delivery: 'courier', address: '', comment: '',
+    delivery: 'courier', city: 'Москва', address: '', comment: '',
     payment: 'online' as 'online' | 'cash',
     consent: false,
   });
@@ -113,7 +113,12 @@ export default function CheckoutPage() {
           customerPhone: form.phone,
           customerEmail: form.email || undefined,
           deliveryMethod: deliveryLabels[form.delivery] || form.delivery,
-          deliveryAddress: form.delivery !== 'pickup' ? form.address : 'Самовывоз: Москва, Сормовский пр-д, 11',
+          // Полный адрес = "<город>, <улица...>" — нужно для геокодирования
+          // в Я.Доставке. При самовывозе — фиксированный адрес склада.
+          deliveryAddress:
+            form.delivery !== 'pickup'
+              ? `${form.city.trim()}, ${form.address.trim()}`
+              : 'Самовывоз: Москва, Сормовский пр-д, 11',
           comment: form.comment || undefined,
           paymentMethod: effectivePayment,
           items: items.map(({ product, quantity }) => ({
@@ -213,12 +218,21 @@ export default function CheckoutPage() {
                 ))}
               </div>
               {form.delivery !== 'pickup' && (
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Адрес доставки *</label>
-                  <input type="text" required={form.delivery !== 'pickup'} value={form.address}
-                    onChange={(e) => updateField('address', e.target.value)}
-                    placeholder="Город, улица, дом, квартира"
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Город *</label>
+                    <input type="text" required value={form.city}
+                      onChange={(e) => updateField('city', e.target.value)}
+                      placeholder="Москва"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Улица, дом, квартира *</label>
+                    <input type="text" required={form.delivery !== 'pickup'} value={form.address}
+                      onChange={(e) => updateField('address', e.target.value)}
+                      placeholder="например, Годовикова 11, корпус 4, кв. 126"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  </div>
                 </div>
               )}
             </div>
