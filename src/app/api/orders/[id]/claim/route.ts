@@ -12,6 +12,7 @@ import {
   checkPrice, createClaim, getClaimInfo, cancelClaim,
   type OrderItemForCargo,
 } from '@/lib/yandex-delivery';
+import { createRussiaOffer } from '@/lib/yandex-russia-delivery';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,11 +52,50 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!data.order.deliveryAddress) {
       return NextResponse.json({ ok: false, error: 'У заказа нет адреса доставки' }, { status: 400 });
     }
-    const quote = await checkPrice({
-      destinationAddress: data.order.deliveryAddress,
-      items: data.items,
+    // Опрашиваем оба сервиса параллельно: Cargo (Москва/курьер) + Доставка по России.
+    // В UI покажем оба, помечая источник, чтобы админ мог выбрать оптимальный вариант.
+    const [cargo, russia] = await Promise.all([
+      checkPrice({
+        destinationAddress: data.order.deliveryAddress,
+        items: data.items,
+      }),
+      createRussiaOffer({
+        destinationAddress: data.order.deliveryAddress,
+        items: data.items,
+        recipientName: data.order.customerName,
+        recipientPhone: data.order.customerPhone,
+      }),
+    ]);
+
+    // Объединённый ответ. ok=true если хотя бы один сервис вернул quotes.
+    const combinedQuotes = [
+      ...(cargo.ok && cargo.quotes ? cargo.quotes.map((q) => ({ ...q, source: 'cargo' as const })) : []),
+      ...(russia.ok && russia.offers
+        ? russia.offers.map((o) => ({
+            tariff: 'russia',
+            priceRub: o.priceRub,
+            etaMinutes: undefined as number | undefined,
+            zoneType: undefined as string | undefined,
+            source: 'russia' as const,
+            offerId: o.offerId,
+            deliveryFromIso: o.deliveryFromIso,
+            deliveryToIso: o.deliveryToIso,
+            testMode: russia.testMode,
+          }))
+        : []),
+    ];
+
+    const ok = combinedQuotes.length > 0;
+    return NextResponse.json({
+      ok,
+      quotes: combinedQuotes,
+      destination: cargo.destination,
+      errors: {
+        cargo: cargo.ok ? null : cargo.error,
+        russia: russia.ok ? null : russia.error,
+      },
+      russiaTestMode: russia.testMode,
     });
-    return NextResponse.json(quote);
   }
 
   if (data.order.yandexClaimId) {

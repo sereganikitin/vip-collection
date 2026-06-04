@@ -264,6 +264,67 @@ export interface CheckPriceResult {
   destination?: GeocodeResult;
 }
 
+// Тарифные классы Cargo B2B, которые мы пробуем параллельно при чек-прайсе.
+// Реальные классы могут варьироваться в зависимости от подключения у Яндекса.
+// «courier» = курьер на день (Москва+МО), «express» = экспресс за час,
+// «cargo» = грузовое такси для больших грузов.
+const CARGO_TARIFF_CLASSES = ['courier', 'express', 'cargo'] as const;
+
+/**
+ * Один HTTP-вызов check-price с конкретным taxi_class.
+ * Возвращает успешный quote или пометку об ошибке без падения.
+ */
+async function checkPriceOnce(
+  cfg: YandexDeliveryConfig,
+  cargoItems: ReturnType<typeof toCargoItems>['cargoItems'],
+  dest: GeocodeResult,
+  taxiClass: string
+): Promise<{ ok: true; quote: PriceQuote } | { ok: false; error: string }> {
+  const body = {
+    items: cargoItems,
+    route_points: [
+      { coordinates: [cfg.pickupLng, cfg.pickupLat], fullname: cfg.pickupAddress },
+      { coordinates: [dest.lng, dest.lat], fullname: dest.fullname },
+    ],
+    requirements: { taxi_class: taxiClass },
+  };
+
+  try {
+    const res = await fetch(`${CARGO_BASE}/check-price`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept-Language': 'ru',
+        Authorization: `Bearer ${cfg.cargoToken}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: json?.message ?? json?.code ?? res.statusText,
+      };
+    }
+    const priceStr = json.price ?? json.offers?.[0]?.price;
+    if (priceStr == null) {
+      return { ok: false, error: 'No price in response' };
+    }
+    return {
+      ok: true,
+      quote: {
+        tariff: taxiClass,
+        priceRub: parseFloat(String(priceStr)),
+        etaMinutes: json.eta ?? json.offers?.[0]?.eta,
+        zoneType: json.zone_type,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: `Network: ${String(e)}` };
+  }
+}
+
 export async function checkPrice(input: CheckPriceInput): Promise<CheckPriceResult> {
   const cfg = await getConfig();
   if (!cfg) return { ok: false, error: 'Я.Доставка не настроена в админке (нет токена или ключа геокодера).' };
@@ -283,69 +344,27 @@ export async function checkPrice(input: CheckPriceInput): Promise<CheckPriceResu
 
   const { cargoItems } = toCargoItems(input.items);
 
-  const body = {
-    items: cargoItems,
-    route_points: [
-      {
-        coordinates: [cfg.pickupLng, cfg.pickupLat],
-        fullname: cfg.pickupAddress,
-      },
-      {
-        coordinates: [dest.lng, dest.lat],
-        fullname: dest.fullname,
-      },
-    ],
-  };
+  // Параллельно опрашиваем все тарифные классы и берём успешные ответы.
+  // Если ни один класс не сработал — возвращаем первую осмысленную ошибку
+  // (чаще всего это suitable_offer_not_found для интергорода).
+  const results = await Promise.all(
+    CARGO_TARIFF_CLASSES.map((cls) => checkPriceOnce(cfg, cargoItems, dest, cls))
+  );
 
-  try {
-    const res = await fetch(`${CARGO_BASE}/check-price`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept-Language': 'ru',
-        Authorization: `Bearer ${cfg.cargoToken}`,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      return {
-        ok: false,
-        error: `Я.Доставка: ${json?.message ?? json?.code ?? res.statusText}`,
-        destination: dest,
-      };
-    }
-
-    // Ответ check-price: { price: string, eta: number, distance_meters: ..., zone_type: ... }
-    // Тарифные опции иногда в offers/tariff_options — структура зависит от версии.
-    const quotes: PriceQuote[] = [];
-    if (typeof json.price === 'string') {
-      quotes.push({
-        tariff: json.tariff ?? json.requirements?.taxi_class ?? 'courier',
-        priceRub: parseFloat(json.price),
-        etaMinutes: json.eta,
-        zoneType: json.zone_type,
-      });
-    }
-    if (Array.isArray(json.offers)) {
-      for (const o of json.offers) {
-        quotes.push({
-          tariff: o.tariff_name ?? o.taxi_class ?? 'courier',
-          priceRub: parseFloat(o.price ?? '0'),
-          etaMinutes: o.eta,
-          zoneType: o.zone_type,
-        });
-      }
-    }
-
-    if (quotes.length === 0) {
-      return { ok: false, error: 'Я.Доставка вернула пустой список тарифов', destination: dest };
-    }
-    return { ok: true, quotes, destination: dest };
-  } catch (e) {
-    return { ok: false, error: `Network: ${String(e)}`, destination: dest };
+  const quotes: PriceQuote[] = [];
+  const errors: string[] = [];
+  for (const r of results) {
+    if (r.ok) quotes.push(r.quote);
+    else errors.push(r.error);
   }
+
+  if (quotes.length === 0) {
+    // Все тарифы вернули ошибку. Берём первую отличную от «no offer» (чтобы не маскировать
+    // более полезные ошибки про токен или адрес), либо сообщение по умолчанию.
+    const meaningful = errors.find((e) => !e.includes('suitable_offer_not_found')) ?? errors[0];
+    return { ok: false, error: `Я.Доставка: ${meaningful ?? 'нет тарифов для маршрута'}`, destination: dest };
+  }
+  return { ok: true, quotes, destination: dest };
 }
 
 // ──────────────────────────────────────────────────────────────

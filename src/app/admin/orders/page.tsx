@@ -45,6 +45,11 @@ interface QuoteTariff {
   priceRub: number;
   etaMinutes?: number;
   zoneType?: string;
+  source?: 'cargo' | 'russia';
+  offerId?: string;
+  deliveryFromIso?: string;
+  deliveryToIso?: string;
+  testMode?: boolean;
 }
 
 const TARIFF_LABELS: Record<string, string> = {
@@ -456,26 +461,44 @@ export default function AdminOrders() {
                                   )}
                                   <p className="text-xs text-text-muted">Доступные тарифы:</p>
                                   <div className="flex flex-wrap gap-2">
-                                    {q.quotes.map((t, i) => (
-                                      <button
-                                        key={`${t.tariff}-${i}`}
-                                        onClick={(e) => { e.stopPropagation(); createClaim(order.id, t.tariff); }}
-                                        className="inline-flex items-center gap-2 px-3 py-2 text-xs bg-surface border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-                                      >
-                                        <span className="font-medium">{TARIFF_LABELS[t.tariff] ?? t.tariff}</span>
-                                        <span>·</span>
-                                        <span className="font-semibold">{formatPrice(t.priceRub)}</span>
-                                        {t.etaMinutes && (
-                                          <>
-                                            <span>·</span>
-                                            <span className="text-text-muted">~{Math.round(t.etaMinutes / 60)}ч</span>
-                                          </>
-                                        )}
-                                      </button>
-                                    ))}
+                                    {q.quotes.map((t, i) => {
+                                      const isRussia = t.source === 'russia';
+                                      const dateRange =
+                                        t.deliveryFromIso && t.deliveryToIso
+                                          ? `${t.deliveryFromIso.slice(0, 10)} – ${t.deliveryToIso.slice(0, 10)}`
+                                          : null;
+                                      return (
+                                        <button
+                                          key={`${t.source ?? 'cargo'}-${t.tariff}-${i}`}
+                                          onClick={(e) => { e.stopPropagation(); createClaim(order.id, t.tariff); }}
+                                          className={`inline-flex flex-col items-start gap-1 px-3 py-2 text-xs bg-surface border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors ${
+                                            isRussia ? 'border-blue-300' : 'border-border'
+                                          }`}
+                                          disabled={isRussia /* Russia confirm не реализован, кнопка пока инфо */}
+                                          title={isRussia ? 'Доставка по России: пока только расчёт. Подтверждение оффера — в следующей итерации.' : ''}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isRussia ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                                              {isRussia ? (t.testMode ? 'РОССИЯ (тест)' : 'РОССИЯ') : 'МОСКВА'}
+                                            </span>
+                                            <span className="font-medium">{TARIFF_LABELS[t.tariff] ?? t.tariff}</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-sm">{formatPrice(t.priceRub)}</span>
+                                            {t.etaMinutes && (
+                                              <span className="text-text-muted">~{Math.round(t.etaMinutes / 60)}ч</span>
+                                            )}
+                                            {dateRange && (
+                                              <span className="text-text-muted">{dateRange}</span>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                   <p className="text-xs text-text-muted">
-                                    Кликните по тарифу, чтобы создать заявку с этим вариантом.
+                                    Кликните по тарифу Москвы, чтобы создать заявку. Варианты «Россия» —
+                                    пока только расчёт, подтверждение оффера будет в следующей итерации после уточнения API.
                                   </p>
                                 </div>
                               );

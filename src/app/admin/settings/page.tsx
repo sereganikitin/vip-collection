@@ -46,6 +46,10 @@ interface FormState {
   yd_pickup_lng: string;
   yd_pickup_contact_name: string;
   yd_pickup_contact_phone: string;
+  // yandex delivery — russia
+  yd_russia_test_mode: string;   // 'true' | 'false'
+  yd_russia_token: string;
+  yd_russia_station_id: string;
 }
 
 const EMPTY: FormState = {
@@ -58,6 +62,9 @@ const EMPTY: FormState = {
   yd_pickup_lat: '55.708', yd_pickup_lng: '37.6906',
   yd_pickup_contact_name: 'VIP COLLECTION',
   yd_pickup_contact_phone: '+79257437135',
+  yd_russia_test_mode: 'true',
+  yd_russia_token: '',
+  yd_russia_station_id: '',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipshopp@yandex.ru',
@@ -420,6 +427,53 @@ export default function AdminSettings() {
               <div>
                 <label className="block text-sm font-medium mb-1">Контактный телефон</label>
                 <input className={fieldClass} value={form.yd_pickup_contact_phone} onChange={(e) => set('yd_pickup_contact_phone', e.target.value)} placeholder="+79257437135" />
+              </div>
+            </div>
+
+            <h4 className="font-medium text-sm mt-6 mb-2">Доставка по России</h4>
+            <p className="text-xs text-text-muted mb-3">
+              Отдельный сервис Яндекса для межгородней доставки через СДЭК, Boxberry и других партнёров.
+              Использует <strong>другой API</strong> и <strong>другой токен</strong>, чем курьерская доставка по Москве.
+              <br /><br />
+              <strong>Тестовый режим</strong> работает «из коробки» — используются демо-креды из документации
+              Яндекса (хост <span className="font-mono">b2b.taxi.tst.yandex.net</span>). Можно тестировать прямо сейчас.
+              <br />
+              Для production: получить токен в ЛК Я.Доставки → Профиль, запросить <span className="font-mono">platform_station_id</span> у
+              коммерческого менеджера, заполнить поля ниже и снять флаг «Тестовый режим».
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.yd_russia_test_mode !== 'false'}
+                  onChange={(e) => set('yd_russia_test_mode', e.target.checked ? 'true' : 'false')}
+                  className="accent-accent"
+                />
+                <span>Тестовый режим (использовать демо-креды из документации)</span>
+              </label>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Production токен (y2_…)</label>
+                <input
+                  className={fieldClass}
+                  type="password"
+                  value={form.yd_russia_token}
+                  onChange={(e) => set('yd_russia_token', e.target.value)}
+                  placeholder="y2_AgAAAAA..."
+                  autoComplete="off"
+                  disabled={form.yd_russia_test_mode !== 'false'}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Production platform_station_id</label>
+                <input
+                  className={fieldClass}
+                  value={form.yd_russia_station_id}
+                  onChange={(e) => set('yd_russia_station_id', e.target.value)}
+                  placeholder="fbed3aa1-2cc6-..."
+                  disabled={form.yd_russia_test_mode !== 'false'}
+                />
               </div>
             </div>
           </div>
