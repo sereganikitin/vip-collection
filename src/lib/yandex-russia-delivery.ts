@@ -19,6 +19,28 @@ import type { OrderItemForCargo } from './yandex-delivery';
 const HOST_PROD = 'https://b2b-authproxy.taxi.yandex.net';
 const HOST_TEST = 'https://b2b.taxi.tst.yandex.net';
 
+// Статусы заказа из документации Я.Доставки.
+// См. https://yandex.ru/support/delivery-profile/ru/api/other-day/status-model
+export const RUSSIA_STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Черновик',
+  CREATED: 'Заказ создан и подтверждён',
+  SORTING_CENTER_AT_START: 'В точке приёма',
+  DELIVERY_DELIVERED: 'Доставлен клиенту',
+  PARTICULARLY_DELIVERED: 'Частично доставлен',
+  CANCELLED: 'Отменён',
+  RETURN_PREPARING: 'Готовится возврат',
+  RETURN_TRANSPORTATION_STARTED: 'Возврат в пути',
+  RETURN_ARRIVED_DELIVERY: 'Возврат на складе',
+  RETURN_TRANSMITTED_FULFILMENT: 'Передан на единый склад',
+  RETURN_READY_FOR_PICKUP: 'Готов к передаче магазину',
+  RETURN_RETURNED: 'Возвращён в магазин',
+};
+
+export function russiaStatusLabel(s: string | null | undefined): string {
+  if (!s) return '—';
+  return RUSSIA_STATUS_LABELS[s] ?? s;
+}
+
 // Публичные тестовые креды из официальной документации Яндекс Доставки.
 // Не настоящие секреты — Яндекс раздаёт их всем для тестового контура.
 // Собираем строкой по частям, иначе GitHub Secret Scanner определяет как
