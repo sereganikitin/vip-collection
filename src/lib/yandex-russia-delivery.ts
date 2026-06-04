@@ -125,7 +125,12 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
     return { ok: false, error: 'Я.Доставка по России не настроена (нет токена или station_id).' };
   }
 
-  // Собираем cargo items с реальными или дефолтными габаритами.
+  // Раскладываем товары в массив items с ценами и количеством.
+  // Также считаем агрегированные габариты упаковки (place):
+  //   - вес = сумма веса всех штук
+  //   - размеры = максимум по каждой оси (грубое приближение для одной коробки)
+  let totalWeightGr = 0;
+  let maxL = 0, maxW = 0, maxH = 0;
   const items = input.items.map((it) => {
     const dims = resolveItemDims(it.categoryId, {
       length: it.length ?? undefined,
@@ -133,6 +138,10 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
       height: it.height ?? undefined,
       weight: it.weight ?? undefined,
     });
+    totalWeightGr += Math.round(dims.weight * 1000) * it.quantity;
+    maxL = Math.max(maxL, dims.length);
+    maxW = Math.max(maxW, dims.width);
+    maxH = Math.max(maxH, dims.height);
     return {
       count: it.quantity,
       name: it.name.slice(0, 200),
@@ -141,18 +150,26 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
         unit_price: Math.round(it.price),
         assessed_unit_price: Math.round(it.price),
       },
-      physical_dims: {
-        weight_gross: Math.round(dims.weight * 1000), // граммы
-        dx: Math.round(dims.length),
-        dy: Math.round(dims.width),
-        dz: Math.round(dims.height),
-      },
-      place_barcode: '', // не критично для расчёта
     };
   });
 
-  // Структура запроса — приближение по Yandex B2B Platform API.
-  // Если на реальном ответе будут ошибки про поля — поправим по log'ам.
+  // Я.Доставка моделирует груз как массив «упаковок» (places).
+  // Для простоты — одна упаковка со всеми товарами и агрегированными габаритами.
+  // Если придёт ошибка про какое-то поле — добавим. Поля physical_dims, items —
+  // подтверждены сообщением «Error at path 'places': Field is missing».
+  const places = [
+    {
+      physical_dims: {
+        weight_gross: Math.max(totalWeightGr, 100), // граммы, минимум 100г
+        dx: Math.round(maxL),
+        dy: Math.round(maxW),
+        dz: Math.round(maxH),
+      },
+      items,
+      place_barcode: '',
+    },
+  ];
+
   const body = {
     info: {
       operator_request_id: uuid(),
@@ -169,7 +186,7 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
         },
       },
     },
-    items,
+    places,
     billing_info: {
       payment_method: 'already_paid',
     },
