@@ -153,10 +153,10 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
     };
   });
 
-  // Я.Доставка моделирует груз как массив «упаковок» (places).
-  // Для простоты — одна упаковка со всеми товарами и агрегированными габаритами.
-  // Если придёт ошибка про какое-то поле — добавим. Поля physical_dims, items —
-  // подтверждены сообщением «Error at path 'places': Field is missing».
+  // Из логов Яндекса видно, что нужны ОБА поля параллельно:
+  //   places — массив упаковок с физическими габаритами
+  //   items  — массив товаров с ценами на верхнем уровне (для страховки и фискализации)
+  // По API сначала ругался на places (исправили), теперь на items.
   const places = [
     {
       physical_dims: {
@@ -165,7 +165,6 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
         dy: Math.round(maxW),
         dz: Math.round(maxH),
       },
-      items,
       place_barcode: '',
     },
   ];
@@ -187,6 +186,7 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
       },
     },
     places,
+    items, // верхнеуровневый список товаров
     billing_info: {
       payment_method: 'already_paid',
     },
