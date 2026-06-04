@@ -214,10 +214,20 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
 
     if (!res.ok) {
       console.error('[yandex-russia] create-offer failed:', res.status, text.slice(0, 1000));
-      const errMsg =
-        typeof json === 'object' && json && 'message' in json
-          ? String((json as { message: string }).message)
-          : `HTTP ${res.status}`;
+      // 403 с HTML-телом — антибот-защита Яндекса.
+      // На тестовом контуре с общим токеном такое случается часто.
+      const isAntibot403 =
+        res.status === 403 && text.trimStart().toLowerCase().startsWith('<!doctype');
+      let errMsg: string;
+      if (isAntibot403) {
+        errMsg = cfg.testMode
+          ? 'Яндекс временно заблокировал тестовый IP (антибот). Подождите 10–30 мин и повторите, либо переключитесь на production-токен.'
+          : 'Яндекс временно заблокировал ваш IP (антибот). Повторите через 10–30 минут.';
+      } else if (typeof json === 'object' && json && 'message' in json) {
+        errMsg = String((json as { message: string }).message);
+      } else {
+        errMsg = `HTTP ${res.status}`;
+      }
       return { ok: false, error: errMsg, testMode: cfg.testMode, rawResponse: json };
     }
 
