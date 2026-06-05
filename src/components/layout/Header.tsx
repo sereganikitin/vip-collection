@@ -45,6 +45,7 @@ export default function Header({ categories, contacts }: { categories: CategoryV
           <nav className="flex items-center gap-4">
             <Link href="/about" className="hover:text-accent transition-colors">О компании</Link>
             <Link href="/delivery" className="hover:text-accent transition-colors">Доставка</Link>
+            <Link href="/wholesale" className="hover:text-accent transition-colors hidden md:inline">Оптовикам</Link>
             <Link href="/blog" className="hover:text-accent transition-colors hidden md:inline">Блог</Link>
             <Link href="/contacts" className="hover:text-accent transition-colors">Контакты</Link>
           </nav>

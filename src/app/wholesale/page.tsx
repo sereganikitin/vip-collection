@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import JsonLd from '@/components/JsonLd';
 import PageContentRenderer from '@/components/PageContentRenderer';
+import WholesaleForm from '@/components/WholesaleForm';
 import { SITE_URL, buildBreadcrumbList, buildFaqJsonLd } from '@/lib/seo';
 import { getPageContent } from '@/lib/page-content';
 
@@ -66,6 +67,10 @@ export default async function WholesalePage() {
       </nav>
 
       <PageContentRenderer content={content} />
+
+      <div className="mt-10">
+        <WholesaleForm />
+      </div>
     </div>
   );
 }
