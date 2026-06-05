@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Check, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { formatPhoneMask, validateRussianPhone, validateEmailFormat } from '@/lib/validation';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
@@ -26,6 +27,18 @@ export default function CheckoutPage() {
   function updateField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
+
+  // Маска телефона. При onChange — приводим вводимое к виду +7 (XXX) XXX-XX-XX.
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm((prev) => ({ ...prev, phone: formatPhoneMask(e.target.value) }));
+  }
+
+  // Валидационные сообщения — показываем только если поле уже заполнено,
+  // чтобы не пугать пользователя пустыми ошибками с первого клика.
+  const phoneCheck = form.phone ? validateRussianPhone(form.phone) : null;
+  const emailFmt = form.email ? validateEmailFormat(form.email) : null;
+  const phoneError = phoneCheck && !phoneCheck.ok ? phoneCheck.error : null;
+  const emailFormatError = emailFmt && !emailFmt.ok ? emailFmt.error : null;
 
   // Подсказка по типичным опечаткам в email — чтобы реже получать bounce.
   // Покрывает 90% случаев: домены без точки, .con/.cmo/.copm/.ru вместо популярных,
@@ -100,6 +113,21 @@ export default function CheckoutPage() {
     if (!form.consent) {
       setError('Подтвердите согласие на обработку персональных данных');
       return;
+    }
+    // Финальная проверка перед отправкой — гарантия, что не пробьётся
+    // невалидный телефон/email даже если пользователь обошёл реактивное
+    // отображение ошибок (например, заполнил всё разом скриптом).
+    const finalPhone = validateRussianPhone(form.phone);
+    if (!finalPhone.ok) {
+      setError(finalPhone.error || 'Проверьте номер телефона');
+      return;
+    }
+    if (form.email) {
+      const finalEmail = validateEmailFormat(form.email);
+      if (!finalEmail.ok) {
+        setError(finalEmail.error || 'Проверьте email');
+        return;
+      }
     }
     setLoading(true);
     setError('');
@@ -185,17 +213,43 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Телефон *</label>
-                  <input type="tel" required placeholder="+7 (___) ___-__-__" value={form.phone} onChange={(e) => updateField('phone', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+7 (___) ___-__-__"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={form.phone}
+                    onChange={handlePhoneChange}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-1 ${
+                      phoneError
+                        ? 'border-danger focus:border-danger focus:ring-danger'
+                        : 'border-border focus:border-accent focus:ring-accent'
+                    }`}
+                  />
+                  {phoneError && (
+                    <p className="mt-1.5 text-xs text-danger">{phoneError}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Email</label>
-                  <input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)}
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateField('email', e.target.value)}
                     placeholder="Для получения уведомлений"
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
-                  {emailHint && (
+                    autoComplete="email"
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-1 ${
+                      emailFormatError
+                        ? 'border-danger focus:border-danger focus:ring-danger'
+                        : 'border-border focus:border-accent focus:ring-accent'
+                    }`}
+                  />
+                  {emailFormatError ? (
+                    <p className="mt-1.5 text-xs text-danger">{emailFormatError}</p>
+                  ) : emailHint ? (
                     <p className="mt-1.5 text-xs text-danger">{emailHint}</p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

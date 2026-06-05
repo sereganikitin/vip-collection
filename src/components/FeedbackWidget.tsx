@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { MessageCircle, X, Send, Check } from 'lucide-react';
+import { formatPhoneMask, validateRussianPhone } from '@/lib/validation';
 
 export default function FeedbackWidget() {
   const [open, setOpen] = useState(false);
@@ -12,10 +13,22 @@ export default function FeedbackWidget() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
+  const phoneCheck = phone ? validateRussianPhone(phone) : null;
+  const phoneError = phoneCheck && !phoneCheck.ok ? phoneCheck.error : null;
+
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setPhone(formatPhoneMask(e.target.value));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSending(true);
     setError('');
+    const finalPhone = validateRussianPhone(phone);
+    if (!finalPhone.ok) {
+      setError(finalPhone.error || 'Проверьте номер телефона');
+      return;
+    }
+    setSending(true);
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
@@ -91,13 +104,19 @@ export default function FeedbackWidget() {
           />
           <input
             type="tel"
-            placeholder="Телефон"
+            placeholder="+7 (___) ___-__-__"
             required
-            maxLength={40}
+            inputMode="tel"
+            autoComplete="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
+            onChange={handlePhoneChange}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none ${
+              phoneError ? 'border-danger focus:border-danger' : 'border-border focus:border-accent'
+            }`}
           />
+          {phoneError && (
+            <p className="text-xs text-danger -mt-1">{phoneError}</p>
+          )}
           <textarea
             placeholder="Ваш вопрос"
             required

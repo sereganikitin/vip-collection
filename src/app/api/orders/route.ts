@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { sendOrderEmails } from '@/lib/mail';
 import { sendTelegramMessage, escapeTgHtml } from '@/lib/telegram';
+import { validateRussianPhone, validateEmailFormat, checkEmailDomainExists } from '@/lib/validation';
 
 function formatPriceRu(p: number): string {
   return new Intl.NumberFormat('ru-RU').format(p) + ' ₽';
@@ -29,6 +30,31 @@ export async function POST(req: NextRequest) {
 
     if (!items?.length || !customerName || !customerPhone) {
       return NextResponse.json({ error: 'Заполните обязательные поля' }, { status: 400 });
+    }
+
+    // Валидация телефона: формат + российский мобильный + анти-фейк
+    const phoneCheck = validateRussianPhone(String(customerPhone));
+    if (!phoneCheck.ok) {
+      return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
+    }
+    const normalizedPhone = phoneCheck.normalized!;
+
+    // Валидация email: формат + DNS-проверка домена (MX/A)
+    let validatedEmail: string | null = null;
+    if (customerEmail && String(customerEmail).trim() !== '') {
+      const fmt = validateEmailFormat(String(customerEmail));
+      if (!fmt.ok) {
+        return NextResponse.json({ error: fmt.error }, { status: 400 });
+      }
+      const domainOk = await checkEmailDomainExists(String(customerEmail));
+      if (domainOk === false) {
+        return NextResponse.json(
+          { error: 'Домен email не существует или не принимает почту. Проверьте адрес.' },
+          { status: 400 }
+        );
+      }
+      // domainOk === null — DNS-таймаут, пропускаем (soft fail)
+      validatedEmail = String(customerEmail).trim();
     }
 
     // Items can contain productId (DB id) or productSlug (from static data)
@@ -75,8 +101,8 @@ export async function POST(req: NextRequest) {
       data: {
         totalPrice,
         customerName,
-        customerPhone,
-        customerEmail,
+        customerPhone: normalizedPhone,
+        customerEmail: validatedEmail,
         deliveryAddress,
         deliveryMethod,
         comment,

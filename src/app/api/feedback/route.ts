@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { sendTelegramMessage, escapeTgHtml } from '@/lib/telegram';
 import { sendFeedbackEmail } from '@/lib/mail';
+import { validateRussianPhone } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +19,14 @@ export async function POST(req: NextRequest) {
     if (!name || !phone || !message) {
       return NextResponse.json({ error: 'Заполните все поля' }, { status: 400 });
     }
-    if (phone.replace(/\D/g, '').length < 10) {
-      return NextResponse.json({ error: 'Проверьте номер телефона' }, { status: 400 });
+    const phoneCheck = validateRussianPhone(phone);
+    if (!phoneCheck.ok) {
+      return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
     }
+    const normalizedPhone = phoneCheck.normalized!;
 
     const fb = await prisma.feedback.create({
-      data: { name, phone, message },
+      data: { name, phone: normalizedPhone, message },
     });
 
     // Telegram — fire-and-forget; явный warning если бот не сконфигурирован.
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
         '💬 <b>Новое сообщение с формы обратной связи</b>',
         '',
         `<b>Имя:</b> ${escapeTgHtml(name)}`,
-        `<b>Телефон:</b> ${escapeTgHtml(phone)}`,
+        `<b>Телефон:</b> ${escapeTgHtml(normalizedPhone)}`,
         '',
         escapeTgHtml(message),
       ].join('\n')
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
     // Email — fire-and-forget, шлёт на все адреса из admin_email (через запятую).
     sendFeedbackEmail({
       name,
-      phone,
+      phone: normalizedPhone,
       message,
       receivedAt: fb.createdAt,
     }).catch((e) => console.error(`[FEEDBACK #${fb.id}] Email failed:`, e));
