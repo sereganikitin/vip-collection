@@ -19,7 +19,6 @@ async function buildAllUrls(): Promise<string[]> {
     '/',
     '/about',
     '/delivery',
-    '/pickup',
     '/repair',
     '/wholesale',
     '/contacts',

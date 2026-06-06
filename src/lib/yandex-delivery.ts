@@ -55,9 +55,9 @@ async function getConfig(): Promise<YandexDeliveryConfig | null> {
   return {
     cargoToken,
     geocoderKey,
-    pickupAddress: (byKey.get('yd_pickup_address') ?? '115088, Москва, Сормовский проезд, 11, стр. 1').trim(),
-    pickupLat: parseFloat(byKey.get('yd_pickup_lat') ?? '55.708'),
-    pickupLng: parseFloat(byKey.get('yd_pickup_lng') ?? '37.6906'),
+    pickupAddress: (byKey.get('yd_pickup_address') ?? 'г. Москва').trim(),
+    pickupLat: parseFloat(byKey.get('yd_pickup_lat') ?? '55.7558'),
+    pickupLng: parseFloat(byKey.get('yd_pickup_lng') ?? '37.6173'),
     pickupContactName: (byKey.get('yd_pickup_contact_name') ?? 'VIP COLLECTION').trim(),
     pickupContactPhone: (byKey.get('yd_pickup_contact_phone') ?? '+79257437135').trim(),
   };

@@ -22,7 +22,7 @@ export async function generateMetadata(
   // Per-category title & description templates (different tone than the legacy
   // vip-collection.ru, with emphasis on store features instead of brand pitch)
   const TITLE_BY_CAT: Record<string, string> = {
-    suitcases: `${product.name}: ${priceFmt} ₽, в наличии — самовывоз Сормовский`,
+    suitcases: `${product.name}: ${priceFmt} ₽, в наличии — курьер по Москве и доставка по России`,
     'women-bags': `${product.name} ${product.brand} — ${priceFmt} ₽ | сумка из Москвы`,
     briefcases: `${product.name} — портфель ${product.brand}, ${priceFmt} ₽ со склада`,
     parts: `${product.name} — запчасть, ${priceFmt} ₽ | курьер по Москве`,
@@ -32,25 +32,25 @@ export async function generateMetadata(
     belts: `${product.name} — кожаный ремень, ${priceFmt} ₽`,
     'waist-bags': `${product.name} — поясная сумка ${product.brand}, ${priceFmt} ₽`,
     misc: `${product.name} — ${priceFmt} ₽ | VIP COLL Москва`,
-    sale: `${product.name} — ${priceFmt} ₽ со скидкой | самовывоз`,
+    sale: `${product.name} — ${priceFmt} ₽ со скидкой | доставка`,
   };
 
   const DESC_BY_CAT: Record<string, string> = {
-    suitcases: `Чемодан ${product.brand} ${product.name.replace(/^Чемодан\s+/i, '')}. Цена ${priceFmt} ₽. Поликарбонат, четыре двойных колеса, телескопическая ручка. Самовывоз на Сормовском проезде 11 или курьер по Москве и Подмосковью. Гарантия 1 год.`,
-    'women-bags': `Женская сумка ${product.brand} — ${priceFmt} ₽. Самовывоз с нашего склада в Москве (Сормовский 11) или курьерская доставка по Москве и области.`,
-    briefcases: `Кожаный портфель ${product.brand}. Цена ${priceFmt} ₽. Самовывоз — Сормовский проезд 11, курьер по Москве и Подмосковью.`,
-    parts: `${product.name}. ${priceFmt} ₽. Запчасти для чемоданов в наличии — приходите за самовывозом на Сормовский проезд 11 или заказывайте курьера по Москве.`,
-    wallets: `Портмоне ${product.brand}, натуральная кожа. Цена ${priceFmt} ₽. Москва, Сормовский 11 — самовывоз. Курьер по МКАД от 250 ₽.`,
-    backpacks: `Рюкзак ${product.brand}. ${priceFmt} ₽. Отделение для ноутбука, удобные лямки, водоотталкивающий материал. Самовывоз и доставка по Москве и области.`,
-    covers: `Чехол для чемодана. ${priceFmt} ₽. Защита от царапин и грязи в багажном отделении. Самовывоз бесплатно, курьер по Москве — 100 ₽.`,
-    belts: `Кожаный ремень. ${priceFmt} ₽. Самовывоз — Сормовский проезд 11, курьер по Москве и Подмосковью.`,
-    'waist-bags': `Поясная сумка для бега, фитнеса и путешествий. ${priceFmt} ₽. Лёгкая, водостойкая, регулируемый ремень. Самовывоз в Москве или курьер.`,
-    misc: `${product.name}. Цена ${priceFmt} ₽. Самовывоз — Москва, Сормовский проезд 11. Курьер по Москве и Подмосковью.`,
-    sale: `${product.name} в разделе «Распродажа». Цена со скидкой — ${priceFmt} ₽. Количество ограничено. Самовывоз и курьер по Москве.`,
+    suitcases: `Чемодан ${product.brand} ${product.name.replace(/^Чемодан\s+/i, '')}. Цена ${priceFmt} ₽. Поликарбонат, четыре двойных колеса, телескопическая ручка. Курьер по Москве, Я.Доставка по всей России. Гарантия 1 год.`,
+    'women-bags': `Женская сумка ${product.brand} — ${priceFmt} ₽. Курьер по Москве и Я.Доставка по всей России.`,
+    briefcases: `Кожаный портфель ${product.brand}. Цена ${priceFmt} ₽. Курьер по Москве и Я.Доставка по всей России.`,
+    parts: `${product.name}. ${priceFmt} ₽. Запчасти для чемоданов в наличии — заказывайте курьера по Москве или Я.Доставку по России.`,
+    wallets: `Портмоне ${product.brand}, натуральная кожа. Цена ${priceFmt} ₽. Курьер по Москве от 250 ₽, Я.Доставка по России.`,
+    backpacks: `Рюкзак ${product.brand}. ${priceFmt} ₽. Отделение для ноутбука, удобные лямки, водоотталкивающий материал. Курьер по Москве и Я.Доставка по всей России.`,
+    covers: `Чехол для чемодана. ${priceFmt} ₽. Защита от царапин и грязи в багажном отделении. Курьер по Москве — 100 ₽, Я.Доставка по России.`,
+    belts: `Кожаный ремень. ${priceFmt} ₽. Курьер по Москве и Я.Доставка по всей России.`,
+    'waist-bags': `Поясная сумка для бега, фитнеса и путешествий. ${priceFmt} ₽. Лёгкая, водостойкая, регулируемый ремень. Курьер по Москве и Я.Доставка по России.`,
+    misc: `${product.name}. Цена ${priceFmt} ₽. Курьер по Москве и Я.Доставка по всей России.`,
+    sale: `${product.name} в разделе «Распродажа». Цена со скидкой — ${priceFmt} ₽. Количество ограничено. Курьер по Москве и Я.Доставка по России.`,
   };
 
   const title = TITLE_BY_CAT[product.categoryId] ?? `${product.name} — ${priceFmt} ₽ | VIP COLL`;
-  const description = DESC_BY_CAT[product.categoryId] ?? `${product.name}. Цена ${priceFmt} ₽. Самовывоз — Сормовский проезд 11. Курьер по Москве и Подмосковью.`;
+  const description = DESC_BY_CAT[product.categoryId] ?? `${product.name}. Цена ${priceFmt} ₽. Курьер по Москве и Я.Доставка по всей России.`;
 
   const url = `${SITE_URL}/product/${product.slug}`;
   const image = product.images[0] ? `${SITE_URL}${product.images[0]}` : undefined;
@@ -62,7 +62,7 @@ export async function generateMetadata(
     product.brand,
     `${product.brand} ${category?.name ?? ''}`.trim(),
     category?.name,
-    'самовывоз сормовский',
+    'доставка по России',
     'купить со склада москва',
     'курьер по москве',
   ].filter(Boolean) as string[];

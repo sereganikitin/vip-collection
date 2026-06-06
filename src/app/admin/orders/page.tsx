@@ -69,7 +69,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 const paymentMethodLabels: Record<string, { label: string; icon: typeof CreditCard }> = {
   online: { label: 'Онлайн', icon: CreditCard },
-  cash:   { label: 'При самовывозе', icon: Wallet },
+  cash:   { label: 'При получении', icon: Wallet },
 };
 
 const paymentStatusLabels: Record<string, { label: string; color: string }> = {

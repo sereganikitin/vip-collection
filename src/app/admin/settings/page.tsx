@@ -58,7 +58,7 @@ const EMPTY: FormState = {
   tg_bot_token: '', tg_chat_id: '',
   tinkoff_terminal_key: '', tinkoff_password: '',
   yd_token: '', yd_geocoder_key: '',
-  yd_pickup_address: '115088, Москва, Сормовский проезд, 11, стр. 1',
+  yd_pickup_address: 'г. Москва',
   yd_pickup_lat: '55.708', yd_pickup_lng: '37.6906',
   yd_pickup_contact_name: 'VIP COLLECTION',
   yd_pickup_contact_phone: '+79257437135',
@@ -71,9 +71,9 @@ const EMPTY: FormState = {
   contact_telegram_url: 'https://t.me/VIP_CHEMODAN',
   contact_telegram_username: '@VIP_CHEMODAN',
   contact_whatsapp_url: 'https://wa.me/79257437135',
-  contact_address_full: '115088, г. Москва, Сормовский проезд, д. 11, стр. 1',
-  contact_address_short: 'Москва, Сормовский пр-д, 11, стр. 1',
-  contact_postal_code: '115088',
+  contact_address_full: 'г. Москва',
+  contact_address_short: 'Москва',
+  contact_postal_code: '',
   contact_city: 'Москва',
   contact_hours: 'Пн–Пт 10:00–18:00, по предварительной договорённости',
   legal_name: 'ИП Никитин С.В.',
@@ -215,15 +215,15 @@ export default function AdminSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Почтовый индекс</label>
-                <input className={fieldClass} value={form.contact_postal_code} onChange={(e) => set('contact_postal_code', e.target.value)} placeholder="115088" />
+                <input className={fieldClass} value={form.contact_postal_code} onChange={(e) => set('contact_postal_code', e.target.value)} placeholder="" />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Адрес (полный)</label>
-                <input className={fieldClass} value={form.contact_address_full} onChange={(e) => set('contact_address_full', e.target.value)} placeholder="115088, г. Москва, Сормовский пр-д, д. 11, стр. 1" />
+                <input className={fieldClass} value={form.contact_address_full} onChange={(e) => set('contact_address_full', e.target.value)} placeholder="г. Москва" />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Адрес (короткий, для футера)</label>
-                <input className={fieldClass} value={form.contact_address_short} onChange={(e) => set('contact_address_short', e.target.value)} placeholder="Москва, Сормовский пр-д, 11, стр. 1" />
+                <input className={fieldClass} value={form.contact_address_short} onChange={(e) => set('contact_address_short', e.target.value)} placeholder="г. Москва" />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">Режим работы</label>

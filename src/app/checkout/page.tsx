@@ -102,11 +102,13 @@ export default function CheckoutPage() {
   }
 
   const deliveryLabels: Record<string, string> = {
-    courier: 'Курьер по Москве и области', pickup: 'Самовывоз',
+    courier: 'Курьер по Москве',
+    'yandex-russia': 'Я.Доставка по России',
   };
-  // Cash on pickup only — courier deliveries must be paid online.
-  const allowCashOnPickup = form.delivery === 'pickup';
-  const effectivePayment = allowCashOnPickup ? form.payment : 'online';
+  // Обе опции принимают и наличные, и онлайн.
+  // Для курьера по Москве «наличные» — это деньги курьеру при получении.
+  // Для Я.Доставки — оплата получателем при выдаче (наложенный платёж).
+  const effectivePayment = form.payment;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -142,11 +144,8 @@ export default function CheckoutPage() {
           customerEmail: form.email || undefined,
           deliveryMethod: deliveryLabels[form.delivery] || form.delivery,
           // Полный адрес = "<город>, <улица...>" — нужно для геокодирования
-          // в Я.Доставке. При самовывозе — фиксированный адрес склада.
-          deliveryAddress:
-            form.delivery !== 'pickup'
-              ? `${form.city.trim()}, ${form.address.trim()}`
-              : 'Самовывоз: Москва, Сормовский пр-д, 11',
+          // в Я.Доставке (или для построения маршрута курьеру по Москве).
+          deliveryAddress: `${form.city.trim()}, ${form.address.trim()}`,
           comment: form.comment || undefined,
           paymentMethod: effectivePayment,
           items: items.map(({ product, quantity }) => ({
@@ -258,8 +257,8 @@ export default function CheckoutPage() {
               <h2 className="font-semibold text-lg mb-4">Доставка</h2>
               <div className="space-y-3 mb-4">
                 {[
-                  { value: 'courier', label: 'Курьер по Москве и области', desc: 'От 20 000 ₽ — бесплатно по Москве. По МО — расчёт по адресу' },
-                  { value: 'pickup', label: 'Самовывоз', desc: 'Москва, Сормовский пр-д, 11, стр. 1' },
+                  { value: 'courier',       label: 'Курьер по Москве',        desc: 'Доставка в день заказа или на следующий день. Расчёт по адресу.' },
+                  { value: 'yandex-russia', label: 'Я.Доставка по России',    desc: 'Отправка через сеть Я.Доставки во все города России. Расчёт по адресу.' },
                 ].map((method) => (
                   <label key={method.value} className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
                     <input type="radio" name="delivery" value={method.value} checked={form.delivery === method.value}
@@ -271,24 +270,22 @@ export default function CheckoutPage() {
                   </label>
                 ))}
               </div>
-              {form.delivery !== 'pickup' && (
-                <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Город *</label>
-                    <input type="text" required value={form.city}
-                      onChange={(e) => updateField('city', e.target.value)}
-                      placeholder="Москва"
-                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Улица, дом, квартира *</label>
-                    <input type="text" required={form.delivery !== 'pickup'} value={form.address}
-                      onChange={(e) => updateField('address', e.target.value)}
-                      placeholder="например, Годовикова 11, корпус 4, кв. 126"
-                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
-                  </div>
+              <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Город *</label>
+                  <input type="text" required value={form.city}
+                    onChange={(e) => updateField('city', e.target.value)}
+                    placeholder="Москва"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
                 </div>
-              )}
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Улица, дом, квартира *</label>
+                  <input type="text" required value={form.address}
+                    onChange={(e) => updateField('address', e.target.value)}
+                    placeholder="например, Годовикова 11, корпус 4, кв. 126"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                </div>
+              </div>
             </div>
 
             <div className="bg-surface rounded-xl border border-border p-6">
@@ -303,20 +300,19 @@ export default function CheckoutPage() {
                     <p className="text-xs text-text-muted">Защищённая оплата через Тинькофф. После подтверждения заказа вы будете перенаправлены на платёжную страницу.</p>
                   </div>
                 </label>
-                {allowCashOnPickup && (
-                  <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
-                    <input type="radio" name="payment" value="cash" checked={effectivePayment === 'cash'}
-                      onChange={() => setForm((f) => ({ ...f, payment: 'cash' }))}
-                      className="mt-1 accent-accent" />
-                    <div>
-                      <p className="font-medium text-sm">При самовывозе</p>
-                      <p className="text-xs text-text-muted">Оплата наличными или картой на месте: Москва, Сормовский пр-д, 11.</p>
-                    </div>
-                  </label>
-                )}
-                {!allowCashOnPickup && (
-                  <p className="text-xs text-text-muted px-3">При доставке курьером доступна только онлайн-оплата.</p>
-                )}
+                <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
+                  <input type="radio" name="payment" value="cash" checked={effectivePayment === 'cash'}
+                    onChange={() => setForm((f) => ({ ...f, payment: 'cash' }))}
+                    className="mt-1 accent-accent" />
+                  <div>
+                    <p className="font-medium text-sm">При получении</p>
+                    <p className="text-xs text-text-muted">
+                      {form.delivery === 'courier'
+                        ? 'Наличными или картой курьеру при получении в Москве.'
+                        : 'Оплата при получении в пункте выдачи Я.Доставки (наложенный платёж).'}
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 

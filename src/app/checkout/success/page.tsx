@@ -40,7 +40,8 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
 
       {paymentMethod === 'cash' && (
         <p className="text-text-muted mb-6">
-          Спасибо за заказ. Мы свяжемся с вами в ближайшее время для подтверждения и согласования времени самовывоза.
+          Спасибо за заказ. Мы свяжемся с вами в ближайшее время для подтверждения деталей.
+          Оплата — при получении.
         </p>
       )}
 

@@ -68,13 +68,14 @@ export default async function Home() {
             <div className="mx-auto max-w-7xl px-4 w-full">
               <div className="max-w-2xl"
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 2px rgba(0,0,0,0.9)' }}>
-                <p className="text-accent font-semibold tracking-wide uppercase text-xs sm:text-sm mb-2 sm:mb-3">Самовывоз и курьер по Москве и Подмосковью</p>
+                <p className="text-accent font-semibold tracking-wide uppercase text-xs sm:text-sm mb-2 sm:mb-3">Курьер по Москве · Я.Доставка по всей России</p>
                 <h1 className="text-3xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-3 sm:mb-6">
                   Чемоданы на колёсах от {minSuitcasePriceFmt} ₽
                 </h1>
                 <p className="speakable-summary text-gray-100 text-sm sm:text-base md:text-lg mb-5 sm:mb-8 leading-relaxed">
-                  Магазин-склад на Сормовском проезде 11. Чемоданы VIP COLLECTION,
-                  рюкзаки и сумки ARISTOCRAT, портмоне NERI KARRA, запчасти для ремонта.
+                  Чемоданы VIP COLLECTION, рюкзаки и сумки ARISTOCRAT,
+                  портмоне NERI KARRA, запчасти для ремонта.
+                  Доставка курьером по Москве и Я.Доставкой по России.
                 </p>
                 <div className="flex flex-wrap gap-3 sm:gap-4 pointer-events-auto">
                   <Link
@@ -102,8 +103,8 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: Truck, title: 'Курьер по Москве и МО', desc: 'От 20 000 ₽ — бесплатно' },
-              { icon: Shield, title: 'Самовывоз', desc: 'Сормовский проезд 11' },
+              { icon: Truck, title: 'Курьер по Москве', desc: 'Наличные или онлайн-оплата' },
+              { icon: Shield, title: 'Доставка по России', desc: 'Я.Доставка во все города' },
               { icon: Percent, title: 'Скидки и акции', desc: 'До 45% на хиты' },
               { icon: Wrench, title: 'Ремонт чемоданов', desc: 'Свой сервисный центр' },
             ].map((item) => (
@@ -277,19 +278,19 @@ export default async function Home() {
             <ul className="space-y-2 text-sm text-text-muted">
               <li className="flex items-start gap-2">
                 <span className="text-accent font-bold">→</span>
-                <span><strong>Самовывоз</strong> бесплатно: Москва, Сормовский проезд 11, стр. 1</span>
+                <span><strong>Курьер по Москве</strong> — наличные или предоплата онлайн</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent font-bold">→</span>
-                <span><strong>Курьер по Москве</strong> — бесплатно от 20 000 ₽</span>
+                <span><strong>Я.Доставка по России</strong> — во все города. Расчёт по адресу</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent font-bold">→</span>
-                <span><strong>Курьер по Подмосковью</strong> — расчёт по адресу</span>
+                <span><strong>Оплата</strong> картой онлайн или при получении</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent font-bold">→</span>
-                <span><strong>Оплата</strong> картой онлайн или наличными при получении</span>
+                <span><strong>Гарантия</strong> производителя и собственный сервисный центр для ремонта</span>
               </li>
             </ul>
           </div>
@@ -342,9 +343,9 @@ export default async function Home() {
               <h3 className="text-base font-semibold text-text mb-2">Запчасти и ремонт</h3>
               <p>
                 Сломалось колесо или ручка — не выкидывайте чемодан. <strong>Запчасти для чемоданов</strong>:
-                колёса, телескопические ручки, замки — цены от 200 ₽. Сервисный центр на Сормовском
-                проезде чинит чемоданы любых брендов за 1-3 дня. Гарантийный ремонт чемоданов
-                VIP COLLECTION — бесплатно.
+                колёса, телескопические ручки, замки — цены от 200 ₽. Собственный сервисный центр
+                чинит чемоданы любых брендов за 1-3 дня. Гарантийный ремонт чемоданов
+                VIP COLLECTION — бесплатно. Доставка в сервис — Я.Доставкой.
               </p>
             </div>
             <div>
@@ -362,17 +363,15 @@ export default async function Home() {
                 Турецкая кожа полного дубления, RFID-защита, классические и современные модели.
                 Также — кожаные ремни, поясные сумки, чехлы для чемоданов.
               </p>
-              <h3 className="text-base font-semibold text-text mb-2">Доставка по Москве и самовывоз</h3>
+              <h3 className="text-base font-semibold text-text mb-2">Доставка по Москве и по всей России</h3>
               <p>
-                <strong>Самовывоз бесплатно</strong> — Москва, Сормовский проезд 11, стр. 1.
-                <strong> Курьер по Москве</strong> — расчёт по адресу, от 20 000 ₽ бесплатно в пределах МКАД.
-                Доставка в <strong>Подмосковье</strong> — отдельно по тарифу. Оплата картой онлайн, по СБП
-                или наличными курьеру / при самовывозе.
+                <strong>Курьер по Москве</strong> — оплата наличными или картой курьеру, либо предоплата онлайн.
+                <strong> Я.Доставка по России</strong> — отправляем во все города через сеть Я.Доставки.
+                Оплата онлайн на сайте или при получении заказа.
               </p>
             </div>
           </div>
           <p className="mt-6 text-sm text-text-muted">
-            Магазин-склад: 115088, Москва, Сормовский проезд, 11, стр. 1.
             Звонок, WhatsApp, Telegram: <a href="tel:+79257437135" className="text-accent hover:underline">+7 (925) 743-71-35</a>.
             Email: <a href="mailto:vipshopp@yandex.ru" className="text-accent hover:underline">vipshopp@yandex.ru</a>.
             Работаем без выходных.

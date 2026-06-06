@@ -34,7 +34,7 @@ const PAYMENT_STATUS_VIEW: Record<string, { emoji: string; label: string }> = {
 
 const PAYMENT_METHOD_VIEW: Record<string, string> = {
   online: 'Онлайн',
-  cash:   'При самовывозе',
+  cash:   'При получении',
 };
 
 function priceRu(p: number): string {

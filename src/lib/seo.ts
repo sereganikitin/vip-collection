@@ -3,9 +3,7 @@ export const SITE_NAME = 'VIP COLLECTION';
 export const SITE_PHONE = '+7-925-743-71-35';
 export const SITE_EMAIL = 'vipshopp@yandex.ru';
 export const SITE_ADDRESS = {
-  streetAddress: 'Сормовский проезд, 11, стр. 1',
   addressLocality: 'Москва',
-  postalCode: '115088',
   addressCountry: 'RU',
 };
 
@@ -59,27 +57,18 @@ export const ORGANIZATION_JSONLD = {
     `${SITE_URL}/images/ui/logo.png`,
   ],
   description:
-    'Интернет-магазин и магазин-склад в Москве: чемоданы, сумки, портфели, рюкзаки и кожгалантерея. Собственные бренды VIP COLLECTION и ARISTOCRAT. Свой сервисный центр для ремонта чемоданов любых брендов.',
-  slogan: 'Надёжные чемоданы и кожгалантерея с самовывозом в Москве',
+    'Интернет-магазин в Москве: чемоданы, сумки, портфели, рюкзаки и кожгалантерея. Собственные бренды VIP COLLECTION и ARISTOCRAT. Курьерская доставка по Москве, Я.Доставка по всей России, собственный сервисный центр.',
+  slogan: 'Надёжные чемоданы и кожгалантерея — курьером по Москве и по всей России',
   email: SITE_EMAIL,
   telephone: SITE_PHONE,
   priceRange: '500₽–50000₽',
   paymentAccepted: ['Cash', 'Credit Card', 'СБП', 'Bank Transfer'],
   currenciesAccepted: 'RUB',
-  areaServed: [
-    { '@type': 'City', name: 'Москва' },
-    { '@type': 'AdministrativeArea', name: 'Московская область' },
-  ],
+  areaServed: { '@type': 'Country', name: 'Россия' },
   address: {
     '@type': 'PostalAddress',
     ...SITE_ADDRESS,
   },
-  geo: {
-    '@type': 'GeoCoordinates',
-    latitude: 55.7080,
-    longitude: 37.6906,
-  },
-  hasMap: 'https://yandex.ru/maps/?text=Сормовский+проезд+11+стр+1+Москва',
   openingHoursSpecification: [
     {
       '@type': 'OpeningHoursSpecification',
@@ -161,10 +150,7 @@ export const REPAIR_SERVICE_JSONLD = {
     'Замена колёс, телескопических ручек, кодовых и TSA-замков, бегунков и молний для чемоданов любых брендов. Гарантийный ремонт чемоданов VIP COLLECTION и ARISTOCRAT — бесплатно в течение 12 месяцев.',
   serviceType: 'Ремонт чемоданов и сумок',
   provider: { '@id': `${SITE_URL}/#organization` },
-  areaServed: [
-    { '@type': 'City', name: 'Москва' },
-    { '@type': 'AdministrativeArea', name: 'Московская область' },
-  ],
+  areaServed: { '@type': 'Country', name: 'Россия' },
   offers: {
     '@type': 'Offer',
     priceCurrency: 'RUB',

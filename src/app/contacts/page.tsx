@@ -8,12 +8,12 @@ import { SITE_URL, buildBreadcrumbList } from '@/lib/seo';
 export const metadata: Metadata = {
   title: 'Контакты VIP COLLECTION — телефон, адрес, режим работы',
   description:
-    'Контактные данные интернет-магазина VIP COLLECTION в Москве. Адрес: Сормовский проезд, 11, стр. 1. Телефон, email, Telegram, режим работы.',
-  keywords: ['VIP COLLECTION контакты', 'магазин чемоданов Москва', 'Сормовский проезд 11', 'телефон магазина'],
+    'Контактные данные интернет-магазина VIP COLLECTION. Москва. Телефон, email, Telegram. Курьер по Москве и Я.Доставка по всей России.',
+  keywords: ['VIP COLLECTION контакты', 'магазин чемоданов Москва', 'доставка чемоданов по России', 'телефон магазина'],
   alternates: { canonical: 'https://vipcoll.ru/contacts' },
   openGraph: {
     title: 'Контакты VIP COLLECTION',
-    description: 'Москва, Сормовский проезд 11. WhatsApp, Telegram, email.',
+    description: 'Москва. WhatsApp, Telegram, email.',
     url: 'https://vipcoll.ru/contacts',
     type: 'website',
     locale: 'ru_RU',

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: '%s | VIP COLLECTION',
   },
   description:
-    'Чемоданы VIP COLLECTION на 4 колёсах: надёжные, неубиваемые, цветные, для путешествий. Кейс-пилоты, наборы 3-в-1, размеры S/M/L. Сумки женские David Jones, рюкзаки и сумки для ноутбуков ARISTOCRAT, кожгалантерея NERI KARRA, запчасти. Самовывоз — Сормовский 11, курьер по Москве и Подмосковью.',
+    'Чемоданы VIP COLLECTION на 4 колёсах: надёжные, неубиваемые, цветные, для путешествий. Кейс-пилоты, наборы 3-в-1, размеры S/M/L. Сумки женские David Jones, рюкзаки и сумки для ноутбуков ARISTOCRAT, кожгалантерея NERI KARRA, запчасти. Курьер по Москве и Я.Доставка по всей России.',
   applicationName: 'VIP COLLECTION',
   generator: 'Next.js',
   keywords: [
@@ -58,7 +58,8 @@ export const metadata: Metadata = {
     'запчасти для чемоданов', 'запчасти для чемодана',
     'колесо для чемодана', 'ремонт чемоданов москва',
     // прочее
-    'чехол для чемодана', 'самовывоз чемоданов Сормовский',
+    'чехол для чемодана', 'доставка чемоданов по России',
+    'Яндекс Доставка', 'я доставка чемоданы',
   ],
   authors: [{ name: 'VIP COLLECTION', url: 'https://vipcoll.ru' }],
   creator: 'VIP COLLECTION',
@@ -87,15 +88,15 @@ export const metadata: Metadata = {
     locale: 'ru_RU',
     url: 'https://vipcoll.ru',
     siteName: 'VIP COLLECTION',
-    title: 'Чемоданы на колёсах от 3 500 ₽ — Самовывоз и курьер по Москве',
+    title: 'Чемоданы на колёсах от 3 500 ₽ — Курьер по Москве и доставка по России',
     description:
-      'Чемоданы VIP COLLECTION от 3 500 ₽, рюкзаки и сумки ARISTOCRAT, запчасти. Самовывоз — Сормовский проезд 11. Курьер по Москве и Подмосковью.',
+      'Чемоданы VIP COLLECTION от 3 500 ₽, рюкзаки и сумки ARISTOCRAT, запчасти. Курьер по Москве и Я.Доставка по всей России.',
     images: [{ url: '/images/banners/banner-1.jpg', width: 1200, height: 630, alt: 'VIP COLLECTION' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Чемоданы на колёсах от 3 500 ₽ — Москва',
-    description: 'Самовывоз на Сормовском, курьер по Москве. Распродажи и акции каждый месяц.',
+    description: 'Курьер по Москве и Я.Доставка по России. Распродажи и акции каждый месяц.',
     images: ['/images/banners/banner-1.jpg'],
   },
   verification: {

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'О компании VIP COLLECTION — итальянские традиции качества',
   description:
-    'VIP COLLECTION — российский интернет-магазин чемоданов и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT. Корни в Италии, производство в Тоскане. Магазин в Москве на Сормовском проезде.',
+    'VIP COLLECTION — российский интернет-магазин чемоданов и кожгалантереи. Собственные бренды VIP COLLECTION и ARISTOCRAT. Корни в Италии, производство в Тоскане. Курьер по Москве и Я.Доставка по всей России.',
   keywords: ['о компании VIP COLLECTION', 'итальянские чемоданы', 'ARISTOCRAT', 'история бренда', 'тосканская кожа'],
   alternates: { canonical: 'https://vipcoll.ru/about' },
   openGraph: {
