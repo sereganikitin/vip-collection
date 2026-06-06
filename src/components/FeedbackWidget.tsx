@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle, X, Send, Check } from 'lucide-react';
 import { formatPhoneMask, validateRussianPhone } from '@/lib/validation';
+
+const SEEN_KEY = 'fb-widget-seen';
 
 export default function FeedbackWidget() {
   const [open, setOpen] = useState(false);
@@ -12,6 +14,27 @@ export default function FeedbackWidget() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  // Подсказка появляется через 6 секунд один раз за сессию,
+  // если пользователь уже взаимодействовал с виджетом — не показываем.
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (window.sessionStorage.getItem(SEEN_KEY) === '1') return;
+    } catch {
+      // sessionStorage disabled — просто ничего не делаем
+    }
+    const t = window.setTimeout(() => setShowHint(true), 6000);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  function markSeen() {
+    setShowHint(false);
+    try {
+      window.sessionStorage?.setItem(SEEN_KEY, '1');
+    } catch {}
+  }
 
   const phoneCheck = phone ? validateRussianPhone(phone) : null;
   const phoneError = phoneCheck && !phoneCheck.ok ? phoneCheck.error : null;
@@ -56,15 +79,47 @@ export default function FeedbackWidget() {
     setTimeout(() => setSent(false), 300);
   }
 
+  function openWidget() {
+    setOpen(true);
+    markSeen();
+  }
+
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Написать нам"
-        className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-accent text-primary rounded-full shadow-lg hover:bg-accent-hover transition-all flex items-center justify-center"
-      >
-        <MessageCircle size={22} />
-      </button>
+      <div className="fixed bottom-6 right-6 z-40 flex items-end gap-3">
+        {/* Всплывающая подсказка слева от кнопки */}
+        {showHint && (
+          <div className="hidden sm:flex items-center gap-2 mb-1 bg-surface border border-border rounded-full shadow-lg pl-4 pr-2 py-2 animate-fade-in">
+            <button
+              type="button"
+              onClick={openWidget}
+              className="text-sm font-medium text-text whitespace-nowrap hover:text-accent transition-colors"
+            >
+              Есть вопрос? Напишите нам
+            </button>
+            <button
+              type="button"
+              onClick={markSeen}
+              aria-label="Скрыть подсказку"
+              className="w-6 h-6 rounded-full text-text-muted hover:bg-bg flex items-center justify-center"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={openWidget}
+          aria-label="Написать нам"
+          className="relative w-14 h-14 bg-accent text-primary rounded-full shadow-lg hover:bg-accent-hover transition-all flex items-center justify-center"
+        >
+          {/* Пульсирующее кольцо только пока подсказка активна */}
+          {showHint && (
+            <span className="absolute inset-0 rounded-full bg-accent/70 animate-ping pointer-events-none" />
+          )}
+          <MessageCircle size={24} className="relative z-10" />
+        </button>
+      </div>
     );
   }
 

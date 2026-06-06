@@ -89,7 +89,8 @@ export default async function TermsPage() {
         <p>
           На все товары распространяется гарантия производителя сроком 1 год, если иное не указано в
           описании конкретного товара. Гарантийный ремонт (замена колёс, ручек, замков для чемоданов)
-          осуществляется в сервисном центре Продавца по адресу: {c.addressFull}.
+          осуществляется в сервисном центре Продавца. Передача товара в сервис и обратно — курьером
+          по Москве или через сервис Я.Доставки в любом городе России.
         </p>
 
         <h2 className="text-lg font-semibold mt-6 mb-2">7. Ответственность сторон</h2>
@@ -120,7 +121,6 @@ export default async function TermsPage() {
           {c.inn && <><br />ИНН: {c.inn}</>}
           {c.ogrnip && <><br />ОГРНИП: {c.ogrnip}</>}
           {c.legalAddress && <><br />Адрес: {c.legalAddress}</>}
-          {c.addressFull && !c.legalAddress && <><br />Фактический адрес: {c.addressFull}</>}
           <br />Телефон: <a className="text-accent hover:underline" href={`tel:${c.phone}`}>{c.phoneDisplay}</a>
           <br />Email: <a className="text-accent hover:underline" href={`mailto:${c.email}`}>{c.email}</a>
         </p>

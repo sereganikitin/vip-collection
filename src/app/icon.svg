@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="geometricPrecision">
+  <!-- Suitcase handle -->
+  <path d="M22 12 Q22 7 27 7 L37 7 Q42 7 42 12 L42 16"
+        stroke="#62221C" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Suitcase body -->
+  <rect x="6" y="16" width="52" height="42" rx="4" fill="#62221C"/>
+
+  <!-- Top edge highlight -->
+  <rect x="6" y="16" width="52" height="3" rx="2" fill="#7a2e26"/>
+
+  <!-- Gold belt across the middle -->
+  <rect x="6" y="32" width="52" height="6" fill="#FBC608"/>
+
+  <!-- Buckle -->
+  <rect x="27" y="30.5" width="10" height="9" rx="1" fill="#FBC608" stroke="#62221C" stroke-width="1.2"/>
+  <rect x="30" y="33.5" width="4" height="3" fill="#62221C"/>
+
+  <!-- Corner protectors -->
+  <rect x="6" y="16" width="6" height="6" fill="#FBC608" opacity="0.92"/>
+  <rect x="52" y="16" width="6" height="6" fill="#FBC608" opacity="0.92"/>
+  <rect x="6" y="52" width="6" height="6" fill="#FBC608" opacity="0.92"/>
+  <rect x="52" y="52" width="6" height="6" fill="#FBC608" opacity="0.92"/>
+
+  <!-- Subtle wheel hints at bottom -->
+  <circle cx="16" cy="60" r="2" fill="#2d1a17"/>
+  <circle cx="48" cy="60" r="2" fill="#2d1a17"/>
+</svg>

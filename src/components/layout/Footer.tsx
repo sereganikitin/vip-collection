@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Send } from 'lucide-react';
+import { Phone, Mail, MapPin } from 'lucide-react';
 import type { SiteContacts } from '@/lib/settings';
 
 export default function Footer({ contacts }: { contacts: SiteContacts }) {
@@ -17,19 +17,6 @@ export default function Footer({ contacts }: { contacts: SiteContacts }) {
               Интернет-магазин кожгалантереи, чемоданов и аксессуаров для путешествий.
               Собственные бренды и лучшие мировые производители.
             </p>
-            {contacts.telegramUrl && (
-              <div className="flex gap-3">
-                <a
-                  href={contacts.telegramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"
-                  aria-label="Telegram"
-                >
-                  <Send size={16} />
-                </a>
-              </div>
-            )}
           </div>
 
           {/* Catalog */}
@@ -67,7 +54,7 @@ export default function Footer({ contacts }: { contacts: SiteContacts }) {
                 <Phone size={16} className="mt-0.5 flex-shrink-0 text-accent" />
                 <div>
                   <a href={`tel:${contacts.phone}`} className="hover:text-accent transition-colors">{contacts.phoneDisplay}</a>
-                  <p className="text-xs text-gray-500">WhatsApp / Telegram</p>
+                  <p className="text-xs text-gray-500">Звонок · приём заказов</p>
                 </div>
               </li>
               <li className="flex items-start gap-2">

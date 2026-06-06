@@ -8,12 +8,12 @@ import { SITE_URL, buildBreadcrumbList } from '@/lib/seo';
 export const metadata: Metadata = {
   title: 'Контакты VIP COLLECTION — телефон, адрес, режим работы',
   description:
-    'Контактные данные интернет-магазина VIP COLLECTION. Москва. Телефон, email, Telegram. Курьер по Москве и Я.Доставка по всей России.',
+    'Контактные данные интернет-магазина VIP COLLECTION. Москва. Телефон для звонков, email, форма обратной связи. Курьер по Москве и Я.Доставка по всей России.',
   keywords: ['VIP COLLECTION контакты', 'магазин чемоданов Москва', 'доставка чемоданов по России', 'телефон магазина'],
   alternates: { canonical: 'https://vipcoll.ru/contacts' },
   openGraph: {
     title: 'Контакты VIP COLLECTION',
-    description: 'Москва. WhatsApp, Telegram, email.',
+    description: 'Москва. Телефон, email, форма обратной связи.',
     url: 'https://vipcoll.ru/contacts',
     type: 'website',
     locale: 'ru_RU',
@@ -64,7 +64,9 @@ export default async function ContactsPage() {
               <a href={`tel:${c.phone}`} className="text-text-muted hover:text-accent transition-colors">
                 {c.phoneDisplay}
               </a>
-              <p className="text-xs text-text-muted mt-1">WhatsApp / Telegram</p>
+              <p className="text-xs text-text-muted mt-1">
+                Только для звонков. Для сообщений — форма обратной связи в правом нижнем углу.
+              </p>
             </div>
           </div>
 
@@ -78,23 +80,11 @@ export default async function ContactsPage() {
             </div>
           </div>
 
-          {c.telegramUrl && (
-            <div className="flex gap-3">
-              <Send size={20} className="text-accent flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold mb-1">Telegram</p>
-                <a href={c.telegramUrl} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent transition-colors">
-                  {c.telegramUsername || c.telegramUrl}
-                </a>
-              </div>
-            </div>
-          )}
-
           <div className="flex gap-3">
             <MapPin size={20} className="text-accent flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold mb-1">Адрес</p>
-              <p className="text-text-muted text-sm">{c.addressFull}</p>
+              <p className="font-semibold mb-1">Город</p>
+              <p className="text-text-muted text-sm">{c.city || 'Москва'}</p>
             </div>
           </div>
 
