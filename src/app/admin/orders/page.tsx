@@ -82,15 +82,15 @@ const paymentStatusLabels: Record<string, { label: string; color: string }> = {
 };
 
 type FilterKey =
-  | 'active'      // все кроме CANCELLED (дефолт — самые ходовые)
+  | 'active'      // оплачено + не доставлено + не отменено (дефолт — операторская работа)
   | 'new'         // status = NEW
   | 'processing'  // status = PROCESSING
   | 'shipped'     // status = SHIPPED
-  | 'delivered'   // status = DELIVERED
   | 'unpaid'      // онлайн-оплата + pending, исключая отменённые
   | 'paid'        // paymentStatus = paid
   | 'cancelled'   // status = CANCELLED
-  | 'all';        // без фильтра
+  | 'all'         // без фильтра
+  | 'completed';  // status = DELIVERED — выполненные, крайняя справа
 
 interface FilterDef {
   key: FilterKey;
@@ -100,16 +100,17 @@ interface FilterDef {
 }
 
 const FILTER_DEFS: FilterDef[] = [
-  { key: 'active',     label: 'Активные',       predicate: (o) => o.status !== 'CANCELLED' },
+  { key: 'active',     label: 'Активные',       predicate: (o) =>
+      o.paymentStatus === 'paid' && o.status !== 'DELIVERED' && o.status !== 'CANCELLED' },
   { key: 'new',        label: 'Новые',          predicate: (o) => o.status === 'NEW' },
   { key: 'processing', label: 'В обработке',    predicate: (o) => o.status === 'PROCESSING' },
   { key: 'shipped',    label: 'Отправлены',     predicate: (o) => o.status === 'SHIPPED' },
-  { key: 'delivered',  label: 'Доставлены',     predicate: (o) => o.status === 'DELIVERED' },
   { key: 'unpaid',     label: 'Ожидают оплаты', predicate: (o) =>
       o.paymentMethod === 'online' && o.paymentStatus === 'pending' && o.status !== 'CANCELLED' },
   { key: 'paid',       label: 'Оплачены',       predicate: (o) => o.paymentStatus === 'paid' },
   { key: 'cancelled',  label: 'Отменены',       predicate: (o) => o.status === 'CANCELLED', tone: 'danger' },
   { key: 'all',        label: 'Все',            predicate: () => true },
+  { key: 'completed',  label: 'Выполненные',    predicate: (o) => o.status === 'DELIVERED' },
 ];
 
 export default function AdminOrders() {
