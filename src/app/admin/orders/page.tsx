@@ -83,9 +83,7 @@ const paymentStatusLabels: Record<string, { label: string; color: string }> = {
 
 type FilterKey =
   | 'active'      // оплачено + не доставлено + не отменено (дефолт — операторская работа)
-  | 'new'         // status = NEW
-  | 'processing'  // status = PROCESSING
-  | 'shipped'     // status = SHIPPED
+  | 'new'         // status = NEW (включая PROCESSING как фактический «новый»)
   | 'unpaid'      // онлайн-оплата + pending, исключая отменённые
   | 'paid'        // paymentStatus = paid
   | 'cancelled'   // status = CANCELLED
@@ -99,12 +97,13 @@ interface FilterDef {
   tone?: 'danger'; // для отмены — тёмная подсветка
 }
 
+// «В обработке» и «Отправлены» убраны: PROCESSING фолдится в «Новые»,
+// SHIPPED уже покрывается «Активные» (оплачено + не доставлено).
 const FILTER_DEFS: FilterDef[] = [
   { key: 'active',     label: 'Активные',       predicate: (o) =>
       o.paymentStatus === 'paid' && o.status !== 'DELIVERED' && o.status !== 'CANCELLED' },
-  { key: 'new',        label: 'Новые',          predicate: (o) => o.status === 'NEW' },
-  { key: 'processing', label: 'В обработке',    predicate: (o) => o.status === 'PROCESSING' },
-  { key: 'shipped',    label: 'Отправлены',     predicate: (o) => o.status === 'SHIPPED' },
+  { key: 'new',        label: 'Новые',          predicate: (o) =>
+      o.status === 'NEW' || o.status === 'PROCESSING' },
   { key: 'unpaid',     label: 'Ожидают оплаты', predicate: (o) =>
       o.paymentMethod === 'online' && o.paymentStatus === 'pending' && o.status !== 'CANCELLED' },
   { key: 'paid',       label: 'Оплачены',       predicate: (o) => o.paymentStatus === 'paid' },
