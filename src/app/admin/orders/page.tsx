@@ -81,7 +81,36 @@ const paymentStatusLabels: Record<string, { label: string; color: string }> = {
   refunded: { label: 'Возврат',        color: 'bg-gray-100 text-gray-700' },
 };
 
-type FilterKey = 'all' | 'unpaid' | 'paid';
+type FilterKey =
+  | 'active'      // все кроме CANCELLED (дефолт — самые ходовые)
+  | 'new'         // status = NEW
+  | 'processing'  // status = PROCESSING
+  | 'shipped'     // status = SHIPPED
+  | 'delivered'   // status = DELIVERED
+  | 'unpaid'      // онлайн-оплата + pending, исключая отменённые
+  | 'paid'        // paymentStatus = paid
+  | 'cancelled'   // status = CANCELLED
+  | 'all';        // без фильтра
+
+interface FilterDef {
+  key: FilterKey;
+  label: string;
+  predicate: (o: Order) => boolean;
+  tone?: 'danger'; // для отмены — тёмная подсветка
+}
+
+const FILTER_DEFS: FilterDef[] = [
+  { key: 'active',     label: 'Активные',       predicate: (o) => o.status !== 'CANCELLED' },
+  { key: 'new',        label: 'Новые',          predicate: (o) => o.status === 'NEW' },
+  { key: 'processing', label: 'В обработке',    predicate: (o) => o.status === 'PROCESSING' },
+  { key: 'shipped',    label: 'Отправлены',     predicate: (o) => o.status === 'SHIPPED' },
+  { key: 'delivered',  label: 'Доставлены',     predicate: (o) => o.status === 'DELIVERED' },
+  { key: 'unpaid',     label: 'Ожидают оплаты', predicate: (o) =>
+      o.paymentMethod === 'online' && o.paymentStatus === 'pending' && o.status !== 'CANCELLED' },
+  { key: 'paid',       label: 'Оплачены',       predicate: (o) => o.paymentStatus === 'paid' },
+  { key: 'cancelled',  label: 'Отменены',       predicate: (o) => o.status === 'CANCELLED', tone: 'danger' },
+  { key: 'all',        label: 'Все',            predicate: () => true },
+];
 
 export default function AdminOrders() {
   const { status } = useSession();
@@ -89,7 +118,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterKey>('all');
+  const [filter, setFilter] = useState<FilterKey>('active');
 
   const fetchOrders = useCallback(async () => {
     const res = await fetch('/api/orders');
@@ -208,17 +237,12 @@ export default function AdminOrders() {
     return <div className="min-h-screen flex items-center justify-center">Загрузка...</div>;
   }
 
-  const counts = {
-    all: orders.length,
-    unpaid: orders.filter((o) => o.paymentMethod === 'online' && o.paymentStatus === 'pending').length,
-    paid: orders.filter((o) => o.paymentStatus === 'paid').length,
-  };
+  const counts = Object.fromEntries(
+    FILTER_DEFS.map((f) => [f.key, orders.filter(f.predicate).length])
+  ) as Record<FilterKey, number>;
 
-  const visibleOrders = orders.filter((o) => {
-    if (filter === 'unpaid') return o.paymentMethod === 'online' && o.paymentStatus === 'pending';
-    if (filter === 'paid') return o.paymentStatus === 'paid';
-    return true;
-  });
+  const activeFilter = FILTER_DEFS.find((f) => f.key === filter) ?? FILTER_DEFS[0];
+  const visibleOrders = orders.filter(activeFilter.predicate);
 
   return (
     <div className="min-h-screen bg-bg">
@@ -243,23 +267,27 @@ export default function AdminOrders() {
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2">
-          {([
-            { k: 'all',    label: `Все · ${counts.all}` },
-            { k: 'unpaid', label: `Ожидают оплаты · ${counts.unpaid}` },
-            { k: 'paid',   label: `Оплачены · ${counts.paid}` },
-          ] as const).map((f) => (
-            <button
-              key={f.k}
-              onClick={() => setFilter(f.k)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                filter === f.k
-                  ? 'bg-accent text-primary border-accent font-medium'
-                  : 'border-border text-text-muted hover:border-accent hover:text-text'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+          {FILTER_DEFS.map((f) => {
+            const isActive = filter === f.key;
+            const n = counts[f.key];
+            const dim = !isActive && n === 0;
+            const activeStyle = f.tone === 'danger'
+              ? 'bg-danger text-white border-danger font-medium'
+              : 'bg-accent text-primary border-accent font-medium';
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                  isActive
+                    ? activeStyle
+                    : `border-border hover:border-accent hover:text-text ${dim ? 'text-text-muted/60' : 'text-text-muted'}`
+                }`}
+              >
+                {f.label} · {n}
+              </button>
+            );
+          })}
         </div>
 
         {loading ? (
@@ -267,7 +295,7 @@ export default function AdminOrders() {
         ) : visibleOrders.length === 0 ? (
           <div className="bg-surface rounded-xl border border-border p-12 text-center">
             <p className="text-text-muted">
-              {filter === 'all' ? 'Заказов пока нет' : 'В этом фильтре пусто'}
+              {filter === 'all' ? 'Заказов пока нет' : `В фильтре «${activeFilter.label}» пусто`}
             </p>
           </div>
         ) : (
