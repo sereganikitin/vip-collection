@@ -1,5 +1,7 @@
 'use client';
 
+import AdminNav from '@/components/admin/AdminNav';
+
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
@@ -94,22 +96,7 @@ export default function AdminWholesaleRequests() {
         </div>
       </header>
 
-      <nav className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
-          <Link href="/admin" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Дашборд</Link>
-          <Link href="/admin/products" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Товары</Link>
-          <Link href="/admin/categories" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Категории</Link>
-          <Link href="/admin/brands" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Бренды</Link>
-          <Link href="/admin/orders" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Заказы</Link>
-          <Link href="/admin/feedback" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Обращения</Link>
-          <Link href="/admin/wholesale-requests" className="px-4 py-3 text-sm font-medium text-accent border-b-2 border-accent whitespace-nowrap">
-            Опт{unread > 0 ? ` · ${unread}` : ''}
-          </Link>
-          <Link href="/admin/pages" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Страницы</Link>
-          <Link href="/admin/banners" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Баннеры</Link>
-          <Link href="/admin/settings" className="px-4 py-3 text-sm font-medium text-text-muted hover:text-text whitespace-nowrap">Настройки</Link>
-        </div>
-      </nav>
+      <AdminNav current="wholesale-requests" />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
