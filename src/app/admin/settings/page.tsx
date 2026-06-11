@@ -48,8 +48,7 @@ interface FormState {
   yd_pickup_lng: string;
   yd_pickup_contact_name: string;
   yd_pickup_contact_phone: string;
-  // yandex delivery — russia
-  yd_russia_test_mode: string;   // 'true' | 'false'
+  // yandex delivery — russia (Platform API)
   yd_russia_token: string;
   yd_russia_station_id: string;
 }
@@ -64,7 +63,6 @@ const EMPTY: FormState = {
   yd_pickup_lat: '55.708', yd_pickup_lng: '37.6906',
   yd_pickup_contact_name: 'VIP COLLECTION',
   yd_pickup_contact_phone: '+79257437135',
-  yd_russia_test_mode: 'true',
   yd_russia_token: '',
   yd_russia_station_id: '',
   contact_phone: '+79257437135',
@@ -420,49 +418,38 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            <h4 className="font-medium text-sm mt-6 mb-2">Доставка по России</h4>
+            <h4 className="font-medium text-sm mt-6 mb-2">Доставка по России (Platform)</h4>
             <p className="text-xs text-text-muted mb-3">
-              Отдельный сервис Яндекса для межгородней доставки через СДЭК, Boxberry и других партнёров.
-              Использует <strong>другой API</strong> и <strong>другой токен</strong>, чем курьерская доставка по Москве.
+              Хост: <span className="font-mono">b2b.taxi.yandex.net/api/b2b/platform/…</span>.
+              На текущем аккаунте Я.Доставки эмпирически подтверждено: Cargo возвращает <em>suitable_offer_not_found</em>,
+              а Platform даёт офферы и список ПВЗ — поэтому межгородовая доставка идёт здесь.
               <br /><br />
-              <strong>Тестовый режим</strong> работает «из коробки» — используются демо-креды из документации
-              Яндекса (хост <span className="font-mono">b2b.taxi.tst.yandex.net</span>). Можно тестировать прямо сейчас.
+              <strong>Токен</strong> — тот же y0_… от Яндекс ID, что вы используете для Cargo (если ваш кабинет
+              предоставляет оба продукта; на нашем — активен только Platform).
               <br />
-              Для production: получить токен в ЛК Я.Доставки → Профиль, запросить <span className="font-mono">platform_station_id</span> у
-              коммерческого менеджера, заполнить поля ниже и снять флаг «Тестовый режим».
+              <strong>platform_station_id источника</strong> — id ПВЗ-отправителя «Ферганская 6к2».
+              Если оставить пустым, будет использован дефолт <span className="font-mono">019da9f07d7a728682aa993cd6fcbe13</span>.
             </p>
 
             <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.yd_russia_test_mode !== 'false'}
-                  onChange={(e) => set('yd_russia_test_mode', e.target.checked ? 'true' : 'false')}
-                  className="accent-accent"
-                />
-                <span>Тестовый режим (использовать демо-креды из документации)</span>
-              </label>
-
               <div>
-                <label className="block text-sm font-medium mb-1">Production токен (y2_…)</label>
+                <label className="block text-sm font-medium mb-1">Токен Platform (y0_…)</label>
                 <input
                   className={fieldClass}
                   type="password"
                   value={form.yd_russia_token}
                   onChange={(e) => set('yd_russia_token', e.target.value)}
-                  placeholder="y2_AgAAAAA..."
+                  placeholder="y0_AgAAA..."
                   autoComplete="off"
-                  disabled={form.yd_russia_test_mode !== 'false'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Production platform_station_id</label>
+                <label className="block text-sm font-medium mb-1">platform_station_id источника</label>
                 <input
                   className={fieldClass}
                   value={form.yd_russia_station_id}
                   onChange={(e) => set('yd_russia_station_id', e.target.value)}
-                  placeholder="fbed3aa1-2cc6-..."
-                  disabled={form.yd_russia_test_mode !== 'false'}
+                  placeholder="019da9f07d7a728682aa993cd6fcbe13 (по умолчанию — Ферганская 6к2)"
                 />
               </div>
             </div>

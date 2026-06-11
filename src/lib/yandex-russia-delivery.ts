@@ -1,39 +1,41 @@
-// Клиент Я.Доставки по России (Platform API).
-// Это отдельный сервис от Cargo B2B — другой хост, токен и модель заявок.
+// Клиент Я.Доставка Platform API (b2b.taxi.yandex.net/api/b2b/platform/...).
 //
-// Документация (по введению, которое прислал клиент):
-//   - Test: POST https://b2b.taxi.tst.yandex.net/api/b2b/platform/offers/create
-//   - Prod: POST https://b2b-authproxy.taxi.yandex.net/api/b2b/platform/offers/create
-//   - Авторизация: Bearer y2_... (отдельный от Cargo y0_...)
-//   - source: platform_station_id (выдаёт коммерческий менеджер Яндекса)
+// Это отдельный сервис от Cargo. Для одного и того же y0_-токена Яндекс
+// активирует один из продуктов (Cargo или Platform), и они не пересекаются.
+// На текущем аккаунте активен Platform — это подтверждено эмпирически:
+// Cargo возвращает 409 suitable_offer_not_found, Platform даёт офферы.
 //
-// ⚠ Полная документация по эндпоинтам у нас отсутствует. Тело запроса и
-// формат ответа собран по образцу Yandex B2B Platform API — может потребовать
-// корректировок под реальный ответ. Поэтому ответ Яндекса логируется целиком
-// при ошибках, чтобы быстро понять, какие поля где.
+// Эндпоинты:
+//   POST /api/b2b/platform/pickup-points/list  — список ПВЗ по geo_id
+//   POST /api/b2b/platform/offers/create        — расчёт стоимости + сроки
+//   POST /api/b2b/platform/offers/confirm       — подтверждение оффера → заказ
+//   POST /api/b2b/platform/orders/info          — статус заказа (пока не используем)
+//
+// Авторизация: Bearer <y0_…> из настроек (yd_russia_token).
+// Source platform_id — ПВЗ Ферганская 6к2 = '019da9f07d7a728682aa993cd6fcbe13'
+// (можно переопределить через yd_russia_station_id в /admin/settings).
 
 import { prisma } from '@/lib/prisma';
 import { resolveItemDims } from './delivery-defaults';
 import type { OrderItemForCargo } from './yandex-delivery';
 
-const HOST_PROD = 'https://b2b-authproxy.taxi.yandex.net';
-const HOST_TEST = 'https://b2b.taxi.tst.yandex.net';
+const HOST = 'https://b2b.taxi.yandex.net';
+const DEFAULT_SOURCE_STATION = '019da9f07d7a728682aa993cd6fcbe13'; // ПВЗ Ферганская 6к2
 
-// Статусы заказа из документации Я.Доставки.
-// См. https://yandex.ru/support/delivery-profile/ru/api/other-day/status-model
+// Статусы из публичной документации Я.Доставки Platform.
 export const RUSSIA_STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'Черновик',
-  CREATED: 'Заказ создан и подтверждён',
-  SORTING_CENTER_AT_START: 'В точке приёма',
-  DELIVERY_DELIVERED: 'Доставлен клиенту',
-  PARTICULARLY_DELIVERED: 'Частично доставлен',
-  CANCELLED: 'Отменён',
-  RETURN_PREPARING: 'Готовится возврат',
-  RETURN_TRANSPORTATION_STARTED: 'Возврат в пути',
-  RETURN_ARRIVED_DELIVERY: 'Возврат на складе',
-  RETURN_TRANSMITTED_FULFILMENT: 'Передан на единый склад',
-  RETURN_READY_FOR_PICKUP: 'Готов к передаче магазину',
-  RETURN_RETURNED: 'Возвращён в магазин',
+  DRAFT:                            'Черновик',
+  CREATED:                          'Заказ создан и подтверждён',
+  SORTING_CENTER_AT_START:          'В точке приёма',
+  DELIVERY_DELIVERED:               'Доставлен клиенту',
+  PARTICULARLY_DELIVERED:           'Частично доставлен',
+  CANCELLED:                        'Отменён',
+  RETURN_PREPARING:                 'Готовится возврат',
+  RETURN_TRANSPORTATION_STARTED:    'Возврат в пути',
+  RETURN_ARRIVED_DELIVERY:          'Возврат на складе',
+  RETURN_TRANSMITTED_FULFILMENT:    'Передан на единый склад',
+  RETURN_READY_FOR_PICKUP:          'Готов к передаче магазину',
+  RETURN_RETURNED:                  'Возвращён в магазин',
 };
 
 export function russiaStatusLabel(s: string | null | undefined): string {
@@ -41,72 +43,172 @@ export function russiaStatusLabel(s: string | null | undefined): string {
   return RUSSIA_STATUS_LABELS[s] ?? s;
 }
 
-// Публичные тестовые креды из официальной документации Яндекс Доставки.
-// Не настоящие секреты — Яндекс раздаёт их всем для тестового контура.
-// Собираем строкой по частям, иначе GitHub Secret Scanner определяет как
-// Yandex Passport OAuth Token и блокирует push. Это не secret, просто
-// pattern-match false positive — но обходим, чтобы не отключать push protection.
-// Также можно переопределить через env var YANDEX_RUSSIA_TEST_TOKEN.
-const TEST_TOKEN =
-  process.env.YANDEX_RUSSIA_TEST_TOKEN ??
-  ['y2', '_AgAAAAD0', '4omrAAAPe', 'AAAAAACRpC9', '4Qk6Z5rUTgOcTgY', 'FECJllXYKFx8'].join('');
-const TEST_STATION_ID = 'fbed3aa1-2cc6-4370-ab4d-59c5cc9bb924';
+// ──────────────────────────────────────────────────────────────
+// Конфигурация
+// ──────────────────────────────────────────────────────────────
 
 interface RussiaConfig {
-  testMode: boolean;
   host: string;
   token: string;
-  stationId: string;
+  sourceStationId: string;
 }
 
-async function getRussiaConfig(): Promise<RussiaConfig> {
+async function getRussiaConfig(): Promise<RussiaConfig | null> {
   const rows = await prisma.setting.findMany({
-    where: { key: { in: ['yd_russia_test_mode', 'yd_russia_token', 'yd_russia_station_id'] } },
+    where: { key: { in: ['yd_russia_token', 'yd_russia_station_id'] } },
   });
   const byKey = new Map(rows.map((r) => [r.key, r.value]));
-  // По умолчанию — тестовый режим. Чтобы переключиться в production —
-  // в /admin/settings выставить флаг и заполнить prod токен + station_id.
-  const testMode = (byKey.get('yd_russia_test_mode') ?? 'true') !== 'false';
-  const userToken = (byKey.get('yd_russia_token') ?? '').trim();
-  const userStation = (byKey.get('yd_russia_station_id') ?? '').trim();
-  return {
-    testMode,
-    host: testMode ? HOST_TEST : HOST_PROD,
-    token: testMode ? TEST_TOKEN : userToken,
-    stationId: testMode ? TEST_STATION_ID : userStation,
-  };
+  const token = (byKey.get('yd_russia_token') ?? '').trim();
+  if (!token) return null;
+  const sourceStationId =
+    (byKey.get('yd_russia_station_id') ?? '').trim() || DEFAULT_SOURCE_STATION;
+  return { host: HOST, token, sourceStationId };
+}
+
+// ──────────────────────────────────────────────────────────────
+// Pickup Points (список ПВЗ для выбора получателю)
+// ──────────────────────────────────────────────────────────────
+
+export interface PickupPoint {
+  id: string;          // platform_id
+  name?: string;
+  address: string;
+  workingHours?: string;
+  raw: unknown;
+}
+
+export interface PickupPointsResult {
+  ok: boolean;
+  error?: string;
+  points?: PickupPoint[];
+}
+
+function extractAddress(raw: Record<string, unknown>): string {
+  const addr = raw.address;
+  if (typeof addr === 'string') return addr;
+  if (addr && typeof addr === 'object') {
+    const a = addr as Record<string, unknown>;
+    return (a.full_address as string) ?? (a.address_string as string) ?? (a.comment as string) ?? '';
+  }
+  return (raw.full_address as string) ?? '';
+}
+
+function extractWorkingHours(raw: Record<string, unknown>): string | undefined {
+  const sched = raw.schedule;
+  if (!sched || typeof sched !== 'object') return undefined;
+  const s = sched as Record<string, unknown>;
+  // Если есть человекочитаемое описание — берём его.
+  if (typeof s.restrictions_text === 'string') return s.restrictions_text;
+  // Иначе пытаемся собрать «пн-пт 09-21, сб 10-18» из restrictions[].
+  const restr = s.restrictions;
+  if (Array.isArray(restr)) {
+    const parts: string[] = [];
+    for (const r of restr) {
+      const rec = r as Record<string, unknown>;
+      const days = rec.days as string[] | undefined;
+      const tFrom = (rec.time_from as Record<string, unknown>)?.hours;
+      const tTo = (rec.time_to as Record<string, unknown>)?.hours;
+      if (days && tFrom != null && tTo != null) {
+        parts.push(`${days.join('/')} ${tFrom}-${tTo}`);
+      }
+    }
+    if (parts.length > 0) return parts.join(', ');
+  }
+  return undefined;
+}
+
+export async function listPickupPoints(geoId: number): Promise<PickupPointsResult> {
+  const cfg = await getRussiaConfig();
+  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена (нет токена в /admin/settings)' };
+
+  try {
+    const res = await fetch(`${cfg.host}/api/b2b/platform/pickup-points/list`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept-Language': 'ru',
+        Authorization: `Bearer ${cfg.token}`,
+      },
+      body: JSON.stringify({ available_for_dropoff: true, geo_id: geoId }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const text = await res.text();
+    let json: unknown;
+    try { json = JSON.parse(text); } catch { json = text; }
+
+    if (!res.ok) {
+      console.error('[yandex-russia] pickup-points failed:', res.status, text.slice(0, 500));
+      const errMsg =
+        typeof json === 'object' && json && 'message' in json
+          ? String((json as { message: string }).message)
+          : `HTTP ${res.status}`;
+      return { ok: false, error: errMsg };
+    }
+
+    const root = json as Record<string, unknown>;
+    const list = (root.points ?? root.pickup_points ?? root.items ?? []) as unknown[];
+
+    const points: PickupPoint[] = (Array.isArray(list) ? list : [])
+      .map((p) => {
+        const r = p as Record<string, unknown>;
+        return {
+          id: String(r.id ?? r.platform_id ?? ''),
+          name: (r.name as string) ?? undefined,
+          address: extractAddress(r),
+          workingHours: extractWorkingHours(r),
+          raw: p,
+        };
+      })
+      .filter((p) => p.id);
+
+    return { ok: true, points };
+  } catch (e) {
+    return { ok: false, error: `Network: ${String(e)}` };
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Offers: расчёт стоимости и подтверждение
+// ──────────────────────────────────────────────────────────────
+
+export type DeliveryMode = 'pickup' | 'door';
+
+export interface OfferDestination {
+  mode: DeliveryMode;
+  /** Для mode=pickup: platform_id ПВЗ получателя (из listPickupPoints). */
+  destPlatformId?: string;
+  /** Для mode=door: полный адрес получателя. */
+  destAddress?: string;
+  /** Для mode=door: город (используется как locality в custom_location). */
+  destLocality?: string;
+  /** Для mode=door (опционально): координаты. */
+  destGeopoint?: { lat: number; lng: number };
+}
+
+export interface RussiaOfferInput {
+  destination: OfferDestination;
+  items: OrderItemForCargo[];
+  recipientName: string;
+  recipientPhone: string;
+  recipientEmail?: string;
 }
 
 export interface RussiaOfferQuote {
   offerId: string;
   priceRub: number;
-  /** ISO дата раннего срока доставки */
   deliveryFromIso?: string;
   deliveryToIso?: string;
-  /** Сырьё для отладки/последующего confirm */
   raw?: unknown;
 }
 
-export interface RussiaCheckResult {
+export interface RussiaOfferResult {
   ok: boolean;
   error?: string;
   offers?: RussiaOfferQuote[];
-  /** Маркер «использовался тестовый контур» — для UI */
-  testMode?: boolean;
-  /** Сырой ответ Яндекса для отладки (логи) */
   rawResponse?: unknown;
 }
 
-export interface RussiaCheckInput {
-  destinationAddress: string;
-  destinationLocality?: string; // город (Калуга, Санкт-Петербург и т.п.)
-  items: OrderItemForCargo[];
-  recipientName: string;
-  recipientPhone: string;
-}
-
-function uuid() {
-  // RFC4122 v4-ish без crypto в server-only: достаточно для operator_request_id
+function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -114,87 +216,118 @@ function uuid() {
   });
 }
 
-/**
- * Создать оффер (запрос стоимости + сроков) в Я.Доставке по России.
- * Возвращает один или несколько вариантов — Яндекс может предложить
- * разные сроки/способы (СДЭК, Boxberry, Я.Маркет и т.п.) одним ответом.
- */
-export async function createRussiaOffer(input: RussiaCheckInput): Promise<RussiaCheckResult> {
-  const cfg = await getRussiaConfig();
-  if (!cfg.token || !cfg.stationId) {
-    return { ok: false, error: 'Я.Доставка по России не настроена (нет токена или station_id).' };
-  }
+function splitName(fullname: string): { first: string; last: string } {
+  const parts = fullname.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first: 'Покупатель', last: 'Без фамилии' };
+  if (parts.length === 1) return { first: parts[0], last: 'Без фамилии' };
+  // Принимаем формат «Фамилия Имя [Отчество]» (типично в РФ-формах).
+  return { first: parts.slice(1).join(' '), last: parts[0] };
+}
 
-  // Раскладываем товары в массив items с ценами и количеством.
-  // Также считаем агрегированные габариты упаковки (place):
-  //   - вес = сумма веса всех штук
-  //   - размеры = максимум по каждой оси (грубое приближение для одной коробки)
+export async function createRussiaOffer(input: RussiaOfferInput): Promise<RussiaOfferResult> {
+  const cfg = await getRussiaConfig();
+  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена (нет токена)' };
+
+  // Габариты и цены.
   let totalWeightGr = 0;
   let maxL = 0, maxW = 0, maxH = 0;
   const items = input.items.map((it) => {
     const dims = resolveItemDims(it.categoryId, {
       length: it.length ?? undefined,
-      width: it.width ?? undefined,
+      width:  it.width ?? undefined,
       height: it.height ?? undefined,
       weight: it.weight ?? undefined,
     });
-    totalWeightGr += Math.round(dims.weight * 1000) * it.quantity;
+    const itemWeightGr = Math.round(dims.weight * 1000);
+    totalWeightGr += itemWeightGr * it.quantity;
     maxL = Math.max(maxL, dims.length);
     maxW = Math.max(maxW, dims.width);
     maxH = Math.max(maxH, dims.height);
+    const priceKop = Math.round(it.price * 100);
     return {
       count: it.quantity,
       name: it.name.slice(0, 200),
       article: '',
       billing_details: {
-        unit_price: Math.round(it.price),
-        assessed_unit_price: Math.round(it.price),
+        unit_price: priceKop,
+        assessed_unit_price: priceKop,
+        nds: -1, // -1 = без НДС
       },
+      physical_dims: {
+        weight_gross: Math.max(itemWeightGr, 100),
+        dx: Math.round(dims.length),
+        dy: Math.round(dims.width),
+        dz: Math.round(dims.height),
+      },
+      place_barcode: 'P1',
     };
   });
 
-  // Из логов Яндекса видно, что нужны ОБА поля параллельно:
-  //   places — массив упаковок с физическими габаритами
-  //   items  — массив товаров с ценами на верхнем уровне (для страховки и фискализации)
-  // По API сначала ругался на places (исправили), теперь на items.
   const places = [
     {
       physical_dims: {
-        weight_gross: Math.max(totalWeightGr, 100), // граммы, минимум 100г
+        weight_gross: Math.max(totalWeightGr, 100),
         dx: Math.round(maxL),
         dy: Math.round(maxW),
         dz: Math.round(maxH),
       },
-      place_barcode: '',
+      barcode: 'P1',
     },
   ];
 
-  const body = {
-    info: {
-      operator_request_id: uuid(),
-    },
-    source: {
-      platform_station: { platform_id: cfg.stationId },
-    },
-    destination: {
+  // destination + last_mile_policy по режиму.
+  let destination: Record<string, unknown>;
+  let lastMilePolicy: string;
+
+  if (input.destination.mode === 'pickup') {
+    if (!input.destination.destPlatformId) {
+      return { ok: false, error: 'Не указан ПВЗ-получатель' };
+    }
+    destination = {
+      type: 'platform_station',
+      platform_station: { platform_id: input.destination.destPlatformId },
+    };
+    lastMilePolicy = 'self_pickup';
+  } else {
+    if (!input.destination.destAddress) {
+      return { ok: false, error: 'Не указан адрес доставки' };
+    }
+    destination = {
       type: 'custom_location',
       custom_location: {
         details: {
-          full_address: input.destinationAddress,
-          ...(input.destinationLocality ? { locality: input.destinationLocality } : {}),
+          full_address: input.destination.destAddress,
+          ...(input.destination.destLocality ? { locality: input.destination.destLocality } : {}),
+          ...(input.destination.destGeopoint
+            ? { geopoint: [input.destination.destGeopoint.lng, input.destination.destGeopoint.lat] }
+            : {}),
         },
       },
+    };
+    // ВНИМАНИЕ: значение last_mile_policy для двери не проверено эмпирически.
+    // 'time_interval' — лучшая догадка на основе документации Platform.
+    // Если Яндекс ругнётся — заменим на правильное (например, 'courier_delivery').
+    lastMilePolicy = 'time_interval';
+  }
+
+  const { first, last } = splitName(input.recipientName);
+
+  const body = {
+    info: { operator_request_id: uuid() },
+    source: {
+      platform_station: { platform_id: cfg.sourceStationId },
     },
+    destination,
+    items,
     places,
-    items, // верхнеуровневый список товаров
-    billing_info: {
-      payment_method: 'already_paid',
-    },
+    billing_info: { payment_method: 'already_paid' },
     recipient_info: {
-      first_name: input.recipientName.split(' ').slice(0, -1).join(' ') || input.recipientName,
-      last_name: input.recipientName.split(' ').slice(-1)[0] || '',
+      first_name: first,
+      last_name: last,
       phone: input.recipientPhone,
+      ...(input.recipientEmail ? { email: input.recipientEmail } : {}),
     },
+    last_mile_policy: lastMilePolicy,
   };
 
   try {
@@ -214,30 +347,18 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
 
     if (!res.ok) {
       console.error('[yandex-russia] create-offer failed:', res.status, text.slice(0, 1000));
-      // 403 с HTML-телом — антибот-защита Яндекса.
-      // На тестовом контуре с общим токеном такое случается часто.
-      const isAntibot403 =
-        res.status === 403 && text.trimStart().toLowerCase().startsWith('<!doctype');
-      let errMsg: string;
-      if (isAntibot403) {
-        errMsg = cfg.testMode
-          ? 'Яндекс временно заблокировал тестовый IP (антибот). Подождите 10–30 мин и повторите, либо переключитесь на production-токен.'
-          : 'Яндекс временно заблокировал ваш IP (антибот). Повторите через 10–30 минут.';
-      } else if (typeof json === 'object' && json && 'message' in json) {
-        errMsg = String((json as { message: string }).message);
-      } else {
-        errMsg = `HTTP ${res.status}`;
-      }
-      return { ok: false, error: errMsg, testMode: cfg.testMode, rawResponse: json };
+      const errMsg =
+        typeof json === 'object' && json && 'message' in json
+          ? String((json as { message: string }).message)
+          : `HTTP ${res.status}`;
+      return { ok: false, error: errMsg, rawResponse: json };
     }
 
-    // Извлекаем offers. Реальная структура может варьироваться — ищем по нескольким путям.
     const offers: RussiaOfferQuote[] = [];
     const root = json as Record<string, unknown>;
     const offersRaw =
       (root.offers as unknown[]) ??
       (root.offer ? [root.offer] : undefined) ??
-      (root.data && (root.data as Record<string, unknown>).offers as unknown[]) ??
       [];
 
     for (const o of Array.isArray(offersRaw) ? offersRaw : []) {
@@ -246,9 +367,10 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
       const priceCandidate =
         detail.pricing_total ?? detail.price ?? detail.total ?? rec.price;
       if (priceCandidate == null) continue;
-      const interval = (detail.delivery_interval ?? detail.delivery_dates) as
-        | { from?: string; to?: string }
-        | undefined;
+      const interval =
+        (detail.delivery_interval ?? detail.delivery_dates) as
+          | { from?: string; to?: string }
+          | undefined;
       offers.push({
         offerId: String(rec.offer_id ?? rec.id ?? ''),
         priceRub: parseFloat(String(priceCandidate)),
@@ -261,31 +383,34 @@ export async function createRussiaOffer(input: RussiaCheckInput): Promise<Russia
     if (offers.length === 0) {
       return {
         ok: false,
-        error: 'Не нашли offers в ответе Яндекса (возможно, формат отличается от ожидаемого)',
-        testMode: cfg.testMode,
+        error: 'Не нашли offers в ответе Яндекса (формат изменился?)',
         rawResponse: json,
       };
     }
-    return { ok: true, offers, testMode: cfg.testMode };
+    return { ok: true, offers };
   } catch (e) {
-    return { ok: false, error: `Network: ${String(e)}`, testMode: cfg.testMode };
+    return { ok: false, error: `Network: ${String(e)}` };
   }
 }
 
-/**
- * Подтвердить оффер — создать реальную заявку.
- * Базовая реализация: POST на /offers/confirm с offer_id.
- * Точная структура запроса/ответа неизвестна — будет уточняться по факту.
- */
-export async function confirmRussiaOffer(offerId: string): Promise<{ ok: boolean; orderId?: string; error?: string; raw?: unknown }> {
+export interface ConfirmResult {
+  ok: boolean;
+  orderId?: string;
+  trackingUrl?: string;
+  error?: string;
+  raw?: unknown;
+}
+
+export async function confirmRussiaOffer(offerId: string): Promise<ConfirmResult> {
   const cfg = await getRussiaConfig();
-  if (!cfg.token) return { ok: false, error: 'Не настроена' };
+  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена' };
 
   try {
     const res = await fetch(`${cfg.host}/api/b2b/platform/offers/confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept-Language': 'ru',
         Authorization: `Bearer ${cfg.token}`,
       },
       body: JSON.stringify({ offer_id: offerId }),
@@ -304,8 +429,9 @@ export async function confirmRussiaOffer(offerId: string): Promise<{ ok: boolean
       return { ok: false, error: errMsg, raw: json };
     }
     const root = json as Record<string, unknown>;
-    const orderId = String(root.order_id ?? root.request_id ?? '');
-    return { ok: true, orderId, raw: json };
+    const orderId = String(root.order_id ?? root.request_id ?? root.id ?? '');
+    const trackingUrl = (root.tracking_url as string) ?? undefined;
+    return { ok: true, orderId, trackingUrl, raw: json };
   } catch (e) {
     return { ok: false, error: `Network: ${String(e)}` };
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import AdminNav from '@/components/admin/AdminNav';
+import RussiaDeliveryBlock from '@/components/admin/RussiaDeliveryBlock';
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -59,6 +60,8 @@ const TARIFF_LABELS: Record<string, string> = {
   express: 'Экспресс',
   cargo: 'Грузовой',
   intercity: 'Межгород',
+  'russia-pickup': 'Россия · ПВЗ',
+  'russia-door':   'Россия · до двери',
 };
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -405,7 +408,7 @@ export default function AdminOrders() {
                               → {order.deliveryAddress}
                             </span>
                           ) : (
-                            <span className="text-xs text-danger">Нет адреса доставки</span>
+                            <span className="text-xs text-text-muted">Адрес из формы не задан — введите вручную ниже</span>
                           )}
                         </div>
 
@@ -445,82 +448,83 @@ export default function AdminOrders() {
                               )}
                             </div>
                           </div>
-                        ) : !order.deliveryAddress ? (
-                          <p className="text-xs text-text-muted">
-                            Чтобы создать заявку, у заказа должен быть адрес доставки.
-                          </p>
                         ) : (
-                          <div className="space-y-3">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); checkDeliveryPrice(order.id); }}
-                              disabled={quotesByOrder[order.id] === 'loading'}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-bg border border-border rounded-lg hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
-                            >
-                              {quotesByOrder[order.id] === 'loading' ? 'Считаем…' : 'Посчитать стоимость'}
-                            </button>
+                          <div className="space-y-4">
+                            {/* МОСКВА (Cargo) — кнопка работает только если у заказа есть адрес */}
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-text">Москва — курьер (Cargo)</p>
+                              {order.deliveryAddress ? (
+                                <>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); checkDeliveryPrice(order.id); }}
+                                    disabled={quotesByOrder[order.id] === 'loading'}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-bg border border-border rounded-lg hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+                                  >
+                                    {quotesByOrder[order.id] === 'loading' ? 'Считаем…' : 'Посчитать стоимость по Москве'}
+                                  </button>
 
-                            {(() => {
-                              const q = quotesByOrder[order.id];
-                              if (!q || q === 'loading') return null;
-                              if ('error' in q) {
-                                return (
-                                  <p className="text-xs text-danger break-words">Ошибка: {q.error}</p>
-                                );
-                              }
-                              if (!q.quotes || q.quotes.length === 0) {
-                                return <p className="text-xs text-text-muted">Тарифы не получены</p>;
-                              }
-                              return (
-                                <div className="space-y-2">
-                                  {q.destination && (
-                                    <p className="text-xs text-text-muted">
-                                      Геокодер распознал: <span className="text-text">{q.destination.fullname}</span>
-                                    </p>
-                                  )}
-                                  <p className="text-xs text-text-muted">Доступные тарифы:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {q.quotes.map((t, i) => {
-                                      const isRussia = t.source === 'russia';
-                                      const dateRange =
-                                        t.deliveryFromIso && t.deliveryToIso
-                                          ? `${t.deliveryFromIso.slice(0, 10)} – ${t.deliveryToIso.slice(0, 10)}`
-                                          : null;
+                                  {(() => {
+                                    const q = quotesByOrder[order.id];
+                                    if (!q || q === 'loading') return null;
+                                    if ('error' in q) {
                                       return (
-                                        <button
-                                          key={`${t.source ?? 'cargo'}-${t.tariff}-${i}`}
-                                          onClick={(e) => { e.stopPropagation(); createClaim(order.id, t.tariff); }}
-                                          className={`inline-flex flex-col items-start gap-1 px-3 py-2 text-xs bg-surface border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors ${
-                                            isRussia ? 'border-blue-300' : 'border-border'
-                                          }`}
-                                          disabled={isRussia /* Russia confirm не реализован, кнопка пока инфо */}
-                                          title={isRussia ? 'Доставка по России: пока только расчёт. Подтверждение оффера — в следующей итерации.' : ''}
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isRussia ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                              {isRussia ? (t.testMode ? 'РОССИЯ (тест)' : 'РОССИЯ') : 'МОСКВА'}
-                                            </span>
-                                            <span className="font-medium">{TARIFF_LABELS[t.tariff] ?? t.tariff}</span>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-sm">{formatPrice(t.priceRub)}</span>
-                                            {t.etaMinutes && (
-                                              <span className="text-text-muted">~{Math.round(t.etaMinutes / 60)}ч</span>
-                                            )}
-                                            {dateRange && (
-                                              <span className="text-text-muted">{dateRange}</span>
-                                            )}
-                                          </div>
-                                        </button>
+                                        <p className="text-xs text-danger break-words">Ошибка: {q.error}</p>
                                       );
-                                    })}
-                                  </div>
-                                  <p className="text-xs text-text-muted">
-                                    Кликните по тарифу Москвы, чтобы создать заявку. Варианты «Россия» —
-                                    пока только расчёт, подтверждение оффера будет в следующей итерации после уточнения API.
-                                  </p>
-                                </div>
-                              );
-                            })()}
+                                    }
+                                    if (!q.quotes || q.quotes.length === 0) {
+                                      return <p className="text-xs text-text-muted">Cargo не вернул тарифы (на этом аккаунте, возможно, активен только Platform — используйте блок ниже).</p>;
+                                    }
+                                    return (
+                                      <div className="space-y-2">
+                                        {q.destination && (
+                                          <p className="text-xs text-text-muted">
+                                            Геокодер распознал: <span className="text-text">{q.destination.fullname}</span>
+                                          </p>
+                                        )}
+                                        <div className="flex flex-wrap gap-2">
+                                          {q.quotes.map((t, i) => {
+                                            const dateRange =
+                                              t.deliveryFromIso && t.deliveryToIso
+                                                ? `${t.deliveryFromIso.slice(0, 10)} – ${t.deliveryToIso.slice(0, 10)}`
+                                                : null;
+                                            return (
+                                              <button
+                                                key={`cargo-${t.tariff}-${i}`}
+                                                onClick={(e) => { e.stopPropagation(); createClaim(order.id, t.tariff); }}
+                                                className="inline-flex flex-col items-start gap-1 px-3 py-2 text-xs bg-surface border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
+                                              >
+                                                <span className="font-medium">{TARIFF_LABELS[t.tariff] ?? t.tariff}</span>
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-semibold text-sm">{formatPrice(t.priceRub)}</span>
+                                                  {t.etaMinutes && (
+                                                    <span className="text-text-muted">~{Math.round(t.etaMinutes / 60)}ч</span>
+                                                  )}
+                                                  {dateRange && (
+                                                    <span className="text-text-muted">{dateRange}</span>
+                                                  )}
+                                                </div>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </>
+                              ) : (
+                                <p className="text-xs text-text-muted">Для расчёта по Москве заказу нужен адрес доставки (из формы клиента).</p>
+                              )}
+                            </div>
+
+                            {/* РОССИЯ (Platform) — режим/город/ПВЗ/адрес внутри компонента */}
+                            <div className="border-t border-border pt-3">
+                              <p className="text-xs font-medium text-text mb-2">Россия — ПВЗ или курьер до двери (Platform)</p>
+                              <RussiaDeliveryBlock
+                                orderId={order.id}
+                                initialAddress={order.deliveryAddress ?? ''}
+                                onConfirmed={fetchOrders}
+                              />
+                            </div>
                           </div>
                         )}
                       </div>

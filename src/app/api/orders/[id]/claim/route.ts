@@ -12,7 +12,6 @@ import {
   checkPrice, createClaim, getClaimInfo, cancelClaim,
   type OrderItemForCargo,
 } from '@/lib/yandex-delivery';
-import { createRussiaOffer } from '@/lib/yandex-russia-delivery';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,49 +51,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!data.order.deliveryAddress) {
       return NextResponse.json({ ok: false, error: 'У заказа нет адреса доставки' }, { status: 400 });
     }
-    // Опрашиваем оба сервиса параллельно: Cargo (Москва/курьер) + Доставка по России.
-    // В UI покажем оба, помечая источник, чтобы админ мог выбрать оптимальный вариант.
-    const [cargo, russia] = await Promise.all([
-      checkPrice({
-        destinationAddress: data.order.deliveryAddress,
-        items: data.items,
-      }),
-      createRussiaOffer({
-        destinationAddress: data.order.deliveryAddress,
-        items: data.items,
-        recipientName: data.order.customerName,
-        recipientPhone: data.order.customerPhone,
-      }),
-    ]);
+    // Только Cargo (курьер по Москве). Я.Доставка по России идёт через
+    // отдельный route /api/orders/[id]/russia-offer — там свой UI с выбором
+    // режима (ПВЗ или дверь) и города, которые Cargo-флоу не покрывает.
+    const cargo = await checkPrice({
+      destinationAddress: data.order.deliveryAddress,
+      items: data.items,
+    });
 
-    // Объединённый ответ. ok=true если хотя бы один сервис вернул quotes.
-    const combinedQuotes = [
-      ...(cargo.ok && cargo.quotes ? cargo.quotes.map((q) => ({ ...q, source: 'cargo' as const })) : []),
-      ...(russia.ok && russia.offers
-        ? russia.offers.map((o) => ({
-            tariff: 'russia',
-            priceRub: o.priceRub,
-            etaMinutes: undefined as number | undefined,
-            zoneType: undefined as string | undefined,
-            source: 'russia' as const,
-            offerId: o.offerId,
-            deliveryFromIso: o.deliveryFromIso,
-            deliveryToIso: o.deliveryToIso,
-            testMode: russia.testMode,
-          }))
-        : []),
-    ];
+    const quotes = cargo.ok && cargo.quotes
+      ? cargo.quotes.map((q) => ({ ...q, source: 'cargo' as const }))
+      : [];
 
-    const ok = combinedQuotes.length > 0;
     return NextResponse.json({
-      ok,
-      quotes: combinedQuotes,
+      ok: quotes.length > 0,
+      quotes,
       destination: cargo.destination,
-      errors: {
-        cargo: cargo.ok ? null : cargo.error,
-        russia: russia.ok ? null : russia.error,
-      },
-      russiaTestMode: russia.testMode,
+      errors: { cargo: cargo.ok ? null : cargo.error },
     });
   }
 
@@ -168,6 +141,29 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (!order.yandexClaimId) {
     return NextResponse.json({ ok: false, error: 'Заявки нет' }, { status: 400 });
+  }
+
+  const isRussia = order.yandexClaimTariff?.startsWith('russia-');
+
+  if (isRussia) {
+    // Platform-заявки отменяются в кабинете Я.Доставки. В нашей БД просто
+    // обнуляем привязку, чтобы можно было заново посчитать варианты.
+    await prisma.order.update({
+      where: { id },
+      data: {
+        yandexClaimId: null,
+        yandexClaimStatus: null,
+        yandexClaimTariff: null,
+        yandexClaimPrice: null,
+        yandexClaimEta: null,
+        yandexClaimUrl: null,
+        yandexClaimCreatedAt: null,
+      },
+    });
+    return NextResponse.json({
+      ok: true,
+      info: 'Привязка удалена в нашей БД. Саму заявку в Я.Доставке нужно отменить в кабинете Yandex.',
+    });
   }
 
   const result = await cancelClaim(order.yandexClaimId);
