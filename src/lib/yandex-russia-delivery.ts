@@ -53,40 +53,72 @@ export interface CityGeoInfo {
 export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
   const row = await prisma.setting.findUnique({ where: { key: 'yd_geocoder_key' } });
   const apiKey = (row?.value ?? '').trim();
-  if (!apiKey) return null;
+  if (!apiKey) {
+    console.warn('[geocodeCity] yd_geocoder_key пустой');
+    return null;
+  }
 
   const url = new URL('https://geocode-maps.yandex.ru/1.x/');
   url.searchParams.set('apikey', apiKey);
-  url.searchParams.set('geocode', `Россия, ${name}`);
+  // БЕЗ kind-фильтра. С kind=locality сёла/посёлки (Барвиха, Болшево
+  // и т.п.) выпадают — они классифицируются как area/district, а не
+  // locality. Без фильтра Geocoder возвращает наиболее релевантный
+  // объект независимо от его административного класса.
+  url.searchParams.set('geocode', name);
   url.searchParams.set('format', 'json');
   url.searchParams.set('lang', 'ru_RU');
-  url.searchParams.set('results', '1');
-  url.searchParams.set('kind', 'locality');
+  url.searchParams.set('results', '5');
 
   try {
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const member = data?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
-    if (!member) return null;
-    const pos = (member.Point as { pos?: string } | undefined)?.pos ?? '';
-    const [lngS, latS] = pos.split(' ');
-    const lat = parseFloat(latS);
-    const lng = parseFloat(lngS);
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-
-    const meta = member.metaDataProperty?.GeocoderMetaData?.Address?.Components;
-    let locality: string | undefined;
-    let province: string | undefined;
-    if (Array.isArray(meta)) {
-      for (const c of meta) {
-        if (c.kind === 'locality' && typeof c.name === 'string') locality = c.name;
-        if (c.kind === 'province' && typeof c.name === 'string') province = c.name;
-        if (c.kind === 'area' && typeof c.name === 'string' && !province) province = c.name;
-      }
+    if (!res.ok) {
+      console.error('[geocodeCity] HTTP', res.status, name);
+      return null;
     }
-    return { lat, lng, locality, province };
-  } catch {
+    const data = await res.json();
+    const members = data?.response?.GeoObjectCollection?.featureMember as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(members) || members.length === 0) {
+      console.warn('[geocodeCity] нет результатов для:', name);
+      return null;
+    }
+
+    // Берём первый российский результат — иначе любой первый.
+    for (const m of members) {
+      const member = m.GeoObject as Record<string, unknown> | undefined;
+      if (!member) continue;
+      const pos = (member.Point as { pos?: string } | undefined)?.pos ?? '';
+      const [lngS, latS] = pos.split(' ');
+      const lat = parseFloat(latS);
+      const lng = parseFloat(lngS);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) continue;
+
+      const meta = (member.metaDataProperty as Record<string, unknown> | undefined)?.GeocoderMetaData as
+        | Record<string, unknown>
+        | undefined;
+      const components = ((meta?.Address as Record<string, unknown> | undefined)?.Components ?? []) as Array<{
+        kind: string;
+        name: string;
+      }>;
+      let locality: string | undefined;
+      let province: string | undefined;
+      let country: string | undefined;
+      for (const c of components) {
+        if (c.kind === 'country' && typeof c.name === 'string') country = c.name;
+        if (c.kind === 'province' && typeof c.name === 'string' && !province) province = c.name;
+        if (c.kind === 'area' && typeof c.name === 'string' && !province) province = c.name;
+        if (c.kind === 'locality' && typeof c.name === 'string' && !locality) locality = c.name;
+      }
+
+      // Пропускаем зарубежные результаты — если первое совпадение
+      // оказалось не в РФ, попробуем следующее.
+      if (country && !/росси/i.test(country)) continue;
+
+      return { lat, lng, locality, province };
+    }
+    console.warn('[geocodeCity] есть результаты, но ни одного российского:', name);
+    return null;
+  } catch (e) {
+    console.error('[geocodeCity] error:', e);
     return null;
   }
 }
