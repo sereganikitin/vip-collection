@@ -198,6 +198,8 @@ export interface RussiaOfferQuote {
   priceRub: number;
   deliveryFromIso?: string;
   deliveryToIso?: string;
+  /** Имя перевозчика / тарифа, если Яндекс его прислал (СДЭК, Boxberry и т.п.) */
+  partner?: string;
   raw?: unknown;
 }
 
@@ -214,6 +216,53 @@ function uuid(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+/**
+ * Достаёт интервал доставки из оффера Яндекса. Platform возвращает разные
+ * структуры в зависимости от тарифа/партнёра, поэтому пробуем несколько путей.
+ */
+function extractInterval(rec: Record<string, unknown>): { from?: string; to?: string } {
+  const detail = (rec.offer_details ?? rec.details ?? rec) as Record<string, unknown>;
+  const sources: Array<Record<string, unknown> | undefined> = [
+    detail.delivery_interval as Record<string, unknown> | undefined,
+    detail.delivery_dates as Record<string, unknown> | undefined,
+    detail.pickup_interval as Record<string, unknown> | undefined,
+    detail.delivery_time as Record<string, unknown> | undefined,
+    rec.delivery_interval as Record<string, unknown> | undefined,
+    rec.delivery_dates as Record<string, unknown> | undefined,
+  ];
+  const fromKeys = ['from', 'delivery_from', 'date_from', 'pickup_date', 'pickup_dt', 'min_date', 'start'];
+  const toKeys   = ['to',   'delivery_to',   'date_to',   'date_drop_off', 'max_date', 'end'];
+  for (const src of sources) {
+    if (!src) continue;
+    let from: string | undefined;
+    let to: string | undefined;
+    for (const k of fromKeys) if (typeof src[k] === 'string') { from = src[k] as string; break; }
+    for (const k of toKeys)   if (typeof src[k] === 'string') { to = src[k] as string; break; }
+    if (from || to) return { from, to };
+  }
+  return {};
+}
+
+/** Имя перевозчика / тарифа — пробуем разные поля. */
+function extractPartner(rec: Record<string, unknown>): string | undefined {
+  const detail = (rec.offer_details ?? rec.details ?? rec) as Record<string, unknown>;
+  const candidates: unknown[] = [
+    detail.delivery_partner, detail.partner_name, detail.last_mile_partner,
+    detail.tariff_name, detail.delivery_method_name, detail.delivery_provider,
+    rec.partner, rec.partner_name, rec.delivery_partner,
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'string' && c) return c;
+    if (c && typeof c === 'object') {
+      const obj = c as Record<string, unknown>;
+      if (typeof obj.name === 'string') return obj.name;
+      if (typeof obj.title === 'string') return obj.title;
+      if (typeof obj.display_name === 'string') return obj.display_name;
+    }
+  }
+  return undefined;
 }
 
 function splitName(fullname: string): { first: string; last: string } {
@@ -367,15 +416,13 @@ export async function createRussiaOffer(input: RussiaOfferInput): Promise<Russia
       const priceCandidate =
         detail.pricing_total ?? detail.price ?? detail.total ?? rec.price;
       if (priceCandidate == null) continue;
-      const interval =
-        (detail.delivery_interval ?? detail.delivery_dates) as
-          | { from?: string; to?: string }
-          | undefined;
+      const interval = extractInterval(rec);
       offers.push({
         offerId: String(rec.offer_id ?? rec.id ?? ''),
         priceRub: parseFloat(String(priceCandidate)),
-        deliveryFromIso: interval?.from,
-        deliveryToIso: interval?.to,
+        deliveryFromIso: interval.from,
+        deliveryToIso: interval.to,
+        partner: extractPartner(rec),
         raw: o,
       });
     }

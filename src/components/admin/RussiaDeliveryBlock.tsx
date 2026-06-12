@@ -2,10 +2,35 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Check, Truck, Package } from 'lucide-react';
+import { findGeoId } from '@/lib/russia-geo';
 
 interface City   { name: string; geoId: number }
 interface Point  { id: string; name?: string; address: string; workingHours?: string }
-interface Offer  { offerId: string; priceRub: number; deliveryFromIso?: string; deliveryToIso?: string }
+interface Offer {
+  offerId: string;
+  priceRub: number;
+  deliveryFromIso?: string;
+  deliveryToIso?: string;
+  partner?: string;
+}
+
+/**
+ * Достаём название города из адреса заказа.
+ * Поддерживаемые шаблоны:
+ *   "г. Калуга, ул. Пухова, 27/25"   → "Калуга"
+ *   "Калуга, ул. Пухова, 27/25"      → "Калуга"
+ *   "Россия, Калуга, ул. ..."        → "Калуга"
+ *   "г Москва, ул. ..."              → "Москва"
+ */
+function extractCityFromAddress(addr: string): string {
+  if (!addr) return '';
+  const trimmed = addr.trim().replace(/^россия\s*,?\s*/i, '');
+  const mGorod = trimmed.match(/^г\.?\s+([^,]+?)(?:[,]|\s+ул|\s+пр|$)/i);
+  if (mGorod) return mGorod[1].trim();
+  const mFirst = trimmed.match(/^([^,]+?)(?:[,]|$)/);
+  if (mFirst) return mFirst[1].trim();
+  return '';
+}
 
 type Mode = 'pickup' | 'door';
 
@@ -58,6 +83,25 @@ export default function RussiaDeliveryBlock({ orderId, initialAddress, onConfirm
       .then((d) => setCities(Array.isArray(d.cities) ? d.cities : []))
       .catch(() => {});
   }, []);
+
+  // Когда города загружены — пытаемся автоматически выставить город заказа.
+  // Если совпадает с таблицей — выставляем в select.
+  // Если нет — пытаемся через findGeoId; если и там нет — оставляем пустым,
+  // оператор введёт geo_id вручную.
+  useEffect(() => {
+    if (!cities.length || city || customGeoId) return;
+    const parsed = extractCityFromAddress(initialAddress);
+    if (!parsed) return;
+    const geoId = findGeoId(parsed);
+    if (geoId) {
+      const found = cities.find((c) => c.geoId === geoId);
+      if (found) {
+        setCity(found.name);
+        return;
+      }
+      setCustomGeoId(String(geoId));
+    }
+  }, [cities, initialAddress, city, customGeoId]);
 
   // При смене города/geoId или режима — сбрасываем офферы и ПВЗ.
   // ПВЗ грузим только в режиме pickup.
@@ -289,14 +333,19 @@ export default function RussiaDeliveryBlock({ orderId, initialAddress, onConfirm
       {/* Офферы */}
       {offers.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-text-muted">Варианты от Яндекса:</p>
+          <p className="text-xs text-text-muted">Варианты от Яндекса ({offers.length}):</p>
           <div className="space-y-1.5">
             {offers.map((o) => {
               const range = formatDateRange(o.deliveryFromIso, o.deliveryToIso);
               return (
                 <div key={o.offerId} className="flex items-center justify-between gap-2 p-2 bg-surface border border-border rounded-lg">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-wrap">
                     <span className="font-semibold text-sm">{formatPrice(o.priceRub)}</span>
+                    {o.partner && (
+                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded">
+                        {o.partner}
+                      </span>
+                    )}
                     {range && <span className="text-xs text-text-muted">{range}</span>}
                     <span className="text-[10px] font-mono text-text-muted/70 truncate">{o.offerId.slice(0, 8)}…</span>
                   </div>
@@ -304,7 +353,7 @@ export default function RussiaDeliveryBlock({ orderId, initialAddress, onConfirm
                     type="button"
                     onClick={(e) => { e.stopPropagation(); confirmOffer(o); }}
                     disabled={confirmingId === o.offerId}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-accent text-primary font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-accent text-primary font-medium rounded-lg hover:bg-accent-hover disabled:opacity-50 whitespace-nowrap"
                   >
                     <Check size={12} />
                     {confirmingId === o.offerId ? 'Создаём…' : 'Создать заявку'}
@@ -313,6 +362,13 @@ export default function RussiaDeliveryBlock({ orderId, initialAddress, onConfirm
               );
             })}
           </div>
+          {!offers.some((o) => o.partner || o.deliveryFromIso) && offers.length > 1 && (
+            <p className="text-[11px] text-text-muted">
+              Яндекс прислал {offers.length} офферов одной цены — обычно это разные перевозчики/сроки,
+              но в ответе отсутствуют поля partner/date. Можете выбирать любой —
+              или скажите, и я добавлю подробный вывод raw-ответа для отладки.
+            </p>
+          )}
           {confirmError && <p className="text-xs text-danger break-words">Ошибка подтверждения: {confirmError}</p>}
         </div>
       )}

@@ -43,18 +43,6 @@ interface Order {
   createdAt: string;
 }
 
-interface QuoteTariff {
-  tariff: string;
-  priceRub: number;
-  etaMinutes?: number;
-  zoneType?: string;
-  source?: 'cargo' | 'russia';
-  offerId?: string;
-  deliveryFromIso?: string;
-  deliveryToIso?: string;
-  testMode?: boolean;
-}
-
 const TARIFF_LABELS: Record<string, string> = {
   courier: 'Курьер (на день)',
   express: 'Экспресс',
@@ -166,51 +154,7 @@ export default function AdminOrders() {
     }
   }
 
-  // ── Yandex Delivery ────────────────────────────────────────────
-  interface QuoteState {
-    quotes: QuoteTariff[];
-    destination?: { fullname: string; lat: number; lng: number };
-  }
-  const [quotesByOrder, setQuotesByOrder] = useState<Record<string, QuoteState | { error: string } | 'loading'>>({});
-
-  async function checkDeliveryPrice(orderId: string) {
-    setQuotesByOrder((p) => ({ ...p, [orderId]: 'loading' }));
-    try {
-      const res = await fetch(`/api/orders/${orderId}/claim?check_price=1`);
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setQuotesByOrder((p) => ({ ...p, [orderId]: { error: data.error || res.statusText } }));
-        return;
-      }
-      setQuotesByOrder((p) => ({
-        ...p,
-        [orderId]: { quotes: data.quotes ?? [], destination: data.destination },
-      }));
-    } catch (e) {
-      setQuotesByOrder((p) => ({ ...p, [orderId]: { error: String(e) } }));
-    }
-  }
-
-  async function createClaim(orderId: string, taxiClass: string) {
-    if (!confirm(`Создать заявку на доставку (тариф «${TARIFF_LABELS[taxiClass] ?? taxiClass}»)?\nКурьер приедет на склад за товаром.`)) return;
-    try {
-      const res = await fetch(`/api/orders/${orderId}/claim`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taxiClass }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        alert(`Ошибка: ${data.error || res.statusText}`);
-        return;
-      }
-      alert(`Заявка создана: ${data.claimId}`);
-      fetchOrders();
-    } catch (e) {
-      alert(`Ошибка: ${String(e)}`);
-    }
-  }
-
+  // ── Yandex Delivery: только отмена существующей заявки ───────
   async function cancelClaimUI(orderId: string) {
     if (!confirm('Отменить заявку в Я.Доставке?')) return;
     try {
@@ -449,83 +393,11 @@ export default function AdminOrders() {
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-4">
-                            {/* МОСКВА (Cargo) — кнопка работает только если у заказа есть адрес */}
-                            <div className="space-y-2">
-                              <p className="text-xs font-medium text-text">Москва — курьер (Cargo)</p>
-                              {order.deliveryAddress ? (
-                                <>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); checkDeliveryPrice(order.id); }}
-                                    disabled={quotesByOrder[order.id] === 'loading'}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-bg border border-border rounded-lg hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
-                                  >
-                                    {quotesByOrder[order.id] === 'loading' ? 'Считаем…' : 'Посчитать стоимость по Москве'}
-                                  </button>
-
-                                  {(() => {
-                                    const q = quotesByOrder[order.id];
-                                    if (!q || q === 'loading') return null;
-                                    if ('error' in q) {
-                                      return (
-                                        <p className="text-xs text-danger break-words">Ошибка: {q.error}</p>
-                                      );
-                                    }
-                                    if (!q.quotes || q.quotes.length === 0) {
-                                      return <p className="text-xs text-text-muted">Cargo не вернул тарифы (на этом аккаунте, возможно, активен только Platform — используйте блок ниже).</p>;
-                                    }
-                                    return (
-                                      <div className="space-y-2">
-                                        {q.destination && (
-                                          <p className="text-xs text-text-muted">
-                                            Геокодер распознал: <span className="text-text">{q.destination.fullname}</span>
-                                          </p>
-                                        )}
-                                        <div className="flex flex-wrap gap-2">
-                                          {q.quotes.map((t, i) => {
-                                            const dateRange =
-                                              t.deliveryFromIso && t.deliveryToIso
-                                                ? `${t.deliveryFromIso.slice(0, 10)} – ${t.deliveryToIso.slice(0, 10)}`
-                                                : null;
-                                            return (
-                                              <button
-                                                key={`cargo-${t.tariff}-${i}`}
-                                                onClick={(e) => { e.stopPropagation(); createClaim(order.id, t.tariff); }}
-                                                className="inline-flex flex-col items-start gap-1 px-3 py-2 text-xs bg-surface border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-colors"
-                                              >
-                                                <span className="font-medium">{TARIFF_LABELS[t.tariff] ?? t.tariff}</span>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="font-semibold text-sm">{formatPrice(t.priceRub)}</span>
-                                                  {t.etaMinutes && (
-                                                    <span className="text-text-muted">~{Math.round(t.etaMinutes / 60)}ч</span>
-                                                  )}
-                                                  {dateRange && (
-                                                    <span className="text-text-muted">{dateRange}</span>
-                                                  )}
-                                                </div>
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </>
-                              ) : (
-                                <p className="text-xs text-text-muted">Для расчёта по Москве заказу нужен адрес доставки (из формы клиента).</p>
-                              )}
-                            </div>
-
-                            {/* РОССИЯ (Platform) — режим/город/ПВЗ/адрес внутри компонента */}
-                            <div className="border-t border-border pt-3">
-                              <p className="text-xs font-medium text-text mb-2">Россия — ПВЗ или курьер до двери (Platform)</p>
-                              <RussiaDeliveryBlock
-                                orderId={order.id}
-                                initialAddress={order.deliveryAddress ?? ''}
-                                onConfirmed={fetchOrders}
-                              />
-                            </div>
-                          </div>
+                          <RussiaDeliveryBlock
+                            orderId={order.id}
+                            initialAddress={order.deliveryAddress ?? ''}
+                            onConfirmed={fetchOrders}
+                          />
                         )}
                       </div>
 
