@@ -38,6 +38,23 @@ export async function GET(req: NextRequest) {
     ? `${order.id}-${Date.now().toString(36)}`
     : order.id;
 
+  // Тинькофф требует, чтобы сумма позиций Receipt.Items совпадала с Amount.
+  // Если у заказа есть стоимость доставки — добавляем её отдельной позицией,
+  // иначе чек разъезжается (товары + 0 ≠ товары + доставка) и Init упадёт.
+  const receiptItems: Array<{ name: string; quantity: number; priceRub: number }> =
+    order.items.map((it) => ({
+      name: it.product.name,
+      quantity: it.quantity,
+      priceRub: it.price,
+    }));
+  if (order.deliveryPrice && order.deliveryPrice > 0) {
+    receiptItems.push({
+      name: 'Доставка',
+      quantity: 1,
+      priceRub: order.deliveryPrice,
+    });
+  }
+
   const result = await tinkoffInit({
     orderId: initOrderId,
     amountRub: order.totalPrice,
@@ -47,11 +64,7 @@ export async function GET(req: NextRequest) {
     failURL: `${SITE_URL}/checkout/fail?orderId=${order.id}`,
     customerEmail: order.customerEmail ?? undefined,
     customerPhone: order.customerPhone,
-    items: order.items.map((it) => ({
-      name: it.product.name,
-      quantity: it.quantity,
-      priceRub: it.price,
-    })),
+    items: receiptItems,
   });
 
   if (!result) {
