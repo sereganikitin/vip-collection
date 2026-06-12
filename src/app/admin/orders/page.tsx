@@ -1,7 +1,7 @@
 'use client';
 
 import AdminNav from '@/components/admin/AdminNav';
-import RussiaDeliveryBlock from '@/components/admin/RussiaDeliveryBlock';
+import RussiaDeliveryBlock, { type SavedRussiaMeta } from '@/components/admin/RussiaDeliveryBlock';
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -40,6 +40,9 @@ interface Order {
   yandexClaimPrice?: number | null;
   yandexClaimEta?: string | null;
   yandexClaimUrl?: string | null;
+  // Сохранённый при чекауте выбор ПВЗ/адреса (JSON-строка)
+  yandexRussiaMeta?: string | null;
+  deliveryPrice?: number | null;
   createdAt: string;
 }
 
@@ -271,7 +274,14 @@ export default function AdminOrders() {
                       <span className="text-text-muted text-sm">{formatDate(order.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="font-bold">{formatPrice(order.totalPrice)}</span>
+                      <div className="text-right">
+                        <div className="font-bold">{formatPrice(order.totalPrice)}</div>
+                        {order.deliveryPrice != null && order.deliveryPrice > 0 && (
+                          <div className="text-[10px] text-text-muted">
+                            вкл. доставку {formatPrice(order.deliveryPrice)}
+                          </div>
+                        )}
+                      </div>
                       <span className="text-text-muted">{expandedId === order.id ? '▲' : '▼'}</span>
                     </div>
                   </div>
@@ -393,11 +403,45 @@ export default function AdminOrders() {
                             </div>
                           </div>
                         ) : (
-                          <RussiaDeliveryBlock
-                            orderId={order.id}
-                            initialAddress={order.deliveryAddress ?? ''}
-                            onConfirmed={fetchOrders}
-                          />
+                          (() => {
+                            let savedMeta: SavedRussiaMeta | null = null;
+                            if (order.yandexRussiaMeta) {
+                              try {
+                                savedMeta = JSON.parse(order.yandexRussiaMeta) as SavedRussiaMeta;
+                              } catch {}
+                            }
+                            return (
+                              <>
+                                {savedMeta && (
+                                  <div className="mb-3 p-3 bg-accent/10 border border-accent/30 rounded-lg text-xs space-y-1">
+                                    <p className="font-medium text-text">Клиент выбрал в чекауте:</p>
+                                    <p>Город: <span className="font-medium">{savedMeta.city ?? '—'}</span></p>
+                                    <p>Режим: <span className="font-medium">{savedMeta.mode === 'pickup' ? 'ПВЗ-получатель' : 'Курьер до двери'}</span></p>
+                                    {savedMeta.mode === 'pickup' && savedMeta.pointAddress && (
+                                      <p>ПВЗ: <span className="font-medium">{savedMeta.pointAddress}</span></p>
+                                    )}
+                                    {savedMeta.mode === 'door' && savedMeta.doorAddress && (
+                                      <p>Адрес: <span className="font-medium">{savedMeta.doorAddress}</span></p>
+                                    )}
+                                    {savedMeta.priceRub != null && (
+                                      <p>Цена (при заказе): <span className="font-medium">{formatPrice(savedMeta.priceRub)}</span>
+                                        {savedMeta.partner && <span className="text-text-muted"> · {savedMeta.partner}</span>}
+                                      </p>
+                                    )}
+                                    <p className="text-text-muted text-[11px]">
+                                      Поля ниже уже пред-заполнены. Нажмите «Посчитать стоимость» — цена может слегка отличаться (offer_id обновляется).
+                                    </p>
+                                  </div>
+                                )}
+                                <RussiaDeliveryBlock
+                                  orderId={order.id}
+                                  initialAddress={order.deliveryAddress ?? ''}
+                                  savedMeta={savedMeta}
+                                  onConfirmed={fetchOrders}
+                                />
+                              </>
+                            );
+                          })()
                         )}
                       </div>
 

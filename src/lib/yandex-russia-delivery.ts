@@ -74,7 +74,41 @@ export interface PickupPoint {
   name?: string;
   address: string;
   workingHours?: string;
+  /** Координаты для отображения на карте. null если Яндекс их не прислал. */
+  lat?: number;
+  lng?: number;
   raw: unknown;
+}
+
+/**
+ * Достаём координаты ПВЗ из ответа. Platform отдаёт их в разных формах
+ * в зависимости от партнёра-перевозчика, поэтому пробуем несколько путей.
+ */
+function extractCoords(raw: Record<string, unknown>): { lat?: number; lng?: number } {
+  const candidates: Array<unknown> = [
+    raw.position,
+    raw.point,
+    raw.coordinates,
+    raw.location,
+    (raw.address as Record<string, unknown> | undefined)?.position,
+    (raw.address as Record<string, unknown> | undefined)?.point,
+    raw.geopoint,
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    // Объект {lat, lon|lng}
+    if (typeof c === 'object' && !Array.isArray(c)) {
+      const o = c as Record<string, unknown>;
+      const lat = typeof o.lat === 'number' ? o.lat : (typeof o.latitude === 'number' ? o.latitude : undefined);
+      const lng = typeof o.lon === 'number' ? o.lon : (typeof o.lng === 'number' ? o.lng : (typeof o.longitude === 'number' ? o.longitude : undefined));
+      if (typeof lat === 'number' && typeof lng === 'number') return { lat, lng };
+    }
+    // Массив [lon, lat] (как в GeoJSON)
+    if (Array.isArray(c) && c.length === 2 && typeof c[0] === 'number' && typeof c[1] === 'number') {
+      return { lat: c[1], lng: c[0] };
+    }
+  }
+  return {};
 }
 
 export interface PickupPointsResult {
@@ -151,11 +185,14 @@ export async function listPickupPoints(geoId: number): Promise<PickupPointsResul
     const points: PickupPoint[] = (Array.isArray(list) ? list : [])
       .map((p) => {
         const r = p as Record<string, unknown>;
+        const coords = extractCoords(r);
         return {
           id: String(r.id ?? r.platform_id ?? ''),
           name: (r.name as string) ?? undefined,
           address: extractAddress(r),
           workingHours: extractWorkingHours(r),
+          lat: coords.lat,
+          lng: coords.lng,
           raw: p,
         };
       })

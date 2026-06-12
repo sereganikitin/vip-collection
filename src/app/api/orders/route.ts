@@ -25,7 +25,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const { items, customerName, customerPhone, customerEmail, deliveryAddress, deliveryMethod, comment, paymentMethod } = data;
+    const {
+      items, customerName, customerPhone, customerEmail,
+      deliveryAddress, deliveryMethod, comment, paymentMethod,
+      deliveryPrice, yandexRussiaMeta,
+    } = data;
     const pm: 'cash' | 'online' = paymentMethod === 'online' ? 'online' : 'cash';
 
     if (!items?.length || !customerName || !customerPhone) {
@@ -93,9 +97,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Не удалось найти товары для заказа' }, { status: 400 });
     }
 
-    const totalPrice = orderItems.reduce(
+    const itemsTotal = orderItems.reduce(
       (sum: number, item: { price: number; quantity: number }) => sum + item.price * item.quantity, 0
     );
+    // Доставка добавляется к итогу. Если поле не пришло — считаем 0.
+    const shippingCost =
+      typeof deliveryPrice === 'number' && deliveryPrice > 0 ? deliveryPrice : 0;
+    const totalPrice = itemsTotal + shippingCost;
+
+    // yandexRussiaMeta приходит как объект — сериализуем в JSON для столбца string.
+    let metaJson: string | null = null;
+    if (yandexRussiaMeta && typeof yandexRussiaMeta === 'object') {
+      try { metaJson = JSON.stringify(yandexRussiaMeta); } catch { metaJson = null; }
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -107,6 +121,8 @@ export async function POST(req: NextRequest) {
         deliveryMethod,
         comment,
         paymentMethod: pm,
+        deliveryPrice: shippingCost > 0 ? shippingCost : null,
+        yandexRussiaMeta: metaJson,
         items: { create: orderItems },
       },
       include: { items: { include: { product: true } } },

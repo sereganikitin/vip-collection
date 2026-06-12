@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronRight, Check, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatPhoneMask, validateRussianPhone, validateEmailFormat } from '@/lib/validation';
+import RussiaCheckoutFlow, { type RussiaSelection } from '@/components/checkout/RussiaCheckoutFlow';
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
@@ -23,6 +24,8 @@ export default function CheckoutPage() {
     payment: 'online' as 'online' | 'cash',
     consent: false,
   });
+  // Состояние Я.Доставки (по России) — отдельный компонент-флоу
+  const [russiaSel, setRussiaSel] = useState<RussiaSelection>({ ready: false });
 
   function updateField(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -110,10 +113,18 @@ export default function CheckoutPage() {
   // Для Я.Доставки — оплата получателем при выдаче (наложенный платёж).
   const effectivePayment = form.payment;
 
+  const deliveryPrice = form.delivery === 'yandex-russia' ? (russiaSel.priceRub ?? 0) : 0;
+  const grandTotal = totalPrice + deliveryPrice;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.consent) {
       setError('Подтвердите согласие на обработку персональных данных');
+      return;
+    }
+    // Для Я.Доставки обязателен выбранный оффер
+    if (form.delivery === 'yandex-russia' && !russiaSel.ready) {
+      setError('Выберите ПВЗ или адрес и нажмите «Посчитать стоимость доставки»');
       return;
     }
     // Финальная проверка перед отправкой — гарантия, что не пробьётся
@@ -134,6 +145,29 @@ export default function CheckoutPage() {
     setLoading(true);
     setError('');
 
+    // Адрес для записи в заказ:
+    //  - курьер по Москве: «<город>, <адрес>» из формы
+    //  - Я.Доставка ПВЗ:    адрес выбранного ПВЗ
+    //  - Я.Доставка дверь:  полный адрес из подсказок
+    let deliveryAddressForOrder: string;
+    let deliveryMethodForOrder: string;
+    if (form.delivery === 'yandex-russia' && russiaSel.ready) {
+      const cityPart = russiaSel.city ?? '';
+      if (russiaSel.mode === 'pickup' && russiaSel.pointAddress) {
+        deliveryAddressForOrder = russiaSel.pointAddress;
+        deliveryMethodForOrder = `Я.Доставка по России — ПВЗ${cityPart ? ` (${cityPart})` : ''}`;
+      } else if (russiaSel.mode === 'door' && russiaSel.doorAddress) {
+        deliveryAddressForOrder = russiaSel.doorAddress;
+        deliveryMethodForOrder = `Я.Доставка по России — курьер до двери${cityPart ? ` (${cityPart})` : ''}`;
+      } else {
+        deliveryAddressForOrder = `${cityPart}`.trim();
+        deliveryMethodForOrder = 'Я.Доставка по России';
+      }
+    } else {
+      deliveryAddressForOrder = `${form.city.trim()}, ${form.address.trim()}`;
+      deliveryMethodForOrder = deliveryLabels[form.delivery] || form.delivery;
+    }
+
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -142,12 +176,28 @@ export default function CheckoutPage() {
           customerName: `${form.firstName} ${form.lastName}`.trim(),
           customerPhone: form.phone,
           customerEmail: form.email || undefined,
-          deliveryMethod: deliveryLabels[form.delivery] || form.delivery,
-          // Полный адрес = "<город>, <улица...>" — нужно для геокодирования
-          // в Я.Доставке (или для построения маршрута курьеру по Москве).
-          deliveryAddress: `${form.city.trim()}, ${form.address.trim()}`,
+          deliveryMethod: deliveryMethodForOrder,
+          deliveryAddress: deliveryAddressForOrder,
           comment: form.comment || undefined,
           paymentMethod: effectivePayment,
+          deliveryPrice: deliveryPrice > 0 ? deliveryPrice : undefined,
+          yandexRussiaMeta:
+            form.delivery === 'yandex-russia' && russiaSel.ready
+              ? {
+                  mode: russiaSel.mode,
+                  city: russiaSel.city,
+                  geoId: russiaSel.geoId,
+                  pointId: russiaSel.pointId,
+                  pointAddress: russiaSel.pointAddress,
+                  doorAddress: russiaSel.doorAddress,
+                  doorGeopoint: russiaSel.doorGeopoint,
+                  offerId: russiaSel.offerId,
+                  priceRub: russiaSel.priceRub,
+                  partner: russiaSel.partner,
+                  deliveryFrom: russiaSel.deliveryFromIso,
+                  deliveryTo: russiaSel.deliveryToIso,
+                }
+              : undefined,
           items: items.map(({ product, quantity }) => ({
             productId: product.id,
             productSlug: product.slug,
@@ -270,22 +320,34 @@ export default function CheckoutPage() {
                   </label>
                 ))}
               </div>
-              <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Город *</label>
-                  <input type="text" required value={form.city}
-                    onChange={(e) => updateField('city', e.target.value)}
-                    placeholder="Москва"
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+              {form.delivery === 'courier' ? (
+                <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Город *</label>
+                    <input type="text" required value={form.city}
+                      onChange={(e) => updateField('city', e.target.value)}
+                      placeholder="Москва"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Улица, дом, квартира *</label>
+                    <input type="text" required value={form.address}
+                      onChange={(e) => updateField('address', e.target.value)}
+                      placeholder="например, Годовикова 11, корпус 4, кв. 126"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Улица, дом, квартира *</label>
-                  <input type="text" required value={form.address}
-                    onChange={(e) => updateField('address', e.target.value)}
-                    placeholder="например, Годовикова 11, корпус 4, кв. 126"
-                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
-                </div>
-              </div>
+              ) : (
+                <RussiaCheckoutFlow
+                  items={items.map(({ product, quantity }) => ({ productId: product.id, quantity }))}
+                  customer={{
+                    name: `${form.firstName} ${form.lastName}`.trim(),
+                    phone: form.phone,
+                    email: form.email,
+                  }}
+                  onChange={setRussiaSel}
+                />
+              )}
             </div>
 
             <div className="bg-surface rounded-xl border border-border p-6">
@@ -353,10 +415,25 @@ export default function CheckoutPage() {
                   </div>
                 ))}
               </div>
-              <hr className="border-border mb-4" />
+              <hr className="border-border mb-3" />
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-text-muted">Товары</span>
+                <span className="font-medium">{formatPrice(totalPrice)}</span>
+              </div>
+              {form.delivery === 'yandex-russia' && (
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="text-text-muted">Доставка</span>
+                  <span className="font-medium">
+                    {russiaSel.ready
+                      ? formatPrice(deliveryPrice)
+                      : <span className="text-text-muted/70 italic">укажите ПВЗ/адрес</span>}
+                  </span>
+                </div>
+              )}
+              <hr className="border-border mb-3" />
               <div className="flex justify-between text-lg font-bold mb-6">
                 <span>Итого</span>
-                <span>{formatPrice(totalPrice)}</span>
+                <span>{formatPrice(grandTotal)}</span>
               </div>
               <button type="submit" disabled={loading}
                 className="block w-full text-center py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50">

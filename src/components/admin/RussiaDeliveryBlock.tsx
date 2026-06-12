@@ -34,9 +34,30 @@ function extractCityFromAddress(addr: string): string {
 
 type Mode = 'pickup' | 'door';
 
+/**
+ * meta из БД (Order.yandexRussiaMeta — JSON). Появляется у заказов,
+ * которые клиент оформил уже через новый чекаут-флоу.
+ */
+export interface SavedRussiaMeta {
+  mode?: Mode;
+  city?: string;
+  geoId?: number;
+  pointId?: string;
+  pointAddress?: string;
+  doorAddress?: string;
+  doorGeopoint?: { lat: number; lng: number };
+  offerId?: string;
+  priceRub?: number;
+  partner?: string;
+  deliveryFrom?: string;
+  deliveryTo?: string;
+}
+
 interface Props {
   orderId: string;
   initialAddress: string;
+  /** Если у заказа есть сохранённый выбор из чекаута — пред-заполнить форму. */
+  savedMeta?: SavedRussiaMeta | null;
   onConfirmed: () => void;
 }
 
@@ -51,21 +72,23 @@ function formatDateRange(from?: string, to?: string): string | null {
   return a === b ? a : `${a} – ${b}`;
 }
 
-export default function RussiaDeliveryBlock({ orderId, initialAddress, onConfirmed }: Props) {
+export default function RussiaDeliveryBlock({ orderId, initialAddress, savedMeta, onConfirmed }: Props) {
   // Базовый стейт
-  const [mode, setMode] = useState<Mode>('pickup');
+  const [mode, setMode] = useState<Mode>(savedMeta?.mode ?? 'pickup');
   const [cities, setCities] = useState<City[]>([]);
-  const [city, setCity] = useState<string>('');
-  const [customGeoId, setCustomGeoId] = useState<string>('');
+  const [city, setCity] = useState<string>(savedMeta?.city ?? '');
+  const [customGeoId, setCustomGeoId] = useState<string>(
+    savedMeta?.geoId && !savedMeta?.city ? String(savedMeta.geoId) : ''
+  );
 
   // ПВЗ
   const [points, setPoints] = useState<Point[]>([]);
   const [pointsLoading, setPointsLoading] = useState(false);
   const [pointsError, setPointsError] = useState<string | null>(null);
-  const [selectedPointId, setSelectedPointId] = useState<string>('');
+  const [selectedPointId, setSelectedPointId] = useState<string>(savedMeta?.pointId ?? '');
 
   // Адрес (для режима door)
-  const [doorAddress, setDoorAddress] = useState<string>(initialAddress || '');
+  const [doorAddress, setDoorAddress] = useState<string>(savedMeta?.doorAddress ?? initialAddress ?? '');
 
   // Офферы
   const [offers, setOffers] = useState<Offer[]>([]);

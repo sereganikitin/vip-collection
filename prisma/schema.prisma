@@ -104,6 +104,12 @@ model Order {
   yandexClaimEta       String?       // ETA от Я.Доставки
   yandexClaimUrl       String?       // публичная трекинг-ссылка
   yandexClaimCreatedAt DateTime?
+  // Доставка: цена за доставку (RUB) — посчитанная в чекауте, входит в totalPrice
+  deliveryPrice        Float?
+  // Метаданные выбора Я.Доставки по России (Platform) — JSON-строка:
+  //   { mode, geoId, city, pointId, pointAddress, partner, priceRub, deliveryFrom, deliveryTo }
+  // Заполняется при чекауте, читается админом для предзаполнения формы расчёта.
+  yandexRussiaMeta     String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
