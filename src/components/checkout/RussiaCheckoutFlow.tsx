@@ -129,14 +129,18 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersError, setOffersError] = useState<string | null>(null);
 
-  // Загружаем ПВЗ при смене города (только в pickup-режиме)
+  // Загружаем ПВЗ при смене города (только в pickup-режиме).
+  // Если geoId есть в нашей таблице — шлём прямо его (быстрее).
+  // Если нет, но город указан — шлём имя, бэкенд сам через геокодер
+  // найдёт координаты и подходящий broad geo_id.
   useEffect(() => {
-    if (mode !== 'pickup' || !geoId) {
+    if (mode !== 'pickup' || !city) {
       setPoints([]); setPointsError(null); return;
     }
     setPointsLoading(true); setPointsError(null);
     setPoints([]); setSelectedPointId(''); setOffers([]);
-    fetch(`/api/yandex-russia/pickup-points?geoId=${geoId}`)
+    const qs = geoId ? `geoId=${geoId}` : `city=${encodeURIComponent(city)}`;
+    fetch(`/api/yandex-russia/pickup-points?${qs}`)
       .then((r) => r.json())
       .then((d) => {
         if (!d.ok) setPointsError(d.error || 'Не удалось получить ПВЗ');
@@ -144,7 +148,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       })
       .catch((e) => setPointsError(String(e)))
       .finally(() => setPointsLoading(false));
-  }, [mode, geoId]);
+  }, [mode, city, geoId]);
 
   // Подсказки улицы (door): debounce 250 мс, минимум 2 символа.
   // После того как пользователь выбрал улицу из подсказок, suggest больше
@@ -327,7 +331,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           autoComplete="off"
           className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         />
-        {showCitySuggest && filteredCities.length > 0 && !city && (
+        {showCitySuggest && cityInput.length >= 2 && !city && (
           <div className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {filteredCities.map((c) => (
               <button
@@ -339,14 +343,23 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
                 {c.name}
               </button>
             ))}
+            {/* Если ни один город из таблицы не совпал — даём опцию использовать
+                то, что пользователь ввёл (Барвиха, Малые Колодки и т.п.).
+                Бэкенд найдёт ПВЗ через Yandex Геокодер. */}
+            {filteredCities.length === 0 && (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  const value = cityInput.trim();
+                  setCity(value); setCityInput(value); setShowCitySuggest(false);
+                }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-bg"
+              >
+                Использовать «{cityInput.trim()}» — найдём ПВЗ автоматически
+              </button>
+            )}
           </div>
-        )}
-        {cityInput.length >= 2 && filteredCities.length === 0 && !city && (
-          <p className="mt-1.5 text-xs text-text-muted">
-            Не нашли «{cityInput}». Если это посёлок или село — попробуйте ближайший
-            крупный город (например, Барвиха → Одинцово, Болшево → Королёв). Или свяжитесь
-            с нами через форму обратной связи — добавим ваш город вручную.
-          </p>
         )}
         {city && (
           <p className="mt-1.5 text-xs text-success flex items-center gap-1">
