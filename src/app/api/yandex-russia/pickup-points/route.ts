@@ -5,11 +5,13 @@
 // Логика resolve города:
 //   1. Если задан ?geoId числом — используем как есть (для отладки/руки).
 //   2. Если city найден в нашей таблице RUSSIA_GEO_IDS — берём прямой geo_id.
-//   3. Иначе фолбэк через Геокодер:
-//      - геокодим город, узнаём координаты + регион,
-//      - используем geo_id региона (Московская область = 1, всё иначе — 225 = Россия),
-//      - запрашиваем ПВЗ этим широким geo_id,
-//      - фильтруем результат по дистанции ≤ 50 км от координат города.
+//   3. Иначе фолбэк через Геокодер: геокодим город, получаем координаты + регион,
+//      каскадно пробуем несколько широких geo_id (см. ниже), мерджим результаты,
+//      фильтруем по дистанции ≤ 50 км от центра города.
+//
+// Почему каскад: Platform pickup-points/list ожидает city-level geo_id (213, 6, 43),
+// а на oblast-level (Московская область = 1) или country-level (Россия = 225)
+// может вернуть пусто. Поэтому пробуем кандидатов и собираем что выпало.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
@@ -18,20 +20,22 @@ import { distanceKm, geocodeCity, listPickupPoints, type PickupPoint } from '@/l
 
 export const dynamic = 'force-dynamic';
 
-// geo_id для регионального фолбэка
-const GEO_MOSCOW_OBLAST = 1;
-const GEO_RUSSIA = 225;
 const MAX_DISTANCE_KM = 50;
 
+// Каскад broad geo_id для городов вне таблицы.
+//   - Для МО / Москвы пробуем сначала Москва (213, самая популярная),
+//     потом МО как регион (1), потом всю Россию (225).
+//   - Для остальных регионов пробуем сразу 225.
+function broadGeoIdCascade(province: string | undefined): number[] {
+  if (province && /москов/i.test(province)) return [213, 1, 225];
+  return [225];
+}
+
 function isAuthOptional(req: NextRequest): boolean {
-  // Чекаут — публичный, админка — за auth. Различаем по реферу:
-  // если запрос идёт со страницы /admin/* — требуем auth, иначе нет.
-  // Для надёжности можно явно проверять auth и пропускать вызовы без него.
   return !req.headers.get('referer')?.includes('/admin/');
 }
 
 export async function GET(req: NextRequest) {
-  // Проверка auth только для админ-вызовов; чекаут публичный.
   if (!isAuthOptional(req)) {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -77,35 +81,44 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Выбираем широкий geo_id региона.
-  // «Московская область» → 1; всё иначе (включая «Москва», другие области, республики) → 225.
-  // Москва как город уже была бы в таблице (geo_id=213), сюда мы попадаем только
-  // для не-табличных городов.
-  const broadGeoId =
-    geo.province && /москов/i.test(geo.province) ? GEO_MOSCOW_OBLAST : GEO_RUSSIA;
+  // Каскадно пробуем broad geo_id. Останавливаемся, когда нашли хотя бы 1 ПВЗ
+  // в пределах 50 км от центра города — этого достаточно для UI.
+  const candidates = broadGeoIdCascade(geo.province);
+  const tried: Array<{ geoId: number; total: number; nearby: number }> = [];
+  let chosen: { geoId: number; points: PickupPoint[] } | null = null;
 
-  const result = await listPickupPoints(broadGeoId);
-  if (!result.ok || !result.points) {
+  for (const candidate of candidates) {
+    const result = await listPickupPoints(candidate);
+    const allPoints = result.ok && result.points ? result.points : [];
+    const nearby = allPoints.filter((p) => {
+      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return false;
+      return distanceKm(p.lat, p.lng, geo.lat, geo.lng) <= MAX_DISTANCE_KM;
+    });
+    tried.push({ geoId: candidate, total: allPoints.length, nearby: nearby.length });
+    if (nearby.length > 0) {
+      chosen = { geoId: candidate, points: nearby };
+      break;
+    }
+  }
+
+  if (!chosen) {
     return NextResponse.json({
-      ...result,
-      geoId: broadGeoId,
+      ok: true,
+      points: [],
+      geoId: candidates[candidates.length - 1],
       resolvedBy: 'geocoder',
       geocoded: { lat: geo.lat, lng: geo.lng, locality: geo.locality, province: geo.province },
+      tried,
+      note: 'Я.Доставка не вернула ПВЗ в радиусе 50 км от этого города.',
     });
   }
 
-  // Фильтр по дистанции от центра города.
-  const nearby = result.points.filter((p: PickupPoint) => {
-    if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return false;
-    return distanceKm(p.lat, p.lng, geo.lat, geo.lng) <= MAX_DISTANCE_KM;
-  });
-
   return NextResponse.json({
     ok: true,
-    points: nearby,
-    geoId: broadGeoId,
+    points: chosen.points,
+    geoId: chosen.geoId,
     resolvedBy: 'geocoder',
     geocoded: { lat: geo.lat, lng: geo.lng, locality: geo.locality, province: geo.province },
-    totalBeforeFilter: result.points.length,
+    tried,
   });
 }
