@@ -315,7 +315,9 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         )}
         {cityInput.length >= 2 && filteredCities.length === 0 && !city && (
           <p className="mt-1.5 text-xs text-text-muted">
-            Не нашли «{cityInput}» в нашем списке поддерживаемых городов. Свяжитесь с нами, добавим вручную.
+            Не нашли «{cityInput}». Если это посёлок или село — попробуйте ближайший
+            крупный город (например, Барвиха → Одинцово, Болшево → Королёв). Или свяжитесь
+            с нами через форму обратной связи — добавим ваш город вручную.
           </p>
         )}
         {city && (
