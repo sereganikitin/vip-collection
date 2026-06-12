@@ -154,6 +154,15 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     return () => window.clearTimeout(t);
   }, [doorInput, mode, city, doorSelected]);
 
+  // Сохраняем последние props в refs, чтобы авто-расчёт не дёргался
+  // на каждом ре-рендере родителя (родитель пересоздаёт items/customer
+  // как новые объекты при каждом setState — без refs возникает бесконечный
+  // цикл fetch → setState → ре-рендер → fetch).
+  const itemsRef = useRef(items);
+  const customerRef = useRef(customer);
+  useEffect(() => { itemsRef.current = items; });
+  useEffect(() => { customerRef.current = customer; });
+
   // ── Автоматический расчёт при выборе ПВЗ или адреса ──
   // Дебаунсим, чтобы при быстром перещёлкивании по маркерам не спамить API.
   const lastQuoteKey = useRef<string>('');
@@ -181,32 +190,34 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   useEffect(() => {
     if (mode !== 'pickup' || !selectedPointId) return;
     const t = window.setTimeout(() => {
+      const c = customerRef.current;
       calculate(`pickup:${selectedPointId}`, {
-        items, mode: 'pickup',
+        items: itemsRef.current, mode: 'pickup',
         destPlatformId: selectedPointId,
-        customerName: customer.name || undefined,
-        customerPhone: customer.phone || undefined,
-        customerEmail: customer.email || undefined,
+        customerName: c.name || undefined,
+        customerPhone: c.phone || undefined,
+        customerEmail: c.email || undefined,
       });
     }, 200);
     return () => window.clearTimeout(t);
-  }, [mode, selectedPointId, items, customer, calculate]);
+  }, [mode, selectedPointId, calculate]);
 
   useEffect(() => {
     if (mode !== 'door' || !doorSelected) return;
     const t = window.setTimeout(() => {
+      const c = customerRef.current;
       calculate(`door:${doorSelected.full}`, {
-        items, mode: 'door',
+        items: itemsRef.current, mode: 'door',
         destAddress: doorSelected.full,
         destLocality: city,
         destGeopoint: { lat: doorSelected.lat, lng: doorSelected.lng },
-        customerName: customer.name || undefined,
-        customerPhone: customer.phone || undefined,
-        customerEmail: customer.email || undefined,
+        customerName: c.name || undefined,
+        customerPhone: c.phone || undefined,
+        customerEmail: c.email || undefined,
       });
     }, 200);
     return () => window.clearTimeout(t);
-  }, [mode, doorSelected, city, items, customer, calculate]);
+  }, [mode, doorSelected, city, calculate]);
 
   // ── Какой оффер показываем как итоговый ──
   // Берём минимальную цену. Если есть варианты дороже — рядом сообщим.

@@ -127,28 +127,80 @@ function extractAddress(raw: Record<string, unknown>): string {
   return (raw.full_address as string) ?? '';
 }
 
+const DAY_NAMES = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] as const;
+
+/**
+ * Превращает список номеров дней (1=Пн … 7=Вс) в человекочитаемую строку:
+ *   [1,2,3,4,5]       → "Пн-Пт"
+ *   [1,2,3,4,5,6,7]   → "Ежедневно"
+ *   [6,7]             → "Сб-Вс"
+ *   [1,3,5]           → "Пн, Ср, Пт"
+ *   [1,2,3,4,5,7]     → "Пн-Пт, Вс"
+ */
+function formatDayList(days: number[]): string {
+  const sorted = [...new Set(days)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
+  if (sorted.length === 0) return '';
+  if (sorted.length === 7) return 'Ежедневно';
+  // Группируем последовательные дни в диапазоны
+  const ranges: number[][] = [];
+  let cur: number[] = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === sorted[i - 1] + 1) {
+      cur.push(sorted[i]);
+    } else {
+      ranges.push(cur);
+      cur = [sorted[i]];
+    }
+  }
+  ranges.push(cur);
+  return ranges
+    .map((r) => (r.length <= 2
+      ? r.map((d) => DAY_NAMES[d]).join(', ')
+      : `${DAY_NAMES[r[0]]}-${DAY_NAMES[r[r.length - 1]]}`))
+    .join(', ');
+}
+
 function extractWorkingHours(raw: Record<string, unknown>): string | undefined {
   const sched = raw.schedule;
   if (!sched || typeof sched !== 'object') return undefined;
   const s = sched as Record<string, unknown>;
-  // Если есть человекочитаемое описание — берём его.
-  if (typeof s.restrictions_text === 'string') return s.restrictions_text;
-  // Иначе пытаемся собрать «пн-пт 09-21, сб 10-18» из restrictions[].
-  const restr = s.restrictions;
-  if (Array.isArray(restr)) {
-    const parts: string[] = [];
-    for (const r of restr) {
-      const rec = r as Record<string, unknown>;
-      const days = rec.days as string[] | undefined;
-      const tFrom = (rec.time_from as Record<string, unknown>)?.hours;
-      const tTo = (rec.time_to as Record<string, unknown>)?.hours;
-      if (days && tFrom != null && tTo != null) {
-        parts.push(`${days.join('/')} ${tFrom}-${tTo}`);
-      }
-    }
-    if (parts.length > 0) return parts.join(', ');
+  // Если у Яндекса уже готовое человекочитаемое описание — берём его как есть
+  if (typeof s.restrictions_text === 'string' && s.restrictions_text.trim()) {
+    return s.restrictions_text;
   }
-  return undefined;
+  const restr = s.restrictions;
+  if (!Array.isArray(restr)) return undefined;
+
+  // Группируем дни по часам, чтобы все 9-21 шли как «Пн-Вс 9-21»
+  // вместо «1 9-21, 2 9-21, …». Формат restriction:
+  //   { days: [1,2,3], time_from: { hours: 9 }, time_to: { hours: 21 } }
+  type Bucket = { from: number; to: number; days: number[] };
+  const buckets = new Map<string, Bucket>();
+
+  for (const r of restr) {
+    const rec = r as Record<string, unknown>;
+    const daysRaw = rec.days;
+    if (!Array.isArray(daysRaw)) continue;
+    const days = daysRaw.map((d) => Number(d)).filter((d) => Number.isInteger(d));
+    const tFrom = (rec.time_from as Record<string, unknown> | undefined)?.hours;
+    const tTo = (rec.time_to as Record<string, unknown> | undefined)?.hours;
+    if (typeof tFrom !== 'number' || typeof tTo !== 'number') continue;
+    const key = `${tFrom}-${tTo}`;
+    if (!buckets.has(key)) buckets.set(key, { from: tFrom, to: tTo, days: [] });
+    buckets.get(key)!.days.push(...days);
+  }
+
+  if (buckets.size === 0) return undefined;
+
+  const parts: string[] = [];
+  for (const b of buckets.values()) {
+    const dayStr = formatDayList(b.days);
+    if (!dayStr) continue;
+    // Часы в формате «9-21». Если from=0 и to=24 — это круглосуточно.
+    if (b.from === 0 && b.to === 24) parts.push(`${dayStr} круглосуточно`);
+    else parts.push(`${dayStr} с ${b.from} до ${b.to}`);
+  }
+  return parts.join(', ');
 }
 
 export async function listPickupPoints(geoId: number): Promise<PickupPointsResult> {
