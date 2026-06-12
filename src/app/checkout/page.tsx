@@ -8,7 +8,9 @@ import { formatPhoneMask, validateRussianPhone, validateEmailFormat } from '@/li
 import RussiaCheckoutFlow, { type RussiaSelection } from '@/components/checkout/RussiaCheckoutFlow';
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
+  // maximumFractionDigits: 0 — чтобы итог никогда не показывался с копейками,
+  // даже если цена доставки от Яндекса пришла как 325.7.
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(price) + ' ₽';
 }
 
 export default function CheckoutPage() {

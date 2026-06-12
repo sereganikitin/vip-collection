@@ -1,20 +1,44 @@
-// GET /api/yandex-russia/suggest?text=...&city=...&kind=house|street|locality
+// GET /api/yandex-russia/suggest?text=...&city=...
 //
-// Прокси к Yandex Geocoder для подсказок при наборе адреса в чекауте.
-// Использует тот же ключ yd_geocoder_key, что и Cargo-флоу.
-// Не требует auth — вызывается из публичной формы чекаута.
+// Прокси к Nominatim (OpenStreetMap) для подсказок адреса в чекауте.
+//
+// Почему Nominatim, а не Yandex Geocoder:
+// Geocoder работает на полные адреса; на частичный ввод ("Лен" в Калуге)
+// он либо возвращает центр города, либо пусто — для автокомплита не годится.
+// Nominatim изначально проектировался под частичный поиск и отдаёт улицы
+// сразу с 2-3 букв. Не требует ключа, бесплатный.
+//
+// Rate limit Nominatim: 1 req/sec на IP. Для публичного чекаута это
+// не проблема — debounce на клиенте 250 мс, каждый покупатель ходит
+// со своего IP.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 interface GeoSuggestion {
-  text: string;          // что показать в выпадайке
-  full: string;          // полный formatted адрес
+  text: string;          // короткое название для показа (улица + дом)
+  full: string;          // полный адрес (для отправки в Я.Доставку)
   lat: number;
   lng: number;
-  kind: string;          // locality / street / house
+  kind: string;
+}
+
+interface NominatimItem {
+  lat: string;
+  lon: string;
+  display_name: string;
+  type?: string;
+  address?: {
+    road?: string;
+    house_number?: string;
+    suburb?: string;
+    city_district?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -26,63 +50,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, suggestions: [] });
   }
 
-  // Достаём ключ Геокодера из настроек
-  const row = await prisma.setting.findUnique({ where: { key: 'yd_geocoder_key' } });
-  const apiKey = (row?.value ?? '').trim();
-  if (!apiKey) {
-    return NextResponse.json(
-      { ok: false, error: 'Geocoder API key не настроен в /admin/settings' },
-      { status: 503 }
-    );
-  }
-
-  // Формируем geocode-запрос: «Город, набранный текст». Без kind-фильтра —
-  // Geocoder отлично отдаёт улицы/дома при частичном вводе, kind=house
-  // не возвращает результаты, пока пользователь не наберёт номер дома.
-  const geocode = city ? `${city}, ${text}` : text;
-
-  const url = new URL('https://geocode-maps.yandex.ru/1.x/');
-  url.searchParams.set('apikey', apiKey);
-  url.searchParams.set('geocode', geocode);
+  const query = city ? `${city}, ${text}` : text;
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('q', query);
   url.searchParams.set('format', 'json');
-  url.searchParams.set('lang', 'ru_RU');
-  url.searchParams.set('results', '8');
+  url.searchParams.set('accept-language', 'ru');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('countrycodes', 'ru');
+  url.searchParams.set('limit', '8');
 
   try {
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(url.toString(), {
+      // Nominatim требует осмысленный User-Agent (default Node UA блокируется)
+      headers: { 'User-Agent': 'vipcoll.ru-checkout/1.0 (vipshopp@yandex.ru)' },
+      signal: AbortSignal.timeout(6000),
+    });
     if (!res.ok) {
       return NextResponse.json(
-        { ok: false, error: `Geocoder HTTP ${res.status}` },
+        { ok: false, error: `Nominatim HTTP ${res.status}` },
         { status: 502 }
       );
     }
-    const data = await res.json();
-    const members =
-      (data?.response?.GeoObjectCollection?.featureMember as Array<Record<string, unknown>>) ?? [];
+    const data = (await res.json()) as NominatimItem[];
 
-    const suggestions: GeoSuggestion[] = members
-      .map((m) => {
-        const geo = (m.GeoObject ?? {}) as Record<string, unknown>;
-        const pos = (geo.Point as Record<string, string> | undefined)?.pos ?? '';
-        const [lngS, latS] = pos.split(' ');
-        const lat = parseFloat(latS);
-        const lng = parseFloat(lngS);
+    const suggestions: GeoSuggestion[] = (Array.isArray(data) ? data : [])
+      .map((d) => {
+        const lat = parseFloat(d.lat);
+        const lng = parseFloat(d.lon);
         if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-        const meta =
-          ((geo.metaDataProperty as Record<string, unknown>)?.GeocoderMetaData as Record<string, unknown>) ??
-          {};
-        const fullAddress =
-          ((meta.Address as Record<string, unknown>)?.formatted as string) ??
-          ((geo.name as string) ?? '');
-        const detectedKind = (meta.kind as string) ?? '';
-        // text для подсказки — короткая версия (только улица + дом, без страны/области)
-        const shortText = ((geo.description as string) ?? fullAddress);
+        const addr = d.address ?? {};
+        // Короткий читаемый «улица [дом], город»
+        const streetPart = addr.road
+          ? `${addr.road}${addr.house_number ? ' ' + addr.house_number : ''}`
+          : '';
+        const cityPart = addr.city ?? addr.town ?? addr.village ?? '';
+        const shortText = [streetPart, cityPart].filter(Boolean).join(', ') || d.display_name;
         return {
-          text: (geo.name as string) ?? shortText,
-          full: fullAddress,
+          text: shortText,
+          full: d.display_name,
           lat, lng,
-          kind: detectedKind,
-        } satisfies GeoSuggestion;
+          kind: d.type ?? 'address',
+        };
       })
       .filter((x): x is GeoSuggestion => x !== null);
 

@@ -220,10 +220,13 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   }, [mode, doorSelected, city, calculate]);
 
   // ── Какой оффер показываем как итоговый ──
-  // Берём минимальную цену. Если есть варианты дороже — рядом сообщим.
+  // Берём минимальную цену. Округляем priceRub до целого, чтобы итог
+  // в корзине не выходил с копейками (Яндекс отдаёт 325.7 — показывать
+  // 326 в одной строке и 325,7 в другой нелогично).
   const bestOffer = useMemo<Offer | null>(() => {
     if (offers.length === 0) return null;
-    return [...offers].sort((a, b) => a.priceRub - b.priceRub)[0];
+    const cheapest = [...offers].sort((a, b) => a.priceRub - b.priceRub)[0];
+    return { ...cheapest, priceRub: Math.round(cheapest.priceRub) };
   }, [offers]);
   const uniquePrices = useMemo(() => {
     const s = new Set(offers.map((o) => Math.round(o.priceRub)));
