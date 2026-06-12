@@ -107,13 +107,51 @@ async function geocodeQuery(query: string, apiKey: string): Promise<CityGeoInfo 
   }
 }
 
+/**
+ * Геокодим через Nominatim (OpenStreetMap). Бесплатно, без ключа.
+ * Используется как фолбэк, если Yandex Geocoder вернул 403/пусто.
+ */
+async function geocodeQueryNominatim(query: string): Promise<CityGeoInfo | null> {
+  const url = new URL('https://nominatim.openstreetmap.org/search');
+  url.searchParams.set('q', query);
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('accept-language', 'ru');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('countrycodes', 'ru');
+  url.searchParams.set('limit', '3');
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { 'User-Agent': 'vipcoll.ru-checkout/1.0 (vipshopp@yandex.ru)' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) {
+      console.error(`[geocodeCity nominatim] HTTP ${res.status} for "${query}"`);
+      return null;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      return null;
+    }
+    const first = data[0] as Record<string, unknown>;
+    const lat = parseFloat(String(first.lat));
+    const lng = parseFloat(String(first.lon));
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    const addr = (first.address as Record<string, string> | undefined) ?? {};
+    return {
+      lat, lng,
+      locality: addr.city ?? addr.town ?? addr.village ?? addr.hamlet ?? undefined,
+      province: addr.state ?? addr.region ?? undefined,
+    };
+  } catch (e) {
+    console.error(`[geocodeCity nominatim] fetch error for "${query}":`, e);
+    return null;
+  }
+}
+
 export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
   const row = await prisma.setting.findUnique({ where: { key: 'yd_geocoder_key' } });
   const apiKey = (row?.value ?? '').trim();
-  if (!apiKey) {
-    console.warn('[geocodeCity] yd_geocoder_key пустой');
-    return null;
-  }
 
   // Пробуем несколько форм запроса, потому что для каких-то названий
   // Geocoder отвечает только при одном из них:
@@ -127,13 +165,29 @@ export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
     `посёлок ${name.trim()}`,
   ];
 
+  // ── Yandex Geocoder ──
+  if (apiKey) {
+    for (const v of variants) {
+      const result = await geocodeQuery(v, apiKey);
+      if (result) return result;
+    }
+  } else {
+    console.warn('[geocodeCity] yd_geocoder_key пустой — пропускаем Yandex, идём в Nominatim');
+  }
+
+  // ── Nominatim fallback ──
+  // Срабатывает, если у ключа Yandex Geocoder нет прав (403) или ключ
+  // не настроен. Покрывает 99% русских городов и сёл.
+  console.warn(`[geocodeCity] Yandex не дал результат, пробуем Nominatim для "${name}"`);
   for (const v of variants) {
-    const result = await geocodeQuery(v, apiKey);
+    const result = await geocodeQueryNominatim(v);
     if (result) {
+      console.log(`[geocodeCity] Nominatim нашёл: "${v}" → ${result.lat}, ${result.lng}`);
       return result;
     }
   }
-  console.warn(`[geocodeCity] all variants failed for "${name}"`);
+
+  console.warn(`[geocodeCity] все источники не дали результат для "${name}"`);
   return null;
 }
 
