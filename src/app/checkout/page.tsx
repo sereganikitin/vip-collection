@@ -22,11 +22,13 @@ export default function CheckoutPage() {
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', email: '',
-    delivery: 'courier', city: 'Москва', address: '', comment: '',
+    comment: '',
     payment: 'online' as 'online' | 'cash',
     consent: false,
   });
-  // Состояние Я.Доставки (по России) — отдельный компонент-флоу
+  // Состояние Я.Доставки — отдельный компонент-флоу.
+  // Cargo (курьер по Москве) с этого аккаунта возвращает suitable_offer_not_found,
+  // поэтому на сайте используется только Platform — он покрывает и Москву, и регионы.
   const [russiaSel, setRussiaSel] = useState<RussiaSelection>({ ready: false });
 
   function updateField(field: string, value: string) {
@@ -106,16 +108,10 @@ export default function CheckoutPage() {
     );
   }
 
-  const deliveryLabels: Record<string, string> = {
-    courier: 'Курьер по Москве',
-    'yandex-russia': 'Я.Доставка по России',
-  };
-  // Обе опции принимают и наличные, и онлайн.
-  // Для курьера по Москве «наличные» — это деньги курьеру при получении.
-  // Для Я.Доставки — оплата получателем при выдаче (наложенный платёж).
+  // Только онлайн или наложенный платёж в ПВЗ/курьеру.
   const effectivePayment = form.payment;
 
-  const deliveryPrice = form.delivery === 'yandex-russia' ? (russiaSel.priceRub ?? 0) : 0;
+  const deliveryPrice = russiaSel.priceRub ?? 0;
   const grandTotal = totalPrice + deliveryPrice;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -124,9 +120,9 @@ export default function CheckoutPage() {
       setError('Подтвердите согласие на обработку персональных данных');
       return;
     }
-    // Для Я.Доставки обязателен выбранный оффер
-    if (form.delivery === 'yandex-russia' && !russiaSel.ready) {
-      setError('Выберите ПВЗ или адрес и нажмите «Посчитать стоимость доставки»');
+    // Доставка обязательна — нужен выбранный оффер
+    if (!russiaSel.ready) {
+      setError('Выберите ПВЗ или адрес и дождитесь расчёта стоимости доставки');
       return;
     }
     // Финальная проверка перед отправкой — гарантия, что не пробьётся
@@ -147,27 +143,19 @@ export default function CheckoutPage() {
     setLoading(true);
     setError('');
 
-    // Адрес для записи в заказ:
-    //  - курьер по Москве: «<город>, <адрес>» из формы
-    //  - Я.Доставка ПВЗ:    адрес выбранного ПВЗ
-    //  - Я.Доставка дверь:  полный адрес из подсказок
+    // Адрес и тип доставки берём из выбранного оффера Я.Доставки
+    const cityPart = russiaSel.city ?? '';
     let deliveryAddressForOrder: string;
     let deliveryMethodForOrder: string;
-    if (form.delivery === 'yandex-russia' && russiaSel.ready) {
-      const cityPart = russiaSel.city ?? '';
-      if (russiaSel.mode === 'pickup' && russiaSel.pointAddress) {
-        deliveryAddressForOrder = russiaSel.pointAddress;
-        deliveryMethodForOrder = `Я.Доставка по России — ПВЗ${cityPart ? ` (${cityPart})` : ''}`;
-      } else if (russiaSel.mode === 'door' && russiaSel.doorAddress) {
-        deliveryAddressForOrder = russiaSel.doorAddress;
-        deliveryMethodForOrder = `Я.Доставка по России — курьер до двери${cityPart ? ` (${cityPart})` : ''}`;
-      } else {
-        deliveryAddressForOrder = `${cityPart}`.trim();
-        deliveryMethodForOrder = 'Я.Доставка по России';
-      }
+    if (russiaSel.mode === 'pickup' && russiaSel.pointAddress) {
+      deliveryAddressForOrder = russiaSel.pointAddress;
+      deliveryMethodForOrder = `Я.Доставка — ПВЗ${cityPart ? ` (${cityPart})` : ''}`;
+    } else if (russiaSel.mode === 'door' && russiaSel.doorAddress) {
+      deliveryAddressForOrder = russiaSel.doorAddress;
+      deliveryMethodForOrder = `Я.Доставка — курьер до двери${cityPart ? ` (${cityPart})` : ''}`;
     } else {
-      deliveryAddressForOrder = `${form.city.trim()}, ${form.address.trim()}`;
-      deliveryMethodForOrder = deliveryLabels[form.delivery] || form.delivery;
+      deliveryAddressForOrder = cityPart.trim();
+      deliveryMethodForOrder = 'Я.Доставка';
     }
 
     try {
@@ -183,23 +171,20 @@ export default function CheckoutPage() {
           comment: form.comment || undefined,
           paymentMethod: effectivePayment,
           deliveryPrice: deliveryPrice > 0 ? deliveryPrice : undefined,
-          yandexRussiaMeta:
-            form.delivery === 'yandex-russia' && russiaSel.ready
-              ? {
-                  mode: russiaSel.mode,
-                  city: russiaSel.city,
-                  geoId: russiaSel.geoId,
-                  pointId: russiaSel.pointId,
-                  pointAddress: russiaSel.pointAddress,
-                  doorAddress: russiaSel.doorAddress,
-                  doorGeopoint: russiaSel.doorGeopoint,
-                  offerId: russiaSel.offerId,
-                  priceRub: russiaSel.priceRub,
-                  partner: russiaSel.partner,
-                  deliveryFrom: russiaSel.deliveryFromIso,
-                  deliveryTo: russiaSel.deliveryToIso,
-                }
-              : undefined,
+          yandexRussiaMeta: {
+            mode: russiaSel.mode,
+            city: russiaSel.city,
+            geoId: russiaSel.geoId,
+            pointId: russiaSel.pointId,
+            pointAddress: russiaSel.pointAddress,
+            doorAddress: russiaSel.doorAddress,
+            doorGeopoint: russiaSel.doorGeopoint,
+            offerId: russiaSel.offerId,
+            priceRub: russiaSel.priceRub,
+            partner: russiaSel.partner,
+            deliveryFrom: russiaSel.deliveryFromIso,
+            deliveryTo: russiaSel.deliveryToIso,
+          },
           items: items.map(({ product, quantity }) => ({
             productId: product.id,
             productSlug: product.slug,
@@ -307,49 +292,19 @@ export default function CheckoutPage() {
 
             <div className="bg-surface rounded-xl border border-border p-6">
               <h2 className="font-semibold text-lg mb-4">Доставка</h2>
-              <div className="space-y-3 mb-4">
-                {[
-                  { value: 'courier',       label: 'Курьер по Москве',        desc: 'Доставка в день заказа или на следующий день. Расчёт по адресу.' },
-                  { value: 'yandex-russia', label: 'Я.Доставка по России',    desc: 'Отправка через сеть Я.Доставки во все города России. Расчёт по адресу.' },
-                ].map((method) => (
-                  <label key={method.value} className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:border-accent transition-colors">
-                    <input type="radio" name="delivery" value={method.value} checked={form.delivery === method.value}
-                      onChange={(e) => updateField('delivery', e.target.value)} className="mt-1 accent-accent" />
-                    <div>
-                      <p className="font-medium text-sm">{method.label}</p>
-                      <p className="text-xs text-text-muted">{method.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-              {form.delivery === 'courier' ? (
-                <div className="grid sm:grid-cols-[1fr_2fr] gap-3">
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Город *</label>
-                    <input type="text" required value={form.city}
-                      onChange={(e) => updateField('city', e.target.value)}
-                      placeholder="Москва"
-                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Улица, дом, квартира *</label>
-                    <input type="text" required value={form.address}
-                      onChange={(e) => updateField('address', e.target.value)}
-                      placeholder="например, Годовикова 11, корпус 4, кв. 126"
-                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
-                  </div>
-                </div>
-              ) : (
-                <RussiaCheckoutFlow
-                  items={items.map(({ product, quantity }) => ({ productId: product.id, quantity }))}
-                  customer={{
-                    name: `${form.firstName} ${form.lastName}`.trim(),
-                    phone: form.phone,
-                    email: form.email,
-                  }}
-                  onChange={setRussiaSel}
-                />
-              )}
+              <p className="text-xs text-text-muted mb-4">
+                Я.Доставка по всей России: пункт выдачи или курьер до двери. Москва — обычным
+                выбором города, без отдельного флоу. Срок и стоимость рассчитаем автоматически.
+              </p>
+              <RussiaCheckoutFlow
+                items={items.map(({ product, quantity }) => ({ productId: product.id, quantity }))}
+                customer={{
+                  name: `${form.firstName} ${form.lastName}`.trim(),
+                  phone: form.phone,
+                  email: form.email,
+                }}
+                onChange={setRussiaSel}
+              />
             </div>
 
             <div className="bg-surface rounded-xl border border-border p-6">
@@ -371,8 +326,8 @@ export default function CheckoutPage() {
                   <div>
                     <p className="font-medium text-sm">При получении</p>
                     <p className="text-xs text-text-muted">
-                      {form.delivery === 'courier'
-                        ? 'Наличными или картой курьеру при получении в Москве.'
+                      {russiaSel.mode === 'door'
+                        ? 'Наличными или картой курьеру при получении на адресе (наложенный платёж).'
                         : 'Оплата при получении в пункте выдачи Я.Доставки (наложенный платёж).'}
                     </p>
                   </div>
@@ -422,16 +377,14 @@ export default function CheckoutPage() {
                 <span className="text-text-muted">Товары</span>
                 <span className="font-medium">{formatPrice(totalPrice)}</span>
               </div>
-              {form.delivery === 'yandex-russia' && (
-                <div className="flex justify-between text-sm mb-3">
-                  <span className="text-text-muted">Доставка</span>
-                  <span className="font-medium">
-                    {russiaSel.ready
-                      ? formatPrice(deliveryPrice)
-                      : <span className="text-text-muted/70 italic">укажите ПВЗ/адрес</span>}
-                  </span>
-                </div>
-              )}
+              <div className="flex justify-between text-sm mb-3">
+                <span className="text-text-muted">Доставка</span>
+                <span className="font-medium">
+                  {russiaSel.ready
+                    ? formatPrice(deliveryPrice)
+                    : <span className="text-text-muted/70 italic">укажите ПВЗ/адрес</span>}
+                </span>
+              </div>
               <hr className="border-border mb-3" />
               <div className="flex justify-between text-lg font-bold mb-6">
                 <span>Итого</span>
