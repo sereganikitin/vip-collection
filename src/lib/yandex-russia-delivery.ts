@@ -23,6 +23,74 @@ import type { OrderItemForCargo } from './yandex-delivery';
 
 const HOST = 'https://b2b.taxi.yandex.net';
 
+/** Расстояние в км между двумя точками по формуле гаверсинуса. */
+export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+export interface CityGeoInfo {
+  lat: number;
+  lng: number;
+  /** Локалити, как его понял Геокодер (например, «Калуга», «Барвиха», «Одинцово»). */
+  locality?: string;
+  /** Регион (province), например «Московская область». Используется чтобы выбрать
+   *  правильный широкий geo_id Платформы (1 для МО, 225 для всей России и т.д.). */
+  province?: string;
+}
+
+/**
+ * Геокодирование города или нас. пункта через Яндекс Геокодер.
+ * Ключ берётся из настроек `yd_geocoder_key` (тот же, что у Cargo-флоу).
+ * Возвращает null, если ключ не настроен или геокодер ничего не нашёл.
+ */
+export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
+  const row = await prisma.setting.findUnique({ where: { key: 'yd_geocoder_key' } });
+  const apiKey = (row?.value ?? '').trim();
+  if (!apiKey) return null;
+
+  const url = new URL('https://geocode-maps.yandex.ru/1.x/');
+  url.searchParams.set('apikey', apiKey);
+  url.searchParams.set('geocode', `Россия, ${name}`);
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('lang', 'ru_RU');
+  url.searchParams.set('results', '1');
+  url.searchParams.set('kind', 'locality');
+
+  try {
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const member = data?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject;
+    if (!member) return null;
+    const pos = (member.Point as { pos?: string } | undefined)?.pos ?? '';
+    const [lngS, latS] = pos.split(' ');
+    const lat = parseFloat(latS);
+    const lng = parseFloat(lngS);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+    const meta = member.metaDataProperty?.GeocoderMetaData?.Address?.Components;
+    let locality: string | undefined;
+    let province: string | undefined;
+    if (Array.isArray(meta)) {
+      for (const c of meta) {
+        if (c.kind === 'locality' && typeof c.name === 'string') locality = c.name;
+        if (c.kind === 'province' && typeof c.name === 'string') province = c.name;
+        if (c.kind === 'area' && typeof c.name === 'string' && !province) province = c.name;
+      }
+    }
+    return { lat, lng, locality, province };
+  } catch {
+    return null;
+  }
+}
+
 // Статусы из публичной документации Я.Доставки Platform.
 export const RUSSIA_STATUS_LABELS: Record<string, string> = {
   DRAFT:                            'Черновик',

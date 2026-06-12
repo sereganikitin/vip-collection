@@ -10,4 +10,6 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-30 3 * * * root /var/www/vip-collection/scripts/cron-sync.sh
+# Сервер на UTC — 00:30 UTC = 03:30 МСК.
+# Если сервер на Europe/Moscow — измените на «30 3 * * *».
+30 0 * * * root /var/www/vip-collection/scripts/cron-sync.sh

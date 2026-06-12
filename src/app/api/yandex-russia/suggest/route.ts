@@ -17,8 +17,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 interface GeoSuggestion {
-  text: string;          // короткое название для показа (улица + дом)
-  full: string;          // полный адрес (для отправки в Я.Доставку)
+  /** Короткое название только улицы для показа в выпадайке («ул. Ленина», «Тверская улица»). */
+  street: string;
+  /** Полный адрес для отправки в Я.Доставку. Если у пользователя нет номера дома —
+   *  это будет «ул. Ленина, Калуга». Сам номер дома пишется отдельным полем UI. */
+  full: string;
+  /** Извлечённый из ответа номер дома (если Nominatim его смог распознать в запросе). */
+  house?: string;
   lat: number;
   lng: number;
   kind: string;
@@ -73,26 +78,34 @@ export async function GET(req: NextRequest) {
     }
     const data = (await res.json()) as NominatimItem[];
 
-    const suggestions: GeoSuggestion[] = (Array.isArray(data) ? data : [])
-      .map((d) => {
-        const lat = parseFloat(d.lat);
-        const lng = parseFloat(d.lon);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-        const addr = d.address ?? {};
-        // Короткий читаемый «улица [дом], город»
-        const streetPart = addr.road
-          ? `${addr.road}${addr.house_number ? ' ' + addr.house_number : ''}`
-          : '';
-        const cityPart = addr.city ?? addr.town ?? addr.village ?? '';
-        const shortText = [streetPart, cityPart].filter(Boolean).join(', ') || d.display_name;
-        return {
-          text: shortText,
-          full: d.display_name,
-          lat, lng,
-          kind: d.type ?? 'address',
-        };
-      })
-      .filter((x): x is GeoSuggestion => x !== null);
+    const seen = new Set<string>();
+    const suggestions: GeoSuggestion[] = [];
+    for (const d of Array.isArray(data) ? data : []) {
+      const lat = parseFloat(d.lat);
+      const lng = parseFloat(d.lon);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) continue;
+      const addr = d.address ?? {};
+      const road = addr.road ?? '';
+      const cityPart = addr.city ?? addr.town ?? addr.village ?? '';
+      // Если дороги нет — это не улица, а POI или район; для подсказки улиц
+      // такие пропускаем.
+      if (!road) continue;
+      // Дедуп: одну и ту же улицу не показываем несколько раз (Nominatim часто
+      // отдаёт «ул. Ленина» как уличный объект И как 5 разных домов).
+      const dedupKey = `${road}::${cityPart}`;
+      if (seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+      // full — для отправки в Я.Доставку: «ул. Ленина, Калуга».
+      // Номер дома прибавит фронт из отдельного поля.
+      const full = cityPart ? `${road}, ${cityPart}` : road;
+      suggestions.push({
+        street: road,
+        full,
+        house: addr.house_number ?? undefined,
+        lat, lng,
+        kind: d.type ?? 'address',
+      });
+    }
 
     return NextResponse.json({ ok: true, suggestions });
   } catch (e) {

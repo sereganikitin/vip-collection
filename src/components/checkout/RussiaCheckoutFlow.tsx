@@ -41,7 +41,14 @@ export interface RussiaSelection {
   deliveryToIso?: string;
 }
 
-interface Suggestion { text: string; full: string; lat: number; lng: number; kind: string }
+interface Suggestion {
+  street: string;     // короткое имя улицы для UI («ул. Ленина»)
+  full: string;       // адрес для отправки в Я.Доставку («ул. Ленина, Калуга»)
+  house?: string;
+  lat: number;
+  lng: number;
+  kind: string;
+}
 interface PickupPoint { id: string; name?: string; address: string; workingHours?: string; lat?: number; lng?: number }
 interface Offer {
   offerId: string;
@@ -99,12 +106,23 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [selectedPointId, setSelectedPointId] = useState<string>('');
 
-  // ── Шаг 3b: адрес (двери) ──
-  const [doorInput, setDoorInput] = useState<string>('');
-  const [doorSelected, setDoorSelected] = useState<Suggestion | null>(null);
+  // ── Шаг 3b: адрес (двери) — три отдельных поля ──
+  // 1) Улица — автокомплит из Nominatim (показываем только название улицы);
+  // 2) Дом, корпус — свободный текст;
+  // 3) Квартира / офис — свободный текст.
+  // Полный адрес собирается на отправке как "улица, город, дом N, кв. M".
+  const [streetInput, setStreetInput] = useState<string>('');
+  const [streetSelected, setStreetSelected] = useState<Suggestion | null>(null);
+  const [houseInput, setHouseInput] = useState<string>('');
+  const [aptInput, setAptInput] = useState<string>('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggLoading, setSuggLoading] = useState(false);
-  const [showDoorSuggest, setShowDoorSuggest] = useState(false);
+  const [showStreetSuggest, setShowStreetSuggest] = useState(false);
+
+  // Полный адрес для отправки в API
+  const doorFullAddress = streetSelected
+    ? `${streetSelected.full}${houseInput.trim() ? `, ${houseInput.trim()}` : ''}${aptInput.trim() ? `, кв. ${aptInput.trim()}` : ''}`
+    : '';
 
   // ── Шаг 4: офферы ──
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -128,19 +146,20 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       .finally(() => setPointsLoading(false));
   }, [mode, geoId]);
 
-  // Подсказки адреса (door): debounce, 2+ символа
+  // Подсказки улицы (door): debounce 250 мс, минимум 2 символа.
+  // После того как пользователь выбрал улицу из подсказок, suggest больше
+  // не дёргаем — он редактирует дом/квартиру в отдельных полях.
   useEffect(() => {
-    if (mode !== 'door' || !city || doorInput.trim().length < 2) {
+    if (mode !== 'door' || !city || streetInput.trim().length < 2) {
       setSuggestions([]); return;
     }
-    if (doorSelected && doorSelected.full === doorInput) {
-      // Текст совпадает с выбранным — не дёргаем suggest
+    if (streetSelected && streetSelected.street === streetInput) {
       return;
     }
     const t = window.setTimeout(() => {
       setSuggLoading(true);
       const url = new URL('/api/yandex-russia/suggest', window.location.origin);
-      url.searchParams.set('text', doorInput.trim());
+      url.searchParams.set('text', streetInput.trim());
       url.searchParams.set('city', city);
       fetch(url.toString())
         .then((r) => r.json())
@@ -152,7 +171,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         .finally(() => setSuggLoading(false));
     }, 250);
     return () => window.clearTimeout(t);
-  }, [doorInput, mode, city, doorSelected]);
+  }, [streetInput, mode, city, streetSelected]);
 
   // Сохраняем последние props в refs, чтобы авто-расчёт не дёргался
   // на каждом ре-рендере родителя (родитель пересоздаёт items/customer
@@ -203,21 +222,23 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   }, [mode, selectedPointId, calculate]);
 
   useEffect(() => {
-    if (mode !== 'door' || !doorSelected) return;
+    if (mode !== 'door' || !streetSelected) return;
+    // Расчёт пересчитываем при выборе улицы И при изменении дома/квартиры
+    // (дебаунс 400 мс, чтобы не дёргать при наборе каждого символа дома).
     const t = window.setTimeout(() => {
       const c = customerRef.current;
-      calculate(`door:${doorSelected.full}`, {
+      calculate(`door:${doorFullAddress}`, {
         items: itemsRef.current, mode: 'door',
-        destAddress: doorSelected.full,
+        destAddress: doorFullAddress,
         destLocality: city,
-        destGeopoint: { lat: doorSelected.lat, lng: doorSelected.lng },
+        destGeopoint: { lat: streetSelected.lat, lng: streetSelected.lng },
         customerName: c.name || undefined,
         customerPhone: c.phone || undefined,
         customerEmail: c.email || undefined,
       });
-    }, 200);
+    }, 400);
     return () => window.clearTimeout(t);
-  }, [mode, doorSelected, city, calculate]);
+  }, [mode, streetSelected, doorFullAddress, city, calculate]);
 
   // ── Какой оффер показываем как итоговый ──
   // Берём минимальную цену. Округляем priceRub до целого, чтобы итог
@@ -244,7 +265,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       geoId: geoId ?? undefined,
       ...(mode === 'pickup'
         ? { pointId: selectedPointId || undefined, pointAddress: selPoint?.address }
-        : { doorAddress: doorSelected?.full, doorGeopoint: doorSelected ? { lat: doorSelected.lat, lng: doorSelected.lng } : undefined }),
+        : {
+            doorAddress: doorFullAddress || undefined,
+            doorGeopoint: streetSelected ? { lat: streetSelected.lat, lng: streetSelected.lng } : undefined,
+          }),
       ...(bestOffer
         ? {
             offerId: bestOffer.offerId,
@@ -255,7 +279,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           }
         : {}),
     });
-  }, [mode, city, geoId, selectedPointId, points, doorSelected, bestOffer, onChange]);
+  }, [mode, city, geoId, selectedPointId, points, streetSelected, doorFullAddress, bestOffer, onChange]);
 
   // Центр карты — среднее по координатам ПВЗ
   const fallbackCenter = useMemo(() => {
@@ -291,7 +315,11 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
             setCity('');
             setShowCitySuggest(true);
             // При смене текста сбрасываем выбор ПВЗ/адреса
-            setSelectedPointId(''); setDoorSelected(null); setDoorInput('');
+            setSelectedPointId('');
+            setStreetSelected(null);
+            setStreetInput('');
+            setHouseInput('');
+            setAptInput('');
           }}
           onFocus={() => setShowCitySuggest(true)}
           onBlur={() => window.setTimeout(() => setShowCitySuggest(false), 150)}
@@ -398,44 +426,90 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         </div>
       )}
 
-      {/* Курьер-режим: адрес с подсказками от 2 символов */}
+      {/* Курьер-режим: 3 отдельных поля — улица, дом, квартира */}
       {city && mode === 'door' && (
-        <div className="relative">
-          <label className="block text-sm font-medium mb-1.5">Адрес получателя в городе «{city}» *</label>
-          <input
-            type="text"
-            value={doorInput}
-            onChange={(e) => {
-              setDoorInput(e.target.value);
-              if (doorSelected && doorSelected.full !== e.target.value) setDoorSelected(null);
-              setShowDoorSuggest(true);
-            }}
-            onFocus={() => setShowDoorSuggest(true)}
-            onBlur={() => window.setTimeout(() => setShowDoorSuggest(false), 150)}
-            placeholder="Начните вводить улицу (например, «Лен…»)"
-            autoComplete="off"
-            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-          />
-          {showDoorSuggest && suggestions.length > 0 && !doorSelected && (
-            <div className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {suggestions.map((s, i) => (
-                <button
-                  key={`${s.lat}-${s.lng}-${i}`}
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setDoorSelected(s); setDoorInput(s.full); setSuggestions([]); setShowDoorSuggest(false); }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-bg border-b border-border last:border-b-0"
-                >
-                  {s.full}
-                </button>
-              ))}
+        <div className="space-y-3">
+          {/* Улица — автокомплит, только название улицы */}
+          <div className="relative">
+            <label className="block text-sm font-medium mb-1.5">Улица в городе «{city}» *</label>
+            <input
+              type="text"
+              value={streetInput}
+              onChange={(e) => {
+                setStreetInput(e.target.value);
+                if (streetSelected && streetSelected.street !== e.target.value) {
+                  setStreetSelected(null);
+                }
+                setShowStreetSuggest(true);
+              }}
+              onFocus={() => setShowStreetSuggest(true)}
+              onBlur={() => window.setTimeout(() => setShowStreetSuggest(false), 150)}
+              placeholder="Например, «Ленина» или «Тверская»"
+              autoComplete="off"
+              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            />
+            {showStreetSuggest && suggestions.length > 0 && !streetSelected && (
+              <div className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={`${s.lat}-${s.lng}-${i}`}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setStreetSelected(s);
+                      setStreetInput(s.street);
+                      setSuggestions([]);
+                      setShowStreetSuggest(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-bg border-b border-border last:border-b-0"
+                  >
+                    {s.street}
+                  </button>
+                ))}
+              </div>
+            )}
+            {suggLoading && !streetSelected && streetInput.length >= 2 && (
+              <p className="text-xs text-text-muted mt-1.5">Ищем улицы…</p>
+            )}
+            {streetSelected && (
+              <p className="mt-1.5 text-xs text-success flex items-center gap-1">
+                <Check size={12} /> Улица распознана: {streetSelected.street}
+              </p>
+            )}
+          </div>
+
+          {/* Дом, корпус — текст */}
+          {streetSelected && (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Дом, корпус, строение *</label>
+                <input
+                  type="text"
+                  value={houseInput}
+                  onChange={(e) => setHouseInput(e.target.value)}
+                  placeholder="например, 10 или 12к2 стр. 3"
+                  autoComplete="off"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Квартира / офис</label>
+                <input
+                  type="text"
+                  value={aptInput}
+                  onChange={(e) => setAptInput(e.target.value)}
+                  placeholder="необязательно"
+                  autoComplete="off"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                />
+              </div>
             </div>
           )}
-          {suggLoading && !doorSelected && doorInput.length >= 2 && (
-            <p className="text-xs text-text-muted mt-1.5">Ищем адреса…</p>
-          )}
-          {doorSelected && (
-            <p className="mt-1.5 text-xs text-success flex items-center gap-1">
-              <Check size={12} /> Адрес распознан: {doorSelected.full}
+
+          {/* Итог собранного адреса — чтобы было видно, что улетит в Я.Доставку */}
+          {streetSelected && houseInput.trim() && (
+            <p className="text-xs text-text-muted">
+              Полный адрес: <span className="text-text">{doorFullAddress}</span>
             </p>
           )}
         </div>
