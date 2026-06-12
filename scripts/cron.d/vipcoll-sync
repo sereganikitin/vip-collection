@@ -1,0 +1,13 @@
+# Ежедневный sync товаров vip-collection.ru → vipcoll.ru.
+# Установка:
+#   cp scripts/cron.d/vipcoll-sync /etc/cron.d/vipcoll-sync
+#   systemctl reload cron  (или service cron reload)
+#
+# Время в локальной таймзоне сервера. Проверить:
+#   timedatectl
+# Если сервер на UTC и нужно 03:30 МСК — поставить 30 0 (00:30 UTC = 03:30 МСК).
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+30 3 * * * root /var/www/vip-collection/scripts/cron-sync.sh

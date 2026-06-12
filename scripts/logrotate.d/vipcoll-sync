@@ -1,0 +1,17 @@
+# Ротация лога sync-скрипта.
+# Установка:
+#   cp scripts/logrotate.d/vipcoll-sync /etc/logrotate.d/vipcoll-sync
+# Проверка конфига без ротации:
+#   logrotate -d /etc/logrotate.d/vipcoll-sync
+# Принудительная ротация:
+#   logrotate -f /etc/logrotate.d/vipcoll-sync
+
+/var/log/vipcoll-sync.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+}
