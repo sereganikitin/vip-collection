@@ -110,13 +110,9 @@ export default function PickupPointsMap({ points, selectedId, onSelect, fallback
               <div className="text-sm space-y-1">
                 <p className="font-medium">{p.address}</p>
                 {p.workingHours && <p className="text-xs text-gray-600">{p.workingHours}</p>}
-                <button
-                  type="button"
-                  onClick={() => onSelect(p.id)}
-                  className="mt-1 inline-block px-2 py-1 bg-accent text-primary font-medium rounded text-xs"
-                >
-                  {p.id === selectedId ? '✓ Выбран' : 'Выбрать этот ПВЗ'}
-                </button>
+                {p.id === selectedId && (
+                  <p className="text-xs text-green-700 font-medium">✓ Выбран</p>
+                )}
               </div>
             </Popup>
           </Marker>

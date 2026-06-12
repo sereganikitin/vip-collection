@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const text = (sp.get('text') ?? '').trim();
   const city = (sp.get('city') ?? '').trim();
-  const kind = (sp.get('kind') ?? 'house').trim(); // locality | street | house
 
   if (text.length < 2) {
     return NextResponse.json({ ok: true, suggestions: [] });
@@ -37,9 +36,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Формируем geocode-запрос. Если задан город — приписываем его,
-  // чтобы получить подсказки в его пределах.
-  const geocode = city && kind !== 'locality' ? `${city}, ${text}` : text;
+  // Формируем geocode-запрос: «Город, набранный текст». Без kind-фильтра —
+  // Geocoder отлично отдаёт улицы/дома при частичном вводе, kind=house
+  // не возвращает результаты, пока пользователь не наберёт номер дома.
+  const geocode = city ? `${city}, ${text}` : text;
 
   const url = new URL('https://geocode-maps.yandex.ru/1.x/');
   url.searchParams.set('apikey', apiKey);
@@ -47,11 +47,6 @@ export async function GET(req: NextRequest) {
   url.searchParams.set('format', 'json');
   url.searchParams.set('lang', 'ru_RU');
   url.searchParams.set('results', '8');
-  url.searchParams.set('kind', kind);
-  if (city && kind === 'house') {
-    // Привязка к городу — bbox через rspn=1 + Yandex автоматически приоритизирует
-    url.searchParams.set('rspn', '1');
-  }
 
   try {
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6000) });

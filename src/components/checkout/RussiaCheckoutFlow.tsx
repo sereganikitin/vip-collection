@@ -1,23 +1,17 @@
 'use client';
 
-// Чекаут-флоу для Я.Доставки по России.
+// Чекаут-флоу Я.Доставки по России.
 //
-// UX:
-//   1. Город — автокомплит из RUSSIA_GEO_IDS, или ручной ввод (для городов
-//      вне таблицы оставляем кнопку «не нашёл — задам geo_id вручную»).
-//   2. Режим — ПВЗ-получатель или Курьер до двери.
-//   3. Для ПВЗ — карта Leaflet + список под ней.
-//   4. Для двери — подсказки по адресу через Geocoder.
-//   5. Кнопка «Посчитать стоимость» → офферы → клиент выбирает один.
-//
-// onChange отдаёт родителю всё состояние выбора, чтобы тот:
-//   - добавил priceRub к totalPrice,
-//   - заблокировал submit пока !ready,
-//   - отправил yandexRussiaMeta в /api/orders.
+// UX-принципы:
+//   1. Подсказки появляются после 2+ символов (не вываливают весь список).
+//   2. Клик по ПВЗ на карте = выбор + автоматический расчёт стоимости.
+//   3. Под картой показывается одна цена (минимальная из офферов),
+//      без длинного списка вариантов и без дубликатов одинаковой цены.
+//   4. Адрес «до двери» — кастомный автокомплит от Geocoder с дебаунсом.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Check, Truck, Package, MapPin } from 'lucide-react';
+import { Truck, Package, MapPin, Check } from 'lucide-react';
 import { listCities, findGeoId } from '@/lib/russia-geo';
 
 const PickupPointsMap = dynamic(() => import('./PickupPointsMap'), {
@@ -32,17 +26,14 @@ const PickupPointsMap = dynamic(() => import('./PickupPointsMap'), {
 export type Mode = 'pickup' | 'door';
 
 export interface RussiaSelection {
-  ready: boolean;          // готов ли к отправке заказа
+  ready: boolean;
   mode?: Mode;
   city?: string;
   geoId?: number;
-  // pickup
   pointId?: string;
   pointAddress?: string;
-  // door
   doorAddress?: string;
   doorGeopoint?: { lat: number; lng: number };
-  // offer
   offerId?: string;
   priceRub?: number;
   partner?: string;
@@ -77,175 +68,189 @@ function formatDateRange(from?: string, to?: string): string | null {
   return a === b ? a : `${a} – ${b}`;
 }
 
-export default function RussiaCheckoutFlow({ items, customer, onChange }: Props) {
-  // ── шаг 1: город ──
-  const cities = useMemo(() => listCities(), []);
-  const [city, setCity] = useState<string>('');
-  const [customGeoId, setCustomGeoId] = useState<string>('');
-  const effectiveGeoId: number | null =
-    customGeoId && /^\d+$/.test(customGeoId)
-      ? parseInt(customGeoId, 10)
-      : (city ? findGeoId(city) : null);
+function normalizeCityKey(s: string): string {
+  return s.toLowerCase().replace(/ё/g, 'е').trim();
+}
 
-  // ── шаг 2: режим ──
+export default function RussiaCheckoutFlow({ items, customer, onChange }: Props) {
+  // ── Шаг 1: город ──
+  const cities = useMemo(() => listCities(), []);
+  const [cityInput, setCityInput] = useState<string>('');
+  const [city, setCity] = useState<string>('');     // подтверждённое имя из cities
+  const [showCitySuggest, setShowCitySuggest] = useState(false);
+
+  const filteredCities = useMemo(() => {
+    const q = cityInput.trim();
+    if (q.length < 2) return [];
+    const key = normalizeCityKey(q);
+    return cities
+      .filter((c) => normalizeCityKey(c.name).includes(key))
+      .slice(0, 8);
+  }, [cityInput, cities]);
+
+  const geoId = city ? findGeoId(city) : null;
+
+  // ── Шаг 2: режим ──
   const [mode, setMode] = useState<Mode>('pickup');
 
-  // ── шаг 3: ПВЗ или адрес ──
+  // ── Шаг 3a: ПВЗ ──
   const [points, setPoints] = useState<PickupPoint[]>([]);
   const [pointsLoading, setPointsLoading] = useState(false);
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [selectedPointId, setSelectedPointId] = useState<string>('');
 
-  const [doorAddressInput, setDoorAddressInput] = useState<string>('');
+  // ── Шаг 3b: адрес (двери) ──
+  const [doorInput, setDoorInput] = useState<string>('');
   const [doorSelected, setDoorSelected] = useState<Suggestion | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [suggLoading, setSuggLoading] = useState(false);
+  const [showDoorSuggest, setShowDoorSuggest] = useState(false);
 
-  // ── шаг 4: офферы ──
+  // ── Шаг 4: офферы ──
   const [offers, setOffers] = useState<Offer[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersError, setOffersError] = useState<string | null>(null);
-  const [chosenOfferId, setChosenOfferId] = useState<string>('');
 
   // Загружаем ПВЗ при смене города (только в pickup-режиме)
   useEffect(() => {
-    if (mode !== 'pickup' || !effectiveGeoId) {
+    if (mode !== 'pickup' || !geoId) {
       setPoints([]); setPointsError(null); return;
     }
-    setPointsLoading(true);
-    setPointsError(null);
-    setPoints([]);
-    setSelectedPointId('');
-    setOffers([]); setChosenOfferId('');
-    fetch(`/api/yandex-russia/pickup-points?geoId=${effectiveGeoId}`)
+    setPointsLoading(true); setPointsError(null);
+    setPoints([]); setSelectedPointId(''); setOffers([]);
+    fetch(`/api/yandex-russia/pickup-points?geoId=${geoId}`)
       .then((r) => r.json())
       .then((d) => {
-        if (!d.ok) {
-          setPointsError(d.error || 'Не удалось получить ПВЗ');
-        } else {
-          // Фильтруем точки без координат — на карту их не вывести.
-          const withCoords = (d.points as PickupPoint[] | undefined)?.filter(
-            (p) => typeof p.lat === 'number' && typeof p.lng === 'number'
-          ) ?? [];
-          setPoints(withCoords);
-        }
+        if (!d.ok) setPointsError(d.error || 'Не удалось получить ПВЗ');
+        else setPoints(Array.isArray(d.points) ? d.points : []);
       })
       .catch((e) => setPointsError(String(e)))
       .finally(() => setPointsLoading(false));
-  }, [mode, effectiveGeoId]);
+  }, [mode, geoId]);
 
-  // Загрузка адресных подсказок с дебаунсом (только в door-режиме)
+  // Подсказки адреса (door): debounce, 2+ символа
   useEffect(() => {
-    if (mode !== 'door' || !city || doorAddressInput.trim().length < 3) {
-      setSuggestions([]);
+    if (mode !== 'door' || !city || doorInput.trim().length < 2) {
+      setSuggestions([]); return;
+    }
+    if (doorSelected && doorSelected.full === doorInput) {
+      // Текст совпадает с выбранным — не дёргаем suggest
       return;
     }
     const t = window.setTimeout(() => {
       setSuggLoading(true);
       const url = new URL('/api/yandex-russia/suggest', window.location.origin);
-      url.searchParams.set('text', doorAddressInput.trim());
+      url.searchParams.set('text', doorInput.trim());
       url.searchParams.set('city', city);
-      url.searchParams.set('kind', 'house');
       fetch(url.toString())
         .then((r) => r.json())
         .then((d) => {
-          if (d.ok && Array.isArray(d.suggestions)) {
-            setSuggestions(d.suggestions);
-          } else {
-            setSuggestions([]);
-          }
+          if (d.ok && Array.isArray(d.suggestions)) setSuggestions(d.suggestions);
+          else setSuggestions([]);
         })
         .catch(() => setSuggestions([]))
         .finally(() => setSuggLoading(false));
     }, 250);
     return () => window.clearTimeout(t);
-  }, [doorAddressInput, mode, city]);
+  }, [doorInput, mode, city, doorSelected]);
 
-  // Сброс выбранного оффера при смене режима/города/ПВЗ/адреса
-  useEffect(() => {
-    setOffers([]);
-    setChosenOfferId('');
-  }, [mode, effectiveGeoId, selectedPointId, doorSelected]);
-
-  const canCalculate =
-    (mode === 'pickup' && !!selectedPointId) ||
-    (mode === 'door' && !!doorSelected);
-
-  const calculate = useCallback(async () => {
-    setOffersLoading(true);
-    setOffersError(null);
-    setOffers([]);
+  // ── Автоматический расчёт при выборе ПВЗ или адреса ──
+  // Дебаунсим, чтобы при быстром перещёлкивании по маркерам не спамить API.
+  const lastQuoteKey = useRef<string>('');
+  const calculate = useCallback(async (key: string, body: Record<string, unknown>) => {
+    lastQuoteKey.current = key;
+    setOffersLoading(true); setOffersError(null); setOffers([]);
     try {
-      const body: Record<string, unknown> = {
-        items,
-        mode,
-        customerName: customer.name || undefined,
-        customerPhone: customer.phone || undefined,
-        customerEmail: customer.email || undefined,
-      };
-      if (mode === 'pickup') {
-        body.destPlatformId = selectedPointId;
-      } else if (doorSelected) {
-        body.destAddress = doorSelected.full;
-        body.destLocality = city;
-        body.destGeopoint = { lat: doorSelected.lat, lng: doorSelected.lng };
-      }
       const r = await fetch('/api/checkout/russia-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const d = await r.json();
-      if (!r.ok || !d.ok) {
-        setOffersError(d.error || `HTTP ${r.status}`);
-      } else {
-        const list = Array.isArray(d.offers) ? d.offers as Offer[] : [];
-        setOffers(list);
-        if (list.length > 0) setChosenOfferId(list[0].offerId); // дефолт — первый
-      }
+      // Игнорируем устаревший ответ, если пользователь уже перевыбрал
+      if (lastQuoteKey.current !== key) return;
+      if (!r.ok || !d.ok) setOffersError(d.error || `HTTP ${r.status}`);
+      else setOffers(Array.isArray(d.offers) ? d.offers : []);
     } catch (e) {
-      setOffersError(String(e));
+      if (lastQuoteKey.current === key) setOffersError(String(e));
     } finally {
-      setOffersLoading(false);
+      if (lastQuoteKey.current === key) setOffersLoading(false);
     }
-  }, [items, mode, customer, selectedPointId, doorSelected, city]);
+  }, []);
 
-  // Уведомляем родителя об изменениях
   useEffect(() => {
-    const chosen = offers.find((o) => o.offerId === chosenOfferId);
-    const ready = !!chosen;
+    if (mode !== 'pickup' || !selectedPointId) return;
+    const t = window.setTimeout(() => {
+      calculate(`pickup:${selectedPointId}`, {
+        items, mode: 'pickup',
+        destPlatformId: selectedPointId,
+        customerName: customer.name || undefined,
+        customerPhone: customer.phone || undefined,
+        customerEmail: customer.email || undefined,
+      });
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [mode, selectedPointId, items, customer, calculate]);
+
+  useEffect(() => {
+    if (mode !== 'door' || !doorSelected) return;
+    const t = window.setTimeout(() => {
+      calculate(`door:${doorSelected.full}`, {
+        items, mode: 'door',
+        destAddress: doorSelected.full,
+        destLocality: city,
+        destGeopoint: { lat: doorSelected.lat, lng: doorSelected.lng },
+        customerName: customer.name || undefined,
+        customerPhone: customer.phone || undefined,
+        customerEmail: customer.email || undefined,
+      });
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [mode, doorSelected, city, items, customer, calculate]);
+
+  // ── Какой оффер показываем как итоговый ──
+  // Берём минимальную цену. Если есть варианты дороже — рядом сообщим.
+  const bestOffer = useMemo<Offer | null>(() => {
+    if (offers.length === 0) return null;
+    return [...offers].sort((a, b) => a.priceRub - b.priceRub)[0];
+  }, [offers]);
+  const uniquePrices = useMemo(() => {
+    const s = new Set(offers.map((o) => Math.round(o.priceRub)));
+    return s.size;
+  }, [offers]);
+
+  // ── onChange родителю ──
+  useEffect(() => {
     const selPoint = points.find((p) => p.id === selectedPointId);
-    const sel: RussiaSelection = {
+    const ready = !!bestOffer;
+    onChange({
       ready,
       mode,
       city: city || undefined,
-      geoId: effectiveGeoId ?? undefined,
+      geoId: geoId ?? undefined,
       ...(mode === 'pickup'
         ? { pointId: selectedPointId || undefined, pointAddress: selPoint?.address }
         : { doorAddress: doorSelected?.full, doorGeopoint: doorSelected ? { lat: doorSelected.lat, lng: doorSelected.lng } : undefined }),
-      ...(chosen
+      ...(bestOffer
         ? {
-            offerId: chosen.offerId,
-            priceRub: chosen.priceRub,
-            partner: chosen.partner,
-            deliveryFromIso: chosen.deliveryFromIso,
-            deliveryToIso: chosen.deliveryToIso,
+            offerId: bestOffer.offerId,
+            priceRub: bestOffer.priceRub,
+            partner: bestOffer.partner,
+            deliveryFromIso: bestOffer.deliveryFromIso,
+            deliveryToIso: bestOffer.deliveryToIso,
           }
         : {}),
-    };
-    onChange(sel);
-  }, [
-    mode, city, effectiveGeoId, selectedPointId, doorSelected,
-    points, offers, chosenOfferId, onChange,
-  ]);
+    });
+  }, [mode, city, geoId, selectedPointId, points, doorSelected, bestOffer, onChange]);
 
-  // Координаты центра города для карты, когда ПВЗ ещё не загружены
-  // (берём средние координаты загруженных ПВЗ, либо ничего)
+  // Центр карты — среднее по координатам ПВЗ
   const fallbackCenter = useMemo(() => {
-    if (points.length === 0) return undefined;
-    const lat = points.reduce((s, p) => s + (p.lat ?? 0), 0) / points.length;
-    const lng = points.reduce((s, p) => s + (p.lng ?? 0), 0) / points.length;
-    return { lat, lng };
+    const withCoords = points.filter((p) => typeof p.lat === 'number' && typeof p.lng === 'number');
+    if (withCoords.length === 0) return undefined;
+    return {
+      lat: withCoords.reduce((s, p) => s + (p.lat ?? 0), 0) / withCoords.length,
+      lng: withCoords.reduce((s, p) => s + (p.lng ?? 0), 0) / withCoords.length,
+    };
   }, [points]);
 
   const mapPoints = useMemo(
@@ -256,40 +261,58 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     [points]
   );
 
+  const selectedPoint = points.find((p) => p.id === selectedPointId);
+  const bestRange = bestOffer ? formatDateRange(bestOffer.deliveryFromIso, bestOffer.deliveryToIso) : null;
+
   return (
     <div className="space-y-4">
-      {/* Город */}
-      <div className="grid sm:grid-cols-[2fr_1fr] gap-3">
-        <div>
-          <label className="block text-sm font-medium mb-1.5">Город получателя *</label>
-          <input
-            type="text"
-            list="russia-cities-list"
-            value={city}
-            onChange={(e) => { setCity(e.target.value); setCustomGeoId(''); setDoorSelected(null); setDoorAddressInput(''); }}
-            placeholder="Калуга, Казань, Новосибирск…"
-            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-          />
-          <datalist id="russia-cities-list">
-            {cities.map((c) => <option key={c.geoId} value={c.name} />)}
-          </datalist>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1.5">
-            или geo_id <span className="text-text-muted text-xs">(если города нет в списке)</span>
-          </label>
-          <input
-            type="text"
-            value={customGeoId}
-            onChange={(e) => { setCustomGeoId(e.target.value.replace(/\D/g, '')); setCity(''); }}
-            placeholder="например, 213"
-            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-          />
-        </div>
+      {/* Город — кастомный автокомплит, подсказки только при 2+ символах */}
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1.5">Город получателя *</label>
+        <input
+          type="text"
+          value={cityInput}
+          onChange={(e) => {
+            setCityInput(e.target.value);
+            setCity('');
+            setShowCitySuggest(true);
+            // При смене текста сбрасываем выбор ПВЗ/адреса
+            setSelectedPointId(''); setDoorSelected(null); setDoorInput('');
+          }}
+          onFocus={() => setShowCitySuggest(true)}
+          onBlur={() => window.setTimeout(() => setShowCitySuggest(false), 150)}
+          placeholder="Начните вводить название города (например, «Кал…»)"
+          autoComplete="off"
+          className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+        />
+        {showCitySuggest && filteredCities.length > 0 && !city && (
+          <div className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {filteredCities.map((c) => (
+              <button
+                key={c.geoId}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); setCity(c.name); setCityInput(c.name); setShowCitySuggest(false); }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-bg border-b border-border last:border-b-0"
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {cityInput.length >= 2 && filteredCities.length === 0 && !city && (
+          <p className="mt-1.5 text-xs text-text-muted">
+            Не нашли «{cityInput}» в нашем списке поддерживаемых городов. Свяжитесь с нами, добавим вручную.
+          </p>
+        )}
+        {city && (
+          <p className="mt-1.5 text-xs text-success flex items-center gap-1">
+            <Check size={12} /> Город выбран: {city}
+          </p>
+        )}
       </div>
 
       {/* Режим */}
-      {effectiveGeoId && (
+      {city && (
         <div>
           <p className="text-sm font-medium mb-1.5">Способ получения *</p>
           <div className="flex gap-2 flex-wrap">
@@ -319,73 +342,71 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         </div>
       )}
 
-      {/* ПВЗ-режим: карта + список */}
-      {effectiveGeoId && mode === 'pickup' && (
+      {/* ПВЗ-режим: только карта (без длинного списка) */}
+      {city && mode === 'pickup' && (
         <div className="space-y-3">
-          {pointsLoading && <p className="text-sm text-text-muted">Загружаем список ПВЗ…</p>}
+          {pointsLoading && <p className="text-sm text-text-muted">Загружаем ПВЗ в городе {city}…</p>}
           {pointsError && <p className="text-sm text-danger break-words">Ошибка: {pointsError}</p>}
           {!pointsLoading && !pointsError && points.length === 0 && (
             <p className="text-sm text-text-muted">В этом городе ПВЗ не найдены. Попробуйте курьер до двери.</p>
           )}
           {!pointsLoading && mapPoints.length > 0 && (
             <>
-              <p className="text-xs text-text-muted">Нажмите на маркер на карте или выберите из списка:</p>
+              <p className="text-xs text-text-muted">Кликните по маркеру на карте, чтобы выбрать ПВЗ:</p>
               <PickupPointsMap
                 points={mapPoints}
                 selectedId={selectedPointId}
                 onSelect={setSelectedPointId}
                 fallbackCenter={fallbackCenter}
               />
-              <div className="max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border">
-                {points.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setSelectedPointId(p.id)}
-                    className={`w-full text-left p-3 text-sm hover:bg-bg transition-colors ${
-                      selectedPointId === p.id ? 'bg-accent/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <MapPin size={14} className={`flex-shrink-0 mt-0.5 ${selectedPointId === p.id ? 'text-accent' : 'text-text-muted'}`} />
-                      <div>
-                        <p className="font-medium">{p.address}</p>
-                        {p.workingHours && <p className="text-xs text-text-muted">{p.workingHours}</p>}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {/* ПВЗ без координат — отдельно списком (без карты) */}
               {points.length > mapPoints.length && (
-                <p className="text-xs text-text-muted">
-                  {points.length - mapPoints.length} ПВЗ без координат — отображаются только в списке выше.
+                <p className="text-[11px] text-text-muted">
+                  ({points.length - mapPoints.length} ПВЗ без координат — на карте не видны)
                 </p>
               )}
             </>
           )}
+
+          {/* Подтверждение выбора ПВЗ */}
+          {selectedPoint && (
+            <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
+              <p className="text-sm font-medium flex items-start gap-1.5">
+                <MapPin size={14} className="text-accent flex-shrink-0 mt-0.5" />
+                <span>{selectedPoint.address}</span>
+              </p>
+              {selectedPoint.workingHours && (
+                <p className="text-xs text-text-muted mt-1">Часы работы: {selectedPoint.workingHours}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Курьер-режим: адрес с автодополнением */}
-      {effectiveGeoId && mode === 'door' && (
-        <div className="space-y-2 relative">
-          <label className="block text-sm font-medium">Адрес получателя в городе «{city || effectiveGeoId}» *</label>
+      {/* Курьер-режим: адрес с подсказками от 2 символов */}
+      {city && mode === 'door' && (
+        <div className="relative">
+          <label className="block text-sm font-medium mb-1.5">Адрес получателя в городе «{city}» *</label>
           <input
             type="text"
-            value={doorAddressInput}
-            onChange={(e) => { setDoorAddressInput(e.target.value); setDoorSelected(null); }}
-            placeholder="Улица, дом, квартира"
+            value={doorInput}
+            onChange={(e) => {
+              setDoorInput(e.target.value);
+              if (doorSelected && doorSelected.full !== e.target.value) setDoorSelected(null);
+              setShowDoorSuggest(true);
+            }}
+            onFocus={() => setShowDoorSuggest(true)}
+            onBlur={() => window.setTimeout(() => setShowDoorSuggest(false), 150)}
+            placeholder="Начните вводить улицу (например, «Лен…»)"
+            autoComplete="off"
             className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           />
-          {/* Выпадающий список подсказок */}
-          {suggestions.length > 0 && !doorSelected && (
-            <div className="absolute z-10 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {showDoorSuggest && suggestions.length > 0 && !doorSelected && (
+            <div className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
               {suggestions.map((s, i) => (
                 <button
                   key={`${s.lat}-${s.lng}-${i}`}
                   type="button"
-                  onClick={() => { setDoorSelected(s); setDoorAddressInput(s.full); setSuggestions([]); }}
+                  onMouseDown={(e) => { e.preventDefault(); setDoorSelected(s); setDoorInput(s.full); setSuggestions([]); setShowDoorSuggest(false); }}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-bg border-b border-border last:border-b-0"
                 >
                   {s.full}
@@ -393,65 +414,43 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
               ))}
             </div>
           )}
-          {suggLoading && !doorSelected && (
-            <p className="text-xs text-text-muted">Ищем адреса…</p>
+          {suggLoading && !doorSelected && doorInput.length >= 2 && (
+            <p className="text-xs text-text-muted mt-1.5">Ищем адреса…</p>
           )}
           {doorSelected && (
-            <p className="text-xs text-success">
-              Выбран адрес: {doorSelected.full}
+            <p className="mt-1.5 text-xs text-success flex items-center gap-1">
+              <Check size={12} /> Адрес распознан: {doorSelected.full}
             </p>
           )}
         </div>
       )}
 
-      {/* Кнопка расчёта */}
-      {effectiveGeoId && canCalculate && offers.length === 0 && (
-        <button
-          type="button"
-          onClick={calculate}
-          disabled={offersLoading}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
-        >
-          {offersLoading ? 'Считаем…' : 'Посчитать стоимость доставки'}
-        </button>
+      {/* Итоговая стоимость доставки */}
+      {offersLoading && (
+        <p className="text-sm text-text-muted">Считаем стоимость доставки…</p>
       )}
-
-      {offersError && <p className="text-sm text-danger break-words">Ошибка: {offersError}</p>}
-
-      {/* Офферы */}
-      {offers.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Выберите вариант доставки:</p>
-          <div className="space-y-1.5">
-            {offers.map((o) => {
-              const range = formatDateRange(o.deliveryFromIso, o.deliveryToIso);
-              const isChosen = chosenOfferId === o.offerId;
-              return (
-                <label
-                  key={o.offerId}
-                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                    isChosen ? 'border-accent bg-accent/5' : 'border-border hover:border-accent'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="russia-offer"
-                    value={o.offerId}
-                    checked={isChosen}
-                    onChange={() => setChosenOfferId(o.offerId)}
-                    className="accent-accent"
-                  />
-                  <div className="flex items-center gap-3 flex-wrap min-w-0 flex-1">
-                    <span className="font-semibold">{formatPrice(o.priceRub)}</span>
-                    {o.partner && (
-                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded">{o.partner}</span>
-                    )}
-                    {range && <span className="text-xs text-text-muted">{range}</span>}
-                  </div>
-                  {isChosen && <Check size={16} className="text-accent" />}
-                </label>
-              );
-            })}
+      {offersError && <p className="text-sm text-danger break-words">Ошибка расчёта: {offersError}</p>}
+      {bestOffer && !offersLoading && (
+        <div className="p-3 bg-success/5 border border-success/30 rounded-lg">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm">
+                <span className="text-text-muted">Стоимость доставки: </span>
+                <span className="font-bold text-lg text-success">{formatPrice(bestOffer.priceRub)}</span>
+              </p>
+              {bestRange && (
+                <p className="text-xs text-text-muted">Срок: {bestRange}</p>
+              )}
+              {bestOffer.partner && (
+                <p className="text-xs text-text-muted">Перевозчик: {bestOffer.partner}</p>
+              )}
+            </div>
+            {uniquePrices > 1 && (
+              <p className="text-[11px] text-text-muted text-right max-w-[40%]">
+                Показана минимальная из {uniquePrices} вариантов.<br />
+                Уточним на этапе подтверждения заказа.
+              </p>
+            )}
           </div>
         </div>
       )}
