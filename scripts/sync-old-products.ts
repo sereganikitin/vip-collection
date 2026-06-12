@@ -28,12 +28,29 @@ function normalize(s: string): string {
 }
 
 async function findOrCreateBrand(name: string): Promise<string> {
-  const safe = (name || 'VIP COLLECTION').trim();
+  // Отрезаем парентетические суффиксы вида «OLIDIK (КИТАЙ)» / «Neri Karra (Турция)»
+  // — это лейбл страны производства, который старый сайт лепит к имени бренда.
+  // Без этого «OLIDIK» и «OLIDIK (КИТАЙ)» становились бы двумя разными записями,
+  // а при генерации id регэксп всё равно сводил их к одному → unique-конфликт.
+  const safe = (name || 'VIP COLLECTION').replace(/\s*\([^)]*\)\s*$/g, '').trim();
   const target = normalize(safe);
   const all = await prisma.brand.findMany();
-  const m = all.find((b) => normalize(b.name) === target);
-  if (m) return m.id;
+
+  // 1. Совпадение по нормализованному имени
+  const byName = all.find((b) => normalize(b.name) === target);
+  if (byName) return byName.id;
+
+  // 2. Кандидат на id
   const id = safe.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `brand-${Date.now()}`;
+
+  // 3. Если такой id уже есть (имя в БД написано иначе, но id совпадает) —
+  //    переиспользуем существующий бренд, чтобы не падать на unique-конфликте.
+  const byId = all.find((b) => b.id === id);
+  if (byId) {
+    console.log(`  ~ brand id reuse: "${safe}" → existing "${byId.name}" (id=${id})`);
+    return byId.id;
+  }
+
   console.log(`  + new brand: "${safe}" (id=${id})`);
   return (await prisma.brand.create({ data: { id, name: safe, isActive: true } })).id;
 }
