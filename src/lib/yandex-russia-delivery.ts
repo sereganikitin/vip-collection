@@ -50,21 +50,10 @@ export interface CityGeoInfo {
  * Ключ берётся из настроек `yd_geocoder_key` (тот же, что у Cargo-флоу).
  * Возвращает null, если ключ не настроен или геокодер ничего не нашёл.
  */
-export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
-  const row = await prisma.setting.findUnique({ where: { key: 'yd_geocoder_key' } });
-  const apiKey = (row?.value ?? '').trim();
-  if (!apiKey) {
-    console.warn('[geocodeCity] yd_geocoder_key пустой');
-    return null;
-  }
-
+async function geocodeQuery(query: string, apiKey: string): Promise<CityGeoInfo | null> {
   const url = new URL('https://geocode-maps.yandex.ru/1.x/');
   url.searchParams.set('apikey', apiKey);
-  // БЕЗ kind-фильтра. С kind=locality сёла/посёлки (Барвиха, Болшево
-  // и т.п.) выпадают — они классифицируются как area/district, а не
-  // locality. Без фильтра Geocoder возвращает наиболее релевантный
-  // объект независимо от его административного класса.
-  url.searchParams.set('geocode', name);
+  url.searchParams.set('geocode', query);
   url.searchParams.set('format', 'json');
   url.searchParams.set('lang', 'ru_RU');
   url.searchParams.set('results', '5');
@@ -72,17 +61,16 @@ export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
   try {
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6000) });
     if (!res.ok) {
-      console.error('[geocodeCity] HTTP', res.status, name);
+      console.error(`[geocodeCity] HTTP ${res.status} for query "${query}"`);
       return null;
     }
     const data = await res.json();
     const members = data?.response?.GeoObjectCollection?.featureMember as Array<Record<string, unknown>> | undefined;
     if (!Array.isArray(members) || members.length === 0) {
-      console.warn('[geocodeCity] нет результатов для:', name);
+      console.warn(`[geocodeCity] no results for query "${query}"`);
       return null;
     }
 
-    // Берём первый российский результат — иначе любой первый.
     for (const m of members) {
       const member = m.GeoObject as Record<string, unknown> | undefined;
       if (!member) continue;
@@ -109,18 +97,44 @@ export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
         if (c.kind === 'locality' && typeof c.name === 'string' && !locality) locality = c.name;
       }
 
-      // Пропускаем зарубежные результаты — если первое совпадение
-      // оказалось не в РФ, попробуем следующее.
       if (country && !/росси/i.test(country)) continue;
-
       return { lat, lng, locality, province };
     }
-    console.warn('[geocodeCity] есть результаты, но ни одного российского:', name);
     return null;
   } catch (e) {
-    console.error('[geocodeCity] error:', e);
+    console.error(`[geocodeCity] fetch error for query "${query}":`, e);
     return null;
   }
+}
+
+export async function geocodeCity(name: string): Promise<CityGeoInfo | null> {
+  const row = await prisma.setting.findUnique({ where: { key: 'yd_geocoder_key' } });
+  const apiKey = (row?.value ?? '').trim();
+  if (!apiKey) {
+    console.warn('[geocodeCity] yd_geocoder_key пустой');
+    return null;
+  }
+
+  // Пробуем несколько форм запроса, потому что для каких-то названий
+  // Geocoder отвечает только при одном из них:
+  //   1. Голое имя — для общеизвестных названий («Барвиха», «Калуга»)
+  //   2. С префиксом страны — фокусирует поиск на РФ
+  //   3. С указанием «село», «посёлок» — если в названии нет типа
+  const variants: string[] = [
+    name.trim(),
+    `Россия, ${name.trim()}`,
+    `село ${name.trim()}`,
+    `посёлок ${name.trim()}`,
+  ];
+
+  for (const v of variants) {
+    const result = await geocodeQuery(v, apiKey);
+    if (result) {
+      return result;
+    }
+  }
+  console.warn(`[geocodeCity] all variants failed for "${name}"`);
+  return null;
 }
 
 // Статусы из публичной документации Я.Доставки Platform.
