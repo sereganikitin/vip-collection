@@ -12,15 +12,16 @@
 //   POST /api/b2b/platform/orders/info          — статус заказа (пока не используем)
 //
 // Авторизация: Bearer <y0_…> из настроек (yd_russia_token).
-// Source platform_id — ПВЗ Ферганская 6к2 = '019da9f07d7a728682aa993cd6fcbe13'
-// (можно переопределить через yd_russia_station_id в /admin/settings).
+// Source platform_id — ваша станция-источник из вашего ЛК Я.Доставки,
+// настраивается в /admin/settings (yd_russia_station_id). Дефолта нет:
+// если поле пустое, расчёт вернёт ошибку, чтобы случайно не уйти на
+// чужую станцию (Platform отдаст 403 access denied).
 
 import { prisma } from '@/lib/prisma';
 import { resolveItemDims } from './delivery-defaults';
 import type { OrderItemForCargo } from './yandex-delivery';
 
 const HOST = 'https://b2b.taxi.yandex.net';
-const DEFAULT_SOURCE_STATION = '019da9f07d7a728682aa993cd6fcbe13'; // ПВЗ Ферганская 6к2
 
 // Статусы из публичной документации Я.Доставки Platform.
 export const RUSSIA_STATUS_LABELS: Record<string, string> = {
@@ -59,9 +60,8 @@ async function getRussiaConfig(): Promise<RussiaConfig | null> {
   });
   const byKey = new Map(rows.map((r) => [r.key, r.value]));
   const token = (byKey.get('yd_russia_token') ?? '').trim();
-  if (!token) return null;
-  const sourceStationId =
-    (byKey.get('yd_russia_station_id') ?? '').trim() || DEFAULT_SOURCE_STATION;
+  const sourceStationId = (byKey.get('yd_russia_station_id') ?? '').trim();
+  if (!token || !sourceStationId) return null;
   return { host: HOST, token, sourceStationId };
 }
 
@@ -119,7 +119,7 @@ function extractWorkingHours(raw: Record<string, unknown>): string | undefined {
 
 export async function listPickupPoints(geoId: number): Promise<PickupPointsResult> {
   const cfg = await getRussiaConfig();
-  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена (нет токена в /admin/settings)' };
+  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена. Заполните токен (y0_…) и platform_station_id в /admin/settings.' };
 
   try {
     const res = await fetch(`${cfg.host}/api/b2b/platform/pickup-points/list`, {
@@ -226,7 +226,7 @@ function splitName(fullname: string): { first: string; last: string } {
 
 export async function createRussiaOffer(input: RussiaOfferInput): Promise<RussiaOfferResult> {
   const cfg = await getRussiaConfig();
-  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена (нет токена)' };
+  if (!cfg) return { ok: false, error: 'Я.Доставка не настроена. Заполните токен (y0_…) и platform_station_id в /admin/settings.' };
 
   // Габариты и цены.
   let totalWeightGr = 0;

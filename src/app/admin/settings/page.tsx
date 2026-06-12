@@ -421,19 +421,21 @@ export default function AdminSettings() {
             <h4 className="font-medium text-sm mt-6 mb-2">Доставка по России (Platform)</h4>
             <p className="text-xs text-text-muted mb-3">
               Хост: <span className="font-mono">b2b.taxi.yandex.net/api/b2b/platform/…</span>.
-              На текущем аккаунте Я.Доставки эмпирически подтверждено: Cargo возвращает <em>suitable_offer_not_found</em>,
-              а Platform даёт офферы и список ПВЗ — поэтому межгородовая доставка идёт здесь.
+              На текущем аккаунте эмпирически подтверждено: Cargo возвращает <em>suitable_offer_not_found</em>,
+              а Platform даёт офферы и список ПВЗ.
               <br /><br />
-              <strong>Токен</strong> — тот же y0_… от Яндекс ID, что вы используете для Cargo (если ваш кабинет
-              предоставляет оба продукта; на нашем — активен только Platform).
-              <br />
-              <strong>platform_station_id источника</strong> — id ПВЗ-отправителя «Ферганская 6к2».
-              Если оставить пустым, будет использован дефолт <span className="font-mono">019da9f07d7a728682aa993cd6fcbe13</span>.
+              Оба поля ниже <strong>обязательны</strong>. Если хотя бы одно пустое — расчёт стоимости вернёт
+              ошибку «не настроена». Дефолтов нет: подставлять чужую станцию запрещено (Я.Доставка отдаст 403).
+              <br /><br />
+              <strong>Где взять <span className="font-mono">platform_station_id</span>:</strong>
+              в вашем ЛК Я.Доставки → Профиль → Точки приёма (или Pickup-points) добавьте свою станцию для
+              адреса физического склада-источника, и Яндекс выдаст её id вида
+              <span className="font-mono"> 019xxxxxxxxxxxxxxxxxxxxxxxxxxxxx</span>.
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Токен Platform (y0_…)</label>
+                <label className="block text-sm font-medium mb-1">Токен Platform (y0_…) <span className="text-danger">*</span></label>
                 <input
                   className={fieldClass}
                   type="password"
@@ -444,12 +446,12 @@ export default function AdminSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">platform_station_id источника</label>
+                <label className="block text-sm font-medium mb-1">platform_station_id вашего склада <span className="text-danger">*</span></label>
                 <input
                   className={fieldClass}
                   value={form.yd_russia_station_id}
                   onChange={(e) => set('yd_russia_station_id', e.target.value)}
-                  placeholder="019da9f07d7a728682aa993cd6fcbe13 (по умолчанию — Ферганская 6к2)"
+                  placeholder="019..."
                 />
               </div>
             </div>
