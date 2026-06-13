@@ -227,8 +227,17 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
 
   useEffect(() => {
     if (mode !== 'door' || !streetSelected) return;
-    // Расчёт пересчитываем при выборе улицы И при изменении дома/квартиры
-    // (дебаунс 400 мс, чтобы не дёргать при наборе каждого символа дома).
+    // Без номера дома расчёт не запускаем — Яндекс отдаст ошибку про
+    // неполный адрес, и она будет светиться красным. Покажем нейтральную
+    // подсказку «введите номер дома» вместо этого.
+    if (!houseInput.trim()) {
+      // Чистим стейл-офферы и ошибку, чтобы пользователь не видел
+      // старую цену/ошибку, пока редактирует адрес.
+      setOffers([]);
+      setOffersError(null);
+      return;
+    }
+    // Дебаунс 400 мс, чтобы не дёргать при наборе каждого символа дома.
     const t = window.setTimeout(() => {
       const c = customerRef.current;
       calculate(`door:${doorFullAddress}`, {
@@ -242,7 +251,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       });
     }, 400);
     return () => window.clearTimeout(t);
-  }, [mode, streetSelected, doorFullAddress, city, calculate]);
+  }, [mode, streetSelected, houseInput, doorFullAddress, city, calculate]);
 
   // ── Какой оффер показываем как итоговый ──
   // Берём минимальную цену. Округляем priceRub до целого, чтобы итог
@@ -526,6 +535,13 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
             </p>
           )}
         </div>
+      )}
+
+      {/* Подсказка для двери без номера дома — нейтральная, не алармит */}
+      {mode === 'door' && streetSelected && !houseInput.trim() && !offersLoading && (
+        <p className="text-sm text-text-muted">
+          Введите номер дома, чтобы посчитать стоимость доставки.
+        </p>
       )}
 
       {/* Итоговая стоимость доставки */}
