@@ -51,6 +51,8 @@ interface FormState {
   // yandex delivery — russia (Platform API)
   yd_russia_token: string;
   yd_russia_station_id: string;
+  // Бесплатная доставка по Москве от X ₽ (0 = выключено)
+  free_delivery_moscow_amount: string;
 }
 
 const EMPTY: FormState = {
@@ -65,6 +67,7 @@ const EMPTY: FormState = {
   yd_pickup_contact_phone: '+79257437135',
   yd_russia_token: '',
   yd_russia_station_id: '',
+  free_delivery_moscow_amount: '20000',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipshopp@yandex.ru',
@@ -454,6 +457,26 @@ export default function AdminSettings() {
                   placeholder="019..."
                 />
               </div>
+            </div>
+
+            <h4 className="font-medium text-sm mt-6 mb-2">Бесплатная доставка</h4>
+            <p className="text-xs text-text-muted mb-3">
+              Если сумма заказа (без учёта доставки) ≥ указанной — стоимость доставки по Москве
+              автоматически становится <strong>0 ₽</strong>. Применяется и в чекауте, и при
+              пересчёте в админке.
+              <br />
+              Поставьте <span className="font-mono">0</span>, чтобы выключить правило.
+            </p>
+            <div>
+              <label className="block text-sm font-medium mb-1">Порог бесплатной доставки по Москве, ₽</label>
+              <input
+                className={fieldClass}
+                type="text"
+                inputMode="numeric"
+                value={form.free_delivery_moscow_amount}
+                onChange={(e) => set('free_delivery_moscow_amount', e.target.value.replace(/\D/g, ''))}
+                placeholder="20000"
+              />
             </div>
           </div>
 

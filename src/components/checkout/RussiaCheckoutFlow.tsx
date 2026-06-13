@@ -128,6 +128,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const [offers, setOffers] = useState<Offer[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersError, setOffersError] = useState<string | null>(null);
+  const [freeDelivery, setFreeDelivery] = useState<{ active: boolean; reason?: string }>({ active: false });
 
   // Загружаем ПВЗ при смене города (только в pickup-режиме).
   // Если geoId есть в нашей таблице — шлём прямо его (быстрее).
@@ -192,6 +193,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const calculate = useCallback(async (key: string, body: Record<string, unknown>) => {
     lastQuoteKey.current = key;
     setOffersLoading(true); setOffersError(null); setOffers([]);
+    setFreeDelivery({ active: false });
     try {
       const r = await fetch('/api/checkout/russia-quote', {
         method: 'POST',
@@ -202,7 +204,13 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       // Игнорируем устаревший ответ, если пользователь уже перевыбрал
       if (lastQuoteKey.current !== key) return;
       if (!r.ok || !d.ok) setOffersError(d.error || `HTTP ${r.status}`);
-      else setOffers(Array.isArray(d.offers) ? d.offers : []);
+      else {
+        setOffers(Array.isArray(d.offers) ? d.offers : []);
+        setFreeDelivery({
+          active: !!d.freeDelivery,
+          reason: typeof d.freeDeliveryReason === 'string' ? d.freeDeliveryReason : undefined,
+        });
+      }
     } catch (e) {
       if (lastQuoteKey.current === key) setOffersError(String(e));
     } finally {
@@ -217,13 +225,15 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       calculate(`pickup:${selectedPointId}`, {
         items: itemsRef.current, mode: 'pickup',
         destPlatformId: selectedPointId,
+        // city нужен серверу для бизнес-правил (бесплатная доставка по Москве)
+        city,
         customerName: c.name || undefined,
         customerPhone: c.phone || undefined,
         customerEmail: c.email || undefined,
       });
     }, 200);
     return () => window.clearTimeout(t);
-  }, [mode, selectedPointId, calculate]);
+  }, [mode, selectedPointId, city, calculate]);
 
   useEffect(() => {
     if (mode !== 'door' || !streetSelected) return;
@@ -555,16 +565,23 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
             <div>
               <p className="text-sm">
                 <span className="text-text-muted">Стоимость доставки: </span>
-                <span className="font-bold text-lg text-success">{formatPrice(bestOffer.priceRub)}</span>
+                {freeDelivery.active ? (
+                  <span className="font-bold text-lg text-success">Бесплатно</span>
+                ) : (
+                  <span className="font-bold text-lg text-success">{formatPrice(bestOffer.priceRub)}</span>
+                )}
               </p>
+              {freeDelivery.active && freeDelivery.reason && (
+                <p className="text-xs text-success/80">{freeDelivery.reason}</p>
+              )}
               {bestRange && (
                 <p className="text-xs text-text-muted">Срок: {bestRange}</p>
               )}
-              {bestOffer.partner && (
+              {bestOffer.partner && !freeDelivery.active && (
                 <p className="text-xs text-text-muted">Перевозчик: {bestOffer.partner}</p>
               )}
             </div>
-            {uniquePrices > 1 && (
+            {uniquePrices > 1 && !freeDelivery.active && (
               <p className="text-[11px] text-text-muted text-right max-w-[40%]">
                 Показана минимальная из {uniquePrices} вариантов.<br />
                 Уточним на этапе подтверждения заказа.

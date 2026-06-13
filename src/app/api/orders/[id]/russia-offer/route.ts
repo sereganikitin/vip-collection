@@ -13,6 +13,7 @@ import {
   createRussiaOffer,
   type DeliveryMode,
 } from '@/lib/yandex-russia-delivery';
+import { checkDeliveryRules } from '@/lib/delivery-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,5 +75,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     recipientEmail: data.order.customerEmail ?? undefined,
   });
 
-  return NextResponse.json(result, { status: result.ok ? 200 : 502 });
+  // Применяем те же бизнес-правила, что и в публичном чекауте, чтобы
+  // у оператора в админке цифра совпадала с тем, что увидел клиент.
+  const itemsTotalRub = data.items.reduce((s, it) => s + it.price * it.quantity, 0);
+  const cityForRules =
+    mode === 'door'
+      ? (body.destLocality ? String(body.destLocality) : undefined)
+      : (body.city ? String(body.city) : undefined);
+  const rule = await checkDeliveryRules({ city: cityForRules, itemsTotalRub });
+
+  if (result.ok && rule.applied && Array.isArray(result.offers)) {
+    for (const o of result.offers) {
+      o.priceRub = rule.priceRub ?? 0;
+    }
+  }
+
+  return NextResponse.json(
+    {
+      ...result,
+      freeDelivery: rule.applied,
+      freeDeliveryReason: rule.reason,
+    },
+    { status: result.ok ? 200 : 502 }
+  );
 }

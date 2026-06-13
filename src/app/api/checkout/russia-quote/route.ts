@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createRussiaOffer, type DeliveryMode } from '@/lib/yandex-russia-delivery';
+import { checkDeliveryRules } from '@/lib/delivery-rules';
 import type { OrderItemForCargo } from '@/lib/yandex-delivery';
 
 export const dynamic = 'force-dynamic';
@@ -106,5 +107,28 @@ export async function POST(req: NextRequest) {
     recipientEmail: typeof body.customerEmail === 'string' ? body.customerEmail : undefined,
   });
 
-  return NextResponse.json(result, { status: result.ok ? 200 : 502 });
+  // Применяем бизнес-правила (бесплатная доставка по Москве от X ₽).
+  // Для pickup-режима город приходит отдельным полем body.city (он же
+  // у покупателя на форме), для door — destLocality.
+  const itemsTotalRub = items.reduce((s, it) => s + it.price * it.quantity, 0);
+  const cityForRules =
+    mode === 'door'
+      ? (body.destLocality ? String(body.destLocality) : undefined)
+      : (body.city ? String(body.city) : undefined);
+  const rule = await checkDeliveryRules({ city: cityForRules, itemsTotalRub });
+
+  if (result.ok && rule.applied && Array.isArray(result.offers)) {
+    for (const o of result.offers) {
+      o.priceRub = rule.priceRub ?? 0;
+    }
+  }
+
+  return NextResponse.json(
+    {
+      ...result,
+      freeDelivery: rule.applied,
+      freeDeliveryReason: rule.reason,
+    },
+    { status: result.ok ? 200 : 502 }
+  );
 }
