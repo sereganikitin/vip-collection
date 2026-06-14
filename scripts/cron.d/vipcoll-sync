@@ -10,6 +10,15 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Сервер на UTC — 00:30 UTC = 03:30 МСК.
-# Если сервер на Europe/Moscow — измените на «30 3 * * *».
-30 0 * * * root /var/www/vip-collection/scripts/cron-sync.sh
+# Сервер на UTC, Москва = UTC+3.
+# Расписание:
+#   - дневной режим: каждые 2 часа с 08:00 до 22:00 МСК (05-19 UTC, шаг 2)
+#   - ночной режим:   один прогон в 03:00 МСК (00:00 UTC)
+# flock в cron-sync.sh защищает от наложения, если предыдущий прогон
+# не успел закончиться к следующему.
+
+# 03:00 МСК — ночной полный синк
+0 0 * * *       root /var/www/vip-collection/scripts/cron-sync.sh
+
+# 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00 МСК — дневные
+0 5-19/2 * * *  root /var/www/vip-collection/scripts/cron-sync.sh
