@@ -77,29 +77,45 @@ async function getAuthToken(cfg: CdekConfig): Promise<string | null> {
     return tokenCache.token;
   }
 
-  const url = new URL(`${cfg.baseUrl}/oauth/token`);
-  url.searchParams.set('grant_type', 'client_credentials');
-  url.searchParams.set('client_id', cfg.account);
-  url.searchParams.set('client_secret', cfg.password);
+  // CDEK документация: POST /oauth/token с form-encoded body.
+  // Раньше слал параметры в query string — формально допустимо, но
+  // некоторые edge-балансировщики Яндекс-CDN режут такие запросы.
+  const body = new URLSearchParams();
+  body.set('grant_type', 'client_credentials');
+  body.set('client_id', cfg.account);
+  body.set('client_secret', cfg.password);
 
   try {
-    const res = await fetch(url.toString(), {
+    const res = await fetch(`${cfg.baseUrl}/oauth/token`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: body.toString(),
       signal: AbortSignal.timeout(8000),
     });
+    const text = await res.text().catch(() => '');
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      console.error('[cdek] OAuth failed:', res.status, text.slice(0, 500));
+      console.error(`[cdek] OAuth failed: HTTP ${res.status}, body: ${text.slice(0, 500)}`);
       return null;
     }
-    const data = await res.json();
+    let data: Record<string, unknown> = {};
+    try { data = JSON.parse(text); } catch {
+      console.error('[cdek] OAuth response is not JSON:', text.slice(0, 300));
+      return null;
+    }
     const token = String(data.access_token ?? '');
-    if (!token) return null;
-    const expiresIn = Math.max(60, Number(data.expires_in ?? 3600) - 60); // -1 минута safety
+    if (!token) {
+      console.error('[cdek] OAuth: нет access_token в ответе:', text.slice(0, 300));
+      return null;
+    }
+    const expiresIn = Math.max(60, Number(data.expires_in ?? 3600) - 60);
     tokenCache = { token, expiresAt: Date.now() + expiresIn * 1000, account: cfg.account };
+    console.log(`[cdek] OAuth OK (token cached for ${expiresIn}s)`);
     return token;
   } catch (e) {
-    console.error('[cdek] OAuth error:', e);
+    console.error('[cdek] OAuth fetch error:', e);
     return null;
   }
 }

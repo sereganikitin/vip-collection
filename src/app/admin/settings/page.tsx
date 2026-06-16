@@ -131,6 +131,31 @@ export default function AdminSettings() {
     }
   }
 
+  const [cdekTesting, setCdekTesting] = useState(false);
+  const [cdekTestResult, setCdekTestResult] = useState<{
+    ok: boolean;
+    env?: string;
+    sender?: { code: number; address: string };
+    moscowFound?: { code: number; city: string; region?: string };
+    tariffs?: { pickup: number; door: number };
+    error?: string;
+    step?: string;
+  } | null>(null);
+
+  async function testCdek() {
+    setCdekTesting(true);
+    setCdekTestResult(null);
+    try {
+      const res = await fetch('/api/settings/cdek-test', { method: 'POST' });
+      const data = await res.json();
+      setCdekTestResult(data);
+    } catch (e) {
+      setCdekTestResult({ ok: false, error: String(e) });
+    } finally {
+      setCdekTesting(false);
+    }
+  }
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/admin/login');
     if (status === 'authenticated') {
@@ -567,6 +592,36 @@ export default function AdminSettings() {
                 <span className="font-mono"> 137</span> (Посылка склад-дверь). Если в вашем договоре
                 с СДЭК другие — впишите их сюда.
               </p>
+
+              <button
+                type="button"
+                onClick={testCdek}
+                disabled={cdekTesting}
+                className="mt-2 px-3 py-1.5 text-xs bg-bg border border-border rounded-lg hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+              >
+                {cdekTesting ? 'Проверяем…' : 'Тест СДЭК (OAuth + поиск города)'}
+              </button>
+              {cdekTestResult && (
+                <div className={`mt-2 p-3 rounded-lg text-xs ${
+                  cdekTestResult.ok ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+                }`}>
+                  {cdekTestResult.ok ? (
+                    <>
+                      ✅ Креды работают. Контур: <strong>{cdekTestResult.env}</strong>.
+                      Отправитель: код <strong>{cdekTestResult.sender?.code}</strong>,{' '}
+                      {cdekTestResult.sender?.address}.{' '}
+                      «Москва» резолвится в код <strong>{cdekTestResult.moscowFound?.code}</strong>.
+                      Тарифы: pickup <strong>{cdekTestResult.tariffs?.pickup}</strong>, door{' '}
+                      <strong>{cdekTestResult.tariffs?.door}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      ❌ {cdekTestResult.step ? `(${cdekTestResult.step}) ` : ''}
+                      {cdekTestResult.error}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <h4 className="font-medium text-sm mt-6 mb-2">Бесплатная доставка</h4>

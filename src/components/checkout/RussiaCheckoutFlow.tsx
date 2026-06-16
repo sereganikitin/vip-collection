@@ -136,6 +136,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersError, setOffersError] = useState<string | null>(null);
   const [freeDelivery, setFreeDelivery] = useState<{ active: boolean; reason?: string }>({ active: false });
+  // Партиальные ошибки от конкретных перевозчиков. Показываются как
+  // мелкая жёлтая подсказка, даже если другой перевозчик дал офферы —
+  // чтобы пользователь видел причину, когда вариантов меньше ожидаемого.
+  const [partialErrors, setPartialErrors] = useState<{ yandex?: string; cdek?: string }>({});
 
   // Загружаем ПВЗ при смене города (только в pickup-режиме).
   // Если geoId есть в нашей таблице — шлём прямо его (быстрее).
@@ -222,9 +226,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       const merged: Offer[] = [];
       let freeActive = false;
       let freeReason: string | undefined;
-      const errors: string[] = [];
+      const partial: { yandex?: string; cdek?: string } = {};
 
-      if (yandex.status === 'fulfilled' && yandex.value?.ok && Array.isArray(yandex.value.offers)) {
+      // Я.Доставка
+      if (yandex.status === 'fulfilled' && yandex.value?.ok && Array.isArray(yandex.value.offers) && yandex.value.offers.length > 0) {
         for (const o of yandex.value.offers) {
           merged.push({ ...o, provider: 'yandex', partner: o.partner ?? 'Я.Доставка' });
         }
@@ -233,10 +238,15 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           freeReason = yandex.value.freeDeliveryReason;
         }
       } else if (yandex.status === 'fulfilled' && yandex.value?.error) {
-        errors.push(`Я.Доставка: ${yandex.value.error}`);
+        partial.yandex = String(yandex.value.error);
+      } else if (yandex.status === 'rejected') {
+        partial.yandex = 'сетевая ошибка';
+      } else {
+        partial.yandex = 'нет вариантов';
       }
 
-      if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.offers)) {
+      // СДЭК
+      if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.offers) && cdek.value.offers.length > 0) {
         for (const o of cdek.value.offers) {
           merged.push({ ...o, provider: 'cdek', partner: o.partner ?? 'СДЭК' });
         }
@@ -245,15 +255,21 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           freeReason = freeReason ?? cdek.value.freeDeliveryReason;
         }
       } else if (cdek.status === 'fulfilled' && cdek.value?.error) {
-        errors.push(`СДЭК: ${cdek.value.error}`);
+        partial.cdek = String(cdek.value.error);
+      } else if (cdek.status === 'rejected') {
+        partial.cdek = 'сетевая ошибка';
+      } else {
+        partial.cdek = 'нет вариантов';
       }
 
       setOffers(merged);
       setFreeDelivery({ active: freeActive, reason: freeReason });
+      setPartialErrors(partial);
 
-      // Показываем ошибку только если ВООБЩЕ ни один поставщик не дал офферов.
       if (merged.length === 0) {
-        setOffersError(errors.join(' | ') || 'Ни один поставщик не вернул варианты');
+        const errs = [partial.yandex && `Я.Доставка: ${partial.yandex}`, partial.cdek && `СДЭК: ${partial.cdek}`]
+          .filter(Boolean).join(' | ');
+        setOffersError(errs || 'Ни один поставщик не вернул варианты');
       }
     } catch (e) {
       if (lastQuoteKey.current === key) setOffersError(String(e));
@@ -607,6 +623,18 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         <p className="text-sm text-text-muted">Считаем стоимость доставки…</p>
       )}
       {offersError && <p className="text-sm text-danger break-words">Ошибка расчёта: {offersError}</p>}
+
+      {/* Партиальные ошибки: один перевозчик упал, второй сработал */}
+      {!offersLoading && offers.length > 0 && (partialErrors.yandex || partialErrors.cdek) && (
+        <div className="text-[11px] text-text-muted space-y-0.5">
+          {partialErrors.yandex && !offers.some((o) => o.provider === 'yandex') && (
+            <p>⚠ Я.Доставка не отдала варианты: {partialErrors.yandex}</p>
+          )}
+          {partialErrors.cdek && !offers.some((o) => o.provider === 'cdek') && (
+            <p>⚠ СДЭК не отдал варианты: {partialErrors.cdek}</p>
+          )}
+        </div>
+      )}
       {bestOffer && !offersLoading && (
         <div className="p-3 bg-success/5 border border-success/30 rounded-lg">
           <div className="flex items-center justify-between gap-2">
