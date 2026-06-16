@@ -126,6 +126,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [selectedPointId, setSelectedPointId] = useState<string>('');
   const [selectedProvider, setSelectedProvider] = useState<Provider>('yandex');
+  // Pre-flight результат: какой перевозчик не принимает этот заказ.
+  // Эти маркеры скрываются с карты, чтобы не тыкать в них и не получать
+  // ошибку «Dimensions exceed limit» и т.п.
+  const [carrierRejected, setCarrierRejected] = useState<{ yandex?: string; cdek?: string }>({});
 
   // ── Шаг 3b: адрес (двери) — три отдельных поля ──
   // 1) Улица — автокомплит из Nominatim (показываем только название улицы);
@@ -159,10 +163,11 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   // (только в pickup-режиме). Маркеры на карте красятся по провайдеру.
   useEffect(() => {
     if (mode !== 'pickup' || !city) {
-      setPoints([]); setPointsError(null); return;
+      setPoints([]); setPointsError(null); setCarrierRejected({}); return;
     }
     setPointsLoading(true); setPointsError(null);
     setPoints([]); setSelectedPointId(''); setOffers([]);
+    setCarrierRejected({});
 
     const ydQs = geoId ? `geoId=${geoId}` : `city=${encodeURIComponent(city)}`;
     const cdekQs = `city=${encodeURIComponent(city)}`;
@@ -171,14 +176,13 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       fetch(`/api/yandex-russia/pickup-points?${ydQs}`).then((r) => r.json()),
       fetch(`/api/cdek/pickup-points?${cdekQs}`).then((r) => r.json()),
     ])
-      .then(([yd, cdek]) => {
+      .then(async ([yd, cdek]) => {
         const all: PickupPoint[] = [];
         if (yd.status === 'fulfilled' && yd.value?.ok && Array.isArray(yd.value.points)) {
           for (const p of yd.value.points) all.push({ ...p, provider: 'yandex' });
         }
         if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.points)) {
           // CDEK отдаёт идентификатор ПВЗ в поле `code`, а фронт ждёт `id`.
-          // Без этого маппинга clic на CDEK-маркер не запускал расчёт.
           for (const p of cdek.value.points) {
             const id = (p.id ?? p.code) as string | undefined;
             if (!id) continue;
@@ -191,7 +195,34 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           if (yd.status === 'fulfilled' && yd.value?.error) errs.push(`Я.Доставка: ${yd.value.error}`);
           if (cdek.status === 'fulfilled' && cdek.value?.error) errs.push(`СДЭК: ${cdek.value.error}`);
           setPointsError(errs.join(' | ') || 'Ни один поставщик не вернул ПВЗ');
+          return;
         }
+
+        // ── Pre-flight: проверяем, что перевозчики вообще принимают этот
+        // заказ (вес/габариты/маршрут). Если один отказал — прячем его
+        // маркеры, чтобы клиент не тыкал по ним и не получал ошибку.
+        const firstYandex = all.find((p) => p.provider === 'yandex');
+        const items = itemsRef.current;
+        const ydPreflight = firstYandex
+          ? fetch('/api/checkout/russia-quote', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items, mode: 'pickup', destPlatformId: firstYandex.id, city }),
+            }).then((r) => r.json()).catch(() => null)
+          : Promise.resolve(null);
+        const cdekPreflight = all.some((p) => p.provider === 'cdek')
+          ? fetch('/api/checkout/cdek-quote', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items, mode: 'pickup', city }),
+            }).then((r) => r.json()).catch(() => null)
+          : Promise.resolve(null);
+
+        const [ydCheck, cdekCheck] = await Promise.all([ydPreflight, cdekPreflight]);
+        const rejected: { yandex?: string; cdek?: string } = {};
+        if (ydCheck && ydCheck.ok === false && ydCheck.error) rejected.yandex = String(ydCheck.error);
+        if (cdekCheck && cdekCheck.ok === false && cdekCheck.error) rejected.cdek = String(cdekCheck.error);
+        setCarrierRejected(rejected);
       })
       .finally(() => setPointsLoading(false));
   }, [mode, city, geoId]);
@@ -222,6 +253,14 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     }, 250);
     return () => window.clearTimeout(t);
   }, [streetInput, mode, city, streetSelected]);
+
+  // Если выбранный ПВЗ оказался отфильтрован (carrierRejected) —
+  // сбрасываем выбор, чтобы под картой не висела «мёртвая» карточка.
+  useEffect(() => {
+    if (selectedPointId && carrierRejected[selectedProvider]) {
+      setSelectedPointId('');
+    }
+  }, [carrierRejected, selectedProvider, selectedPointId]);
 
   // Сохраняем последние props в refs, чтобы авто-расчёт не дёргался
   // на каждом ре-рендере родителя (родитель пересоздаёт items/customer
@@ -433,8 +472,15 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     };
   }, [points]);
 
+  // Видимые маркеры: фильтруем тех перевозчиков, кто отказался на pre-flight,
+  // и тех, у кого нет координат.
+  const visiblePoints = useMemo(
+    () => points.filter((p) => !carrierRejected[p.provider]),
+    [points, carrierRejected]
+  );
+
   const mapPoints = useMemo(
-    () => points
+    () => visiblePoints
       .filter((p): p is PickupPoint & { lat: number; lng: number } =>
         typeof p.lat === 'number' && typeof p.lng === 'number')
       .map((p) => ({
@@ -445,12 +491,12 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         lat: p.lat,
         lng: p.lng,
       })),
-    [points]
+    [visiblePoints]
   );
 
-  const selectedPoint = points.find((p) => p.id === selectedPointId && p.provider === selectedProvider);
-  const yandexCount = points.filter((p) => p.provider === 'yandex').length;
-  const cdekCount = points.filter((p) => p.provider === 'cdek').length;
+  const selectedPoint = visiblePoints.find((p) => p.id === selectedPointId && p.provider === selectedProvider);
+  const yandexCount = visiblePoints.filter((p) => p.provider === 'yandex').length;
+  const cdekCount = visiblePoints.filter((p) => p.provider === 'cdek').length;
   const bestRange = bestOffer ? formatDateRange(bestOffer.deliveryFromIso, bestOffer.deliveryToIso) : null;
 
   return (
@@ -554,18 +600,44 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           {!pointsLoading && !pointsError && points.length === 0 && (
             <p className="text-sm text-text-muted">В этом городе ПВЗ не найдены. Попробуйте курьер до двери.</p>
           )}
+
+          {/* Баннер про скрытые маркеры: показываем причину, по которой
+              перевозчик не принимает этот заказ — клиент сразу понимает,
+              почему на карте мало точек или одного цвета не видно. */}
+          {!pointsLoading && (carrierRejected.yandex || carrierRejected.cdek) && (
+            <div className="text-xs space-y-1 p-3 bg-bg border border-border rounded-lg">
+              {carrierRejected.yandex && (
+                <p>
+                  <span className="font-semibold" style={{ color: '#1E88E5' }}>Я.Доставка</span> скрыта:{' '}
+                  <span className="text-text-muted">{carrierRejected.yandex}</span>
+                </p>
+              )}
+              {carrierRejected.cdek && (
+                <p>
+                  <span className="font-semibold" style={{ color: '#22C55E' }}>СДЭК</span> скрыт:{' '}
+                  <span className="text-text-muted">{carrierRejected.cdek}</span>
+                </p>
+              )}
+            </div>
+          )}
+
           {!pointsLoading && mapPoints.length > 0 && (
             <>
               <p className="text-xs text-text-muted">
                 Кликните по маркеру на карте, чтобы выбрать ПВЗ.{' '}
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#1E88E5' }} />
-                  Я.Доставка ({yandexCount})
-                </span>{' · '}
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#22C55E' }} />
-                  СДЭК ({cdekCount})
-                </span>
+                {yandexCount > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#1E88E5' }} />
+                    Я.Доставка ({yandexCount})
+                  </span>
+                )}
+                {yandexCount > 0 && cdekCount > 0 && ' · '}
+                {cdekCount > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#22C55E' }} />
+                    СДЭК ({cdekCount})
+                  </span>
+                )}
               </p>
               <PickupPointsMap
                 points={mapPoints}
@@ -574,12 +646,19 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
                 onSelect={(p) => { setSelectedPointId(p.id); setSelectedProvider(p.provider); }}
                 fallbackCenter={fallbackCenter}
               />
-              {points.length > mapPoints.length && (
+              {visiblePoints.length > mapPoints.length && (
                 <p className="text-[11px] text-text-muted">
-                  ({points.length - mapPoints.length} ПВЗ без координат — на карте не видны)
+                  ({visiblePoints.length - mapPoints.length} ПВЗ без координат — на карте не видны)
                 </p>
               )}
             </>
+          )}
+
+          {/* Случай: все маркеры скрыты pre-flight'ом. Видны причины из баннера выше. */}
+          {!pointsLoading && points.length > 0 && mapPoints.length === 0 && (carrierRejected.yandex || carrierRejected.cdek) && (
+            <p className="text-sm text-text-muted">
+              Ни один перевозчик не принимает этот заказ через ПВЗ. Попробуйте курьер до двери.
+            </p>
           )}
 
           {/* Подтверждение выбора ПВЗ */}
