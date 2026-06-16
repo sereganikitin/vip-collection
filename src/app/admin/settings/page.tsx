@@ -4,7 +4,7 @@ import AdminNav from '@/components/admin/AdminNav';
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { LogOut, ArrowLeft, Save, CheckCircle, Send, AlertCircle } from 'lucide-react';
 
@@ -121,6 +121,9 @@ export default function AdminSettings() {
     setTgTesting(true);
     setTgTestResult(null);
     try {
+      // Сохраняем текущее состояние формы перед тестом, иначе test читает
+      // из БД старое значение, а пользователь думает что тестит то, что в поле.
+      await persistSettings();
       const res = await fetch('/api/settings/telegram-test', { method: 'POST' });
       const data = await res.json();
       setTgTestResult(data);
@@ -146,6 +149,7 @@ export default function AdminSettings() {
     setCdekTesting(true);
     setCdekTestResult(null);
     try {
+      await persistSettings();
       const res = await fetch('/api/settings/cdek-test', { method: 'POST' });
       const data = await res.json();
       setCdekTestResult(data);
@@ -156,30 +160,50 @@ export default function AdminSettings() {
     }
   }
 
+  // Редирект на /admin/login если не аутентифицирован — отдельный эффект,
+  // не должен дёргать загрузку настроек.
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/admin/login');
-    if (status === 'authenticated') {
-      fetch('/api/settings').then(r => r.json()).then(data => {
+  }, [status, router]);
+
+  // Настройки загружаем ОДИН РАЗ при первой аутентификации, потом не трогаем.
+  // Раньше эффект перезагружал /api/settings при каждом ре-рендере, который
+  // приходил из next-auth (сессия валидируется на фокус вкладки и каждые
+  // 5 минут). В результате незасохранённый токен в форме затирался старым
+  // значением из БД, и пользователь видел как поле «укорачивается на глазах».
+  const settingsLoadedRef = useRef(false);
+  useEffect(() => {
+    if (status !== 'authenticated' || settingsLoadedRef.current) return;
+    settingsLoadedRef.current = true;
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data) => {
         if (data && !data.error) {
-          setForm(prev => ({ ...prev, ...data }));
+          setForm((prev) => ({ ...prev, ...data }));
         }
       });
-    }
-  }, [status, router]);
+  }, [status]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // Сохраняем текущее состояние формы в БД. Используется и при явном
+  // нажатии «Сохранить», и автоматически перед тестами (чтобы пользователь
+  // не думал «а почему тест читает старое значение, я же только что вписал»).
+  async function persistSettings(): Promise<void> {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setSaved(false);
-    await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
+    await persistSettings();
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
