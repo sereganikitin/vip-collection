@@ -177,7 +177,13 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           for (const p of yd.value.points) all.push({ ...p, provider: 'yandex' });
         }
         if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.points)) {
-          for (const p of cdek.value.points) all.push({ ...p, provider: 'cdek' });
+          // CDEK отдаёт идентификатор ПВЗ в поле `code`, а фронт ждёт `id`.
+          // Без этого маппинга clic на CDEK-маркер не запускал расчёт.
+          for (const p of cdek.value.points) {
+            const id = (p.id ?? p.code) as string | undefined;
+            if (!id) continue;
+            all.push({ ...p, id, provider: 'cdek' });
+          }
         }
         setPoints(all);
         if (all.length === 0) {
