@@ -346,8 +346,31 @@ export default function AdminSettings() {
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium mb-1">Токен бота</label>
-                <input className={fieldClass} type="password" value={form.tg_bot_token} onChange={(e) => set('tg_bot_token', e.target.value)} placeholder="1234567890:AAA..." autoComplete="off" />
+                <label className="block text-sm font-medium mb-1">
+                  Токен бота
+                  {form.tg_bot_token && (
+                    <span className={`ml-2 text-xs font-normal ${
+                      form.tg_bot_token.length < 30 ? 'text-danger' : 'text-text-muted'
+                    }`}>
+                      ({form.tg_bot_token.length} символов{form.tg_bot_token.length < 30 ? ' — слишком короткий, нормальный токен ≥45 символов' : ''})
+                    </span>
+                  )}
+                </label>
+                <input
+                  className={fieldClass}
+                  type="text"
+                  value={form.tg_bot_token}
+                  onChange={(e) => set('tg_bot_token', e.target.value)}
+                  placeholder="1234567890:AAA..."
+                  // type="text" + явные anti-autofill хинты, чтобы Chrome не
+                  // подменял свежий вставленный токен на короткий, сохранённый
+                  // в его менеджере паролей с прошлых неудачных попыток.
+                  autoComplete="off"
+                  spellCheck={false}
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-lpignore="true"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Chat ID</label>
