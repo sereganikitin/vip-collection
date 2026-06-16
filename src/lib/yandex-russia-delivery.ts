@@ -392,11 +392,11 @@ export async function listPickupPoints(geoId: number): Promise<PickupPointsResul
 
     if (!res.ok) {
       console.error('[yandex-russia] pickup-points failed:', res.status, text.slice(0, 500));
-      const errMsg =
+      const rawErr =
         typeof json === 'object' && json && 'message' in json
           ? String((json as { message: string }).message)
           : `HTTP ${res.status}`;
-      return { ok: false, error: errMsg };
+      return { ok: false, error: humanizeYandexError(rawErr) };
     }
 
     const root = json as Record<string, unknown>;
@@ -465,6 +465,40 @@ export interface RussiaOfferResult {
   error?: string;
   offers?: RussiaOfferQuote[];
   rawResponse?: unknown;
+}
+
+/**
+ * Перевод технических ошибок Yandex Platform в понятный пользователю текст.
+ * Если паттерн не распознан — возвращаем исходную строку.
+ */
+function humanizeYandexError(raw: string): string {
+  if (!raw) return raw;
+  const lower = raw.toLowerCase();
+  if (lower.includes("determine product scenario") || lower.includes('product scenario')) {
+    return 'Я.Доставка не нашла подходящий тариф для этого маршрута. Попробуйте другой ПВЗ или СДЭК.';
+  }
+  if (lower.includes('dimensions') && (lower.includes('exceed') || lower.includes('limit'))) {
+    return 'Размер посылки превышает лимит Я.Доставки на этом направлении. У СДЭК лимиты больше — попробуйте зелёный маркер.';
+  }
+  if (lower.includes('weight') && (lower.includes('exceed') || lower.includes('limit'))) {
+    return 'Вес посылки превышает лимит Я.Доставки. Попробуйте СДЭК.';
+  }
+  if (lower.includes('suitable_offer_not_found') || lower.includes('no suitable offer')) {
+    return 'Я.Доставка не предлагает доставку по этому маршруту. Попробуйте СДЭК.';
+  }
+  if (lower.includes('address') && (lower.includes('not found') || lower.includes('invalid') || lower.includes('parse'))) {
+    return 'Я.Доставка не распознала адрес. Проверьте улицу и номер дома.';
+  }
+  if (lower.includes('forbidden') || lower.includes('access denied') || lower.includes('unauthor')) {
+    return 'Я.Доставка временно недоступна. Попробуйте СДЭК или повторите позже.';
+  }
+  if (lower.includes('platform_station') || lower.includes('station not found')) {
+    return 'Этот ПВЗ Я.Доставки временно недоступен. Попробуйте соседний.';
+  }
+  if (lower.startsWith('http ') && lower.match(/http \d{3}/)) {
+    return `Я.Доставка временно недоступна (${raw}). Попробуйте через минуту или используйте СДЭК.`;
+  }
+  return raw;
 }
 
 function uuid(): string {
@@ -653,11 +687,11 @@ export async function createRussiaOffer(input: RussiaOfferInput): Promise<Russia
 
     if (!res.ok) {
       console.error('[yandex-russia] create-offer failed:', res.status, text.slice(0, 1000));
-      const errMsg =
+      const rawErr =
         typeof json === 'object' && json && 'message' in json
           ? String((json as { message: string }).message)
           : `HTTP ${res.status}`;
-      return { ok: false, error: errMsg, rawResponse: json };
+      return { ok: false, error: humanizeYandexError(rawErr), rawResponse: json };
     }
 
     const offers: RussiaOfferQuote[] = [];
@@ -726,11 +760,11 @@ export async function confirmRussiaOffer(offerId: string): Promise<ConfirmResult
 
     if (!res.ok) {
       console.error('[yandex-russia] confirm failed:', res.status, text.slice(0, 1000));
-      const errMsg =
+      const rawErr =
         typeof json === 'object' && json && 'message' in json
           ? String((json as { message: string }).message)
           : `HTTP ${res.status}`;
-      return { ok: false, error: errMsg, raw: json };
+      return { ok: false, error: humanizeYandexError(rawErr), raw: json };
     }
     const root = json as Record<string, unknown>;
     const orderId = String(root.order_id ?? root.request_id ?? root.id ?? '');

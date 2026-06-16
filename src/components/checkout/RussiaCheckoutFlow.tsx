@@ -314,11 +314,17 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       setPartialErrors(partial);
 
       if (merged.length === 0) {
-        const errs = [
-          partial.yandex && `Я.Доставка: ${partial.yandex}`,
-          partial.cdek && `СДЭК: ${partial.cdek}`,
-        ].filter(Boolean).join(' | ');
-        setOffersError(errs || 'Не удалось получить варианты доставки');
+        // Если активен только один перевозчик — показываем его сообщение
+        // как есть (без префикса). Если оба упали — каждое с префиксом.
+        let msg = '';
+        if (partial.yandex && partial.cdek) {
+          msg = `Я.Доставка: ${partial.yandex} • СДЭК: ${partial.cdek}`;
+        } else if (partial.yandex) {
+          msg = partial.yandex;
+        } else if (partial.cdek) {
+          msg = partial.cdek;
+        }
+        setOffersError(msg || 'Не удалось получить варианты доставки');
       }
     } catch (e) {
       if (lastQuoteKey.current === key) setOffersError(String(e));
