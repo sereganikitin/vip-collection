@@ -271,8 +271,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       let freeReason: string | undefined;
       const partial: { yandex?: string; cdek?: string } = {};
 
-      // Я.Доставка
-      if (yandex.status === 'fulfilled' && yandex.value?.ok && Array.isArray(yandex.value.offers) && yandex.value.offers.length > 0) {
+      // Я.Доставка — учитываем только если её действительно вызывали
+      if (!callYandex) {
+        // намеренно пропустили — никаких partial-сообщений
+      } else if (yandex.status === 'fulfilled' && yandex.value?.ok && Array.isArray(yandex.value.offers) && yandex.value.offers.length > 0) {
         for (const o of yandex.value.offers) {
           merged.push({ ...o, provider: 'yandex', partner: o.partner ?? 'Я.Доставка' });
         }
@@ -288,8 +290,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         partial.yandex = 'нет вариантов';
       }
 
-      // СДЭК
-      if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.offers) && cdek.value.offers.length > 0) {
+      // СДЭК — учитываем только если её действительно вызывали
+      if (!callCdek) {
+        // намеренно пропустили
+      } else if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.offers) && cdek.value.offers.length > 0) {
         for (const o of cdek.value.offers) {
           merged.push({ ...o, provider: 'cdek', partner: o.partner ?? 'СДЭК' });
         }
@@ -310,9 +314,11 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       setPartialErrors(partial);
 
       if (merged.length === 0) {
-        const errs = [partial.yandex && `Я.Доставка: ${partial.yandex}`, partial.cdek && `СДЭК: ${partial.cdek}`]
-          .filter(Boolean).join(' | ');
-        setOffersError(errs || 'Ни один поставщик не вернул варианты');
+        const errs = [
+          partial.yandex && `Я.Доставка: ${partial.yandex}`,
+          partial.cdek && `СДЭК: ${partial.cdek}`,
+        ].filter(Boolean).join(' | ');
+        setOffersError(errs || 'Не удалось получить варианты доставки');
       }
     } catch (e) {
       if (lastQuoteKey.current === key) setOffersError(String(e));
@@ -689,7 +695,22 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       {offersLoading && (
         <p className="text-sm text-text-muted">Считаем стоимость доставки…</p>
       )}
-      {offersError && <p className="text-sm text-danger break-words">Ошибка расчёта: {offersError}</p>}
+      {offersError && (
+        <div className="text-sm text-danger break-words space-y-1">
+          <p>Ошибка расчёта: {offersError}</p>
+          {/* Если в ПВЗ-режиме выбранный перевозчик отказал, а на карте
+              есть точки другого — предлагаем перекликнуть на них. */}
+          {mode === 'pickup' && offers.length === 0 && (
+            (selectedProvider === 'yandex' && cdekCount > 0) ||
+            (selectedProvider === 'cdek' && yandexCount > 0)
+          ) && (
+            <p className="text-xs text-text-muted">
+              💡 Попробуйте кликнуть по {selectedProvider === 'yandex' ? 'зелёному (СДЭК)' : 'синему (Я.Доставка)'} маркеру —
+              у другого перевозчика могут быть другие лимиты или тарифы.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Партиальные ошибки: один перевозчик упал, второй сработал */}
       {!offersLoading && offers.length > 0 && (partialErrors.yandex || partialErrors.cdek) && (
