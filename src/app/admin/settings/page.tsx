@@ -51,6 +51,14 @@ interface FormState {
   // yandex delivery — russia (Platform API)
   yd_russia_token: string;
   yd_russia_station_id: string;
+  // СДЭК (CDEK API v2)
+  cdek_account: string;
+  cdek_password: string;
+  cdek_test_mode: string;     // 'true' | 'false'
+  cdek_sender_city_code: string;
+  cdek_sender_address: string;
+  cdek_tariff_pickup: string;
+  cdek_tariff_door: string;
   // Бесплатная доставка по Москве от X ₽ (0 = выключено)
   free_delivery_moscow_amount: string;
 }
@@ -67,6 +75,13 @@ const EMPTY: FormState = {
   yd_pickup_contact_phone: '+79257437135',
   yd_russia_token: '',
   yd_russia_station_id: '',
+  cdek_account: '',
+  cdek_password: '',
+  cdek_test_mode: 'false',
+  cdek_sender_city_code: '44',
+  cdek_sender_address: 'Москва, Ташкентская ул., 28, стр. 1, этаж 2',
+  cdek_tariff_pickup: '136',
+  cdek_tariff_door: '137',
   free_delivery_moscow_amount: '20000',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
@@ -459,11 +474,106 @@ export default function AdminSettings() {
               </div>
             </div>
 
+            <h4 className="font-medium text-sm mt-6 mb-2">СДЭК (CDEK API v2)</h4>
+            <p className="text-xs text-text-muted mb-3">
+              Вторая ветка доставки по России. На чекауте мы опрашиваем Я.Доставку и СДЭК
+              параллельно, мерджим офферы и предлагаем покупателю минимальный.
+              <br />
+              Креды берутся из вашего ЛК на <span className="font-mono">cdek.ru</span> → Профиль → API
+              (поля «Аккаунт» и «Secure Password»). Боевой контур — <span className="font-mono">api.cdek.ru</span>,
+              тестовый — <span className="font-mono">api.edu.cdek.ru</span>.
+            </p>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.cdek_test_mode === 'true'}
+                  onChange={(e) => set('cdek_test_mode', e.target.checked ? 'true' : 'false')}
+                  className="accent-accent"
+                />
+                <span>Тестовый контур (api.edu.cdek.ru)</span>
+              </label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Account (логин API)</label>
+                <input
+                  className={fieldClass}
+                  type="password"
+                  value={form.cdek_account}
+                  onChange={(e) => set('cdek_account', e.target.value)}
+                  placeholder="wVYxogtXTpa8nQpl..."
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Secure password</label>
+                <input
+                  className={fieldClass}
+                  type="password"
+                  value={form.cdek_password}
+                  onChange={(e) => set('cdek_password', e.target.value)}
+                  placeholder="2mbW3dKYJyZm4d7n..."
+                  autoComplete="off"
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Код города отправителя</label>
+                  <input
+                    className={fieldClass}
+                    inputMode="numeric"
+                    value={form.cdek_sender_city_code}
+                    onChange={(e) => set('cdek_sender_city_code', e.target.value.replace(/\D/g, ''))}
+                    placeholder="44 (Москва)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Адрес отправителя</label>
+                  <input
+                    className={fieldClass}
+                    value={form.cdek_sender_address}
+                    onChange={(e) => set('cdek_sender_address', e.target.value)}
+                    placeholder="Москва, Ташкентская 28, стр. 1"
+                  />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Tariff code для ПВЗ-получателя
+                  </label>
+                  <input
+                    className={fieldClass}
+                    inputMode="numeric"
+                    value={form.cdek_tariff_pickup}
+                    onChange={(e) => set('cdek_tariff_pickup', e.target.value.replace(/\D/g, ''))}
+                    placeholder="136"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Tariff code для двери получателя
+                  </label>
+                  <input
+                    className={fieldClass}
+                    inputMode="numeric"
+                    value={form.cdek_tariff_door}
+                    onChange={(e) => set('cdek_tariff_door', e.target.value.replace(/\D/g, ''))}
+                    placeholder="137"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-text-muted">
+                Дефолтные тарифы: <span className="font-mono">136</span> (Посылка склад-склад) и
+                <span className="font-mono"> 137</span> (Посылка склад-дверь). Если в вашем договоре
+                с СДЭК другие — впишите их сюда.
+              </p>
+            </div>
+
             <h4 className="font-medium text-sm mt-6 mb-2">Бесплатная доставка</h4>
             <p className="text-xs text-text-muted mb-3">
               Если сумма заказа (без учёта доставки) ≥ указанной — стоимость доставки по Москве
-              автоматически становится <strong>0 ₽</strong>. Применяется и в чекауте, и при
-              пересчёте в админке.
+              автоматически становится <strong>0 ₽</strong>. Применяется к ОБОИМ перевозчикам
+              (Я.Доставка и СДЭК) и в чекауте, и при пересчёте в админке.
               <br />
               Поставьте <span className="font-mono">0</span>, чтобы выключить правило.
             </p>

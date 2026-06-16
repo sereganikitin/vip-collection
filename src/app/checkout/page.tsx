@@ -143,19 +143,21 @@ export default function CheckoutPage() {
     setLoading(true);
     setError('');
 
-    // Адрес и тип доставки берём из выбранного оффера Я.Доставки
+    // Адрес и тип доставки берём из выбранного оффера. Provider влияет
+    // только на видимое имя ('Я.Доставка' vs 'СДЭК') — флоу одинаковый.
     const cityPart = russiaSel.city ?? '';
+    const providerLabel = russiaSel.provider === 'cdek' ? 'СДЭК' : 'Я.Доставка';
     let deliveryAddressForOrder: string;
     let deliveryMethodForOrder: string;
     if (russiaSel.mode === 'pickup' && russiaSel.pointAddress) {
       deliveryAddressForOrder = russiaSel.pointAddress;
-      deliveryMethodForOrder = `Я.Доставка — ПВЗ${cityPart ? ` (${cityPart})` : ''}`;
+      deliveryMethodForOrder = `${providerLabel} — ПВЗ${cityPart ? ` (${cityPart})` : ''}`;
     } else if (russiaSel.mode === 'door' && russiaSel.doorAddress) {
       deliveryAddressForOrder = russiaSel.doorAddress;
-      deliveryMethodForOrder = `Я.Доставка — курьер до двери${cityPart ? ` (${cityPart})` : ''}`;
+      deliveryMethodForOrder = `${providerLabel} — курьер до двери${cityPart ? ` (${cityPart})` : ''}`;
     } else {
       deliveryAddressForOrder = cityPart.trim();
-      deliveryMethodForOrder = 'Я.Доставка';
+      deliveryMethodForOrder = providerLabel;
     }
 
     try {
@@ -172,6 +174,10 @@ export default function CheckoutPage() {
           paymentMethod: effectivePayment,
           deliveryPrice: deliveryPrice > 0 ? deliveryPrice : undefined,
           yandexRussiaMeta: {
+            // provider различает 'yandex' и 'cdek' — оба сохраняются в одно
+            // поле, ключ имени остался yandexRussiaMeta для совместимости
+            // с уже созданными заказами и админ-блоком.
+            provider: russiaSel.provider ?? 'yandex',
             mode: russiaSel.mode,
             city: russiaSel.city,
             geoId: russiaSel.geoId,
@@ -184,6 +190,7 @@ export default function CheckoutPage() {
             partner: russiaSel.partner,
             deliveryFrom: russiaSel.deliveryFromIso,
             deliveryTo: russiaSel.deliveryToIso,
+            eta: russiaSel.eta,
           },
           items: items.map(({ product, quantity }) => ({
             productId: product.id,

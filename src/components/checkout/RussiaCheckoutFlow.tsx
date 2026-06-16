@@ -37,8 +37,11 @@ export interface RussiaSelection {
   offerId?: string;
   priceRub?: number;
   partner?: string;
+  /** Какой провайдер выиграл — Я.Доставка или СДЭК. Сохраняется в заказе. */
+  provider?: 'yandex' | 'cdek';
   deliveryFromIso?: string;
   deliveryToIso?: string;
+  eta?: string;
 }
 
 interface Suggestion {
@@ -56,6 +59,10 @@ interface Offer {
   deliveryFromIso?: string;
   deliveryToIso?: string;
   partner?: string;
+  /** Провайдер: 'yandex' (Я.Доставка) или 'cdek'. По умолчанию 'yandex'. */
+  provider?: 'yandex' | 'cdek';
+  /** ETA-строка для отображения, когда нет точных дат (например, у СДЭК — «3-5 дн.»). */
+  eta?: string;
 }
 
 interface Props {
@@ -195,21 +202,58 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     setOffersLoading(true); setOffersError(null); setOffers([]);
     setFreeDelivery({ active: false });
     try {
-      const r = await fetch('/api/checkout/russia-quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const d = await r.json();
-      // Игнорируем устаревший ответ, если пользователь уже перевыбрал
+      // Опрашиваем Я.Доставку и СДЭК параллельно. Если один не ответил —
+      // показываем результат другого, а не падаем целиком.
+      const [yandex, cdek] = await Promise.allSettled([
+        fetch('/api/checkout/russia-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then((r) => r.json()),
+        fetch('/api/checkout/cdek-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then((r) => r.json()),
+      ]);
+
       if (lastQuoteKey.current !== key) return;
-      if (!r.ok || !d.ok) setOffersError(d.error || `HTTP ${r.status}`);
-      else {
-        setOffers(Array.isArray(d.offers) ? d.offers : []);
-        setFreeDelivery({
-          active: !!d.freeDelivery,
-          reason: typeof d.freeDeliveryReason === 'string' ? d.freeDeliveryReason : undefined,
-        });
+
+      const merged: Offer[] = [];
+      let freeActive = false;
+      let freeReason: string | undefined;
+      const errors: string[] = [];
+
+      if (yandex.status === 'fulfilled' && yandex.value?.ok && Array.isArray(yandex.value.offers)) {
+        for (const o of yandex.value.offers) {
+          merged.push({ ...o, provider: 'yandex', partner: o.partner ?? 'Я.Доставка' });
+        }
+        if (yandex.value.freeDelivery) {
+          freeActive = true;
+          freeReason = yandex.value.freeDeliveryReason;
+        }
+      } else if (yandex.status === 'fulfilled' && yandex.value?.error) {
+        errors.push(`Я.Доставка: ${yandex.value.error}`);
+      }
+
+      if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.offers)) {
+        for (const o of cdek.value.offers) {
+          merged.push({ ...o, provider: 'cdek', partner: o.partner ?? 'СДЭК' });
+        }
+        if (cdek.value.freeDelivery) {
+          freeActive = true;
+          freeReason = freeReason ?? cdek.value.freeDeliveryReason;
+        }
+      } else if (cdek.status === 'fulfilled' && cdek.value?.error) {
+        errors.push(`СДЭК: ${cdek.value.error}`);
+      }
+
+      setOffers(merged);
+      setFreeDelivery({ active: freeActive, reason: freeReason });
+
+      // Показываем ошибку только если ВООБЩЕ ни один поставщик не дал офферов.
+      if (merged.length === 0) {
+        setOffersError(errors.join(' | ') || 'Ни один поставщик не вернул варианты');
       }
     } catch (e) {
       if (lastQuoteKey.current === key) setOffersError(String(e));
@@ -254,6 +298,8 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         items: itemsRef.current, mode: 'door',
         destAddress: doorFullAddress,
         destLocality: city,
+        // city используется только для СДЭК-кода и бизнес-правил
+        city,
         destGeopoint: { lat: streetSelected.lat, lng: streetSelected.lng },
         customerName: c.name || undefined,
         customerPhone: c.phone || undefined,
@@ -297,8 +343,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
             offerId: bestOffer.offerId,
             priceRub: bestOffer.priceRub,
             partner: bestOffer.partner,
+            provider: bestOffer.provider ?? 'yandex',
             deliveryFromIso: bestOffer.deliveryFromIso,
             deliveryToIso: bestOffer.deliveryToIso,
+            eta: bestOffer.eta,
           }
         : {}),
     });
@@ -574,8 +622,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
               {freeDelivery.active && freeDelivery.reason && (
                 <p className="text-xs text-success/80">{freeDelivery.reason}</p>
               )}
-              {bestRange && (
-                <p className="text-xs text-text-muted">Срок: {bestRange}</p>
+              {(bestRange || bestOffer.eta) && (
+                <p className="text-xs text-text-muted">
+                  Срок: {bestRange ?? bestOffer.eta}
+                </p>
               )}
               {bestOffer.partner && !freeDelivery.active && (
                 <p className="text-xs text-text-muted">Перевозчик: {bestOffer.partner}</p>
