@@ -52,7 +52,17 @@ interface Suggestion {
   lng: number;
   kind: string;
 }
-interface PickupPoint { id: string; name?: string; address: string; workingHours?: string; lat?: number; lng?: number }
+
+type Provider = 'yandex' | 'cdek';
+interface PickupPoint {
+  id: string;
+  provider: Provider;
+  name?: string;
+  address: string;
+  workingHours?: string;
+  lat?: number;
+  lng?: number;
+}
 interface Offer {
   offerId: string;
   priceRub: number;
@@ -108,10 +118,14 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   const [mode, setMode] = useState<Mode>('pickup');
 
   // ── Шаг 3a: ПВЗ ──
+  // points хранит все ПВЗ из обоих источников (Я.Доставка + СДЭК).
+  // На карте они показываются разными цветами; при клике запоминаем
+  // не только id, но и провайдера, чтобы расчёт ушёл нужному API.
   const [points, setPoints] = useState<PickupPoint[]>([]);
   const [pointsLoading, setPointsLoading] = useState(false);
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [selectedPointId, setSelectedPointId] = useState<string>('');
+  const [selectedProvider, setSelectedProvider] = useState<Provider>('yandex');
 
   // ── Шаг 3b: адрес (двери) — три отдельных поля ──
   // 1) Улица — автокомплит из Nominatim (показываем только название улицы);
@@ -141,24 +155,38 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
   // чтобы пользователь видел причину, когда вариантов меньше ожидаемого.
   const [partialErrors, setPartialErrors] = useState<{ yandex?: string; cdek?: string }>({});
 
-  // Загружаем ПВЗ при смене города (только в pickup-режиме).
-  // Если geoId есть в нашей таблице — шлём прямо его (быстрее).
-  // Если нет, но город указан — шлём имя, бэкенд сам через геокодер
-  // найдёт координаты и подходящий broad geo_id.
+  // Загружаем ПВЗ из обоих источников параллельно при смене города
+  // (только в pickup-режиме). Маркеры на карте красятся по провайдеру.
   useEffect(() => {
     if (mode !== 'pickup' || !city) {
       setPoints([]); setPointsError(null); return;
     }
     setPointsLoading(true); setPointsError(null);
     setPoints([]); setSelectedPointId(''); setOffers([]);
-    const qs = geoId ? `geoId=${geoId}` : `city=${encodeURIComponent(city)}`;
-    fetch(`/api/yandex-russia/pickup-points?${qs}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.ok) setPointsError(d.error || 'Не удалось получить ПВЗ');
-        else setPoints(Array.isArray(d.points) ? d.points : []);
+
+    const ydQs = geoId ? `geoId=${geoId}` : `city=${encodeURIComponent(city)}`;
+    const cdekQs = `city=${encodeURIComponent(city)}`;
+
+    Promise.allSettled([
+      fetch(`/api/yandex-russia/pickup-points?${ydQs}`).then((r) => r.json()),
+      fetch(`/api/cdek/pickup-points?${cdekQs}`).then((r) => r.json()),
+    ])
+      .then(([yd, cdek]) => {
+        const all: PickupPoint[] = [];
+        if (yd.status === 'fulfilled' && yd.value?.ok && Array.isArray(yd.value.points)) {
+          for (const p of yd.value.points) all.push({ ...p, provider: 'yandex' });
+        }
+        if (cdek.status === 'fulfilled' && cdek.value?.ok && Array.isArray(cdek.value.points)) {
+          for (const p of cdek.value.points) all.push({ ...p, provider: 'cdek' });
+        }
+        setPoints(all);
+        if (all.length === 0) {
+          const errs: string[] = [];
+          if (yd.status === 'fulfilled' && yd.value?.error) errs.push(`Я.Доставка: ${yd.value.error}`);
+          if (cdek.status === 'fulfilled' && cdek.value?.error) errs.push(`СДЭК: ${cdek.value.error}`);
+          setPointsError(errs.join(' | ') || 'Ни один поставщик не вернул ПВЗ');
+        }
       })
-      .catch((e) => setPointsError(String(e)))
       .finally(() => setPointsLoading(false));
   }, [mode, city, geoId]);
 
@@ -206,19 +234,28 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     setOffersLoading(true); setOffersError(null); setOffers([]);
     setFreeDelivery({ active: false });
     try {
-      // Опрашиваем Я.Доставку и СДЭК параллельно. Если один не ответил —
-      // показываем результат другого, а не падаем целиком.
+      // В pickup-режиме идём только к выбранному перевозчику (его ПВЗ
+      // покупатель кликнул). В door-режиме оба, так как там нет привязки
+      // к конкретному ПВЗ — пусть пользователь сравнивает.
+      const provider = body.provider as Provider | undefined;
+      const callYandex = !provider || provider === 'yandex';
+      const callCdek = !provider || provider === 'cdek';
+
       const [yandex, cdek] = await Promise.allSettled([
-        fetch('/api/checkout/russia-quote', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        }).then((r) => r.json()),
-        fetch('/api/checkout/cdek-quote', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        }).then((r) => r.json()),
+        callYandex
+          ? fetch('/api/checkout/russia-quote', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            }).then((r) => r.json())
+          : Promise.resolve(null),
+        callCdek
+          ? fetch('/api/checkout/cdek-quote', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            }).then((r) => r.json())
+          : Promise.resolve(null),
       ]);
 
       if (lastQuoteKey.current !== key) return;
@@ -282,10 +319,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     if (mode !== 'pickup' || !selectedPointId) return;
     const t = window.setTimeout(() => {
       const c = customerRef.current;
-      calculate(`pickup:${selectedPointId}`, {
+      calculate(`pickup:${selectedProvider}:${selectedPointId}`, {
         items: itemsRef.current, mode: 'pickup',
         destPlatformId: selectedPointId,
-        // city нужен серверу для бизнес-правил (бесплатная доставка по Москве)
+        provider: selectedProvider,
         city,
         customerName: c.name || undefined,
         customerPhone: c.phone || undefined,
@@ -293,7 +330,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       });
     }, 200);
     return () => window.clearTimeout(t);
-  }, [mode, selectedPointId, city, calculate]);
+  }, [mode, selectedPointId, selectedProvider, city, calculate]);
 
   useEffect(() => {
     if (mode !== 'door' || !streetSelected) return;
@@ -382,11 +419,20 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
     () => points
       .filter((p): p is PickupPoint & { lat: number; lng: number } =>
         typeof p.lat === 'number' && typeof p.lng === 'number')
-      .map((p) => ({ id: p.id, address: p.address, workingHours: p.workingHours, lat: p.lat, lng: p.lng })),
+      .map((p) => ({
+        id: p.id,
+        provider: p.provider,
+        address: p.address,
+        workingHours: p.workingHours,
+        lat: p.lat,
+        lng: p.lng,
+      })),
     [points]
   );
 
-  const selectedPoint = points.find((p) => p.id === selectedPointId);
+  const selectedPoint = points.find((p) => p.id === selectedPointId && p.provider === selectedProvider);
+  const yandexCount = points.filter((p) => p.provider === 'yandex').length;
+  const cdekCount = points.filter((p) => p.provider === 'cdek').length;
   const bestRange = bestOffer ? formatDateRange(bestOffer.deliveryFromIso, bestOffer.deliveryToIso) : null;
 
   return (
@@ -492,11 +538,22 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           )}
           {!pointsLoading && mapPoints.length > 0 && (
             <>
-              <p className="text-xs text-text-muted">Кликните по маркеру на карте, чтобы выбрать ПВЗ:</p>
+              <p className="text-xs text-text-muted">
+                Кликните по маркеру на карте, чтобы выбрать ПВЗ.{' '}
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#1E88E5' }} />
+                  Я.Доставка ({yandexCount})
+                </span>{' · '}
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#22C55E' }} />
+                  СДЭК ({cdekCount})
+                </span>
+              </p>
               <PickupPointsMap
                 points={mapPoints}
                 selectedId={selectedPointId}
-                onSelect={setSelectedPointId}
+                selectedProvider={selectedProvider}
+                onSelect={(p) => { setSelectedPointId(p.id); setSelectedProvider(p.provider); }}
                 fallbackCenter={fallbackCenter}
               />
               {points.length > mapPoints.length && (
@@ -510,6 +567,10 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
           {/* Подтверждение выбора ПВЗ */}
           {selectedPoint && (
             <div className="p-3 bg-accent/10 border border-accent/30 rounded-lg">
+              <p className="text-[11px] uppercase font-semibold mb-1"
+                 style={{ color: selectedPoint.provider === 'cdek' ? '#22C55E' : '#1E88E5' }}>
+                {selectedPoint.provider === 'cdek' ? 'СДЭК' : 'Я.Доставка'}
+              </p>
               <p className="text-sm font-medium flex items-start gap-1.5">
                 <MapPin size={14} className="text-accent flex-shrink-0 mt-0.5" />
                 <span>{selectedPoint.address}</span>
