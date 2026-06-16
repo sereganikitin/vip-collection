@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronRight, ShoppingBag, Truck, Shield, RotateCcw, Check } from 'lucide-react';
@@ -21,8 +22,21 @@ interface ProductDetailsProps {
 }
 
 export default function ProductDetails({ product, category, relatedProducts }: ProductDetailsProps) {
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const enriched = product ? enrichProductDescription(product, category?.name ?? null) : null;
+
+  // На каждый клик показываем зелёную «✓ Добавлено в корзину» на ~1.5с,
+  // потом возвращаемся к исходному виду. Параллельно показываем сколько
+  // штук уже в корзине, чтобы было видно, что повторные клики работают.
+  const [flash, setFlash] = useState(false);
+  const inCartCount = product ? (items.find((i) => i.product.id === product.id)?.quantity ?? 0) : 0;
+
+  function handleAddToCart() {
+    if (!product) return;
+    addItem(product);
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 1500);
+  }
 
   if (!product) {
     return (
@@ -94,13 +108,33 @@ export default function ProductDetails({ product, category, relatedProducts }: P
           <p className="text-text-muted leading-relaxed mb-6">{enriched?.base ?? product.description}</p>
 
           <button
-            onClick={() => addItem(product)}
+            onClick={handleAddToCart}
             disabled={!product.inStock}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-accent text-primary font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-8"
+            aria-live="polite"
+            className={`relative w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-2 overflow-hidden ${
+              flash
+                ? 'bg-success text-white scale-[1.02]'
+                : 'bg-accent text-primary hover:bg-accent-hover active:scale-95'
+            }`}
           >
-            <ShoppingBag size={20} />
-            Добавить в корзину
+            {flash ? (
+              <>
+                <Check size={20} className="animate-bounce" />
+                Добавлено в корзину
+              </>
+            ) : (
+              <>
+                <ShoppingBag size={20} />
+                {inCartCount > 0 ? `В корзине · ${inCartCount}. Добавить ещё` : 'Добавить в корзину'}
+              </>
+            )}
           </button>
+          {inCartCount > 0 && !flash && (
+            <p className="text-xs text-text-muted mb-8">
+              <Link href="/cart" className="text-accent hover:underline">Перейти в корзину →</Link>
+            </p>
+          )}
+          {!inCartCount && <div className="mb-8" />}
 
           {Object.keys(product.specs).length > 0 && (
             <div className="mb-8">
