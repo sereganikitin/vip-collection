@@ -141,6 +141,60 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
 }
 
 /**
+ * Отмена / возврат по платёжному PaymentId.
+ *   - Если платёж в статусе AUTHORIZED (заблокирован, не списан) →
+ *     отменяет блокировку, статус становится REVERSED, деньги
+ *     возвращаются на карту мгновенно.
+ *   - Если в CONFIRMED (списан) → инициирует возврат, статус становится
+ *     REFUNDED, деньги уходят на карту клиента в течение 3-7 дней.
+ *
+ * amountRub — опционально для частичного возврата. По умолчанию
+ * возвращается вся сумма платежа.
+ */
+export interface TinkoffCancelResult {
+  ok: boolean;
+  newStatus?: string;
+  error?: string;
+  raw?: unknown;
+}
+
+export async function tinkoffCancel(
+  paymentId: string,
+  amountRub?: number
+): Promise<TinkoffCancelResult> {
+  const cfg = await getConfig();
+  if (!cfg) return { ok: false, error: 'Tinkoff не настроен (terminal_key / password)' };
+  if (!paymentId) return { ok: false, error: 'Не передан paymentId' };
+
+  const flatParams: Record<string, string | number | boolean> = {
+    TerminalKey: cfg.terminalKey,
+    PaymentId: paymentId,
+  };
+  if (amountRub != null && amountRub > 0) {
+    flatParams.Amount = Math.round(amountRub * 100);
+  }
+  const token = generateToken(flatParams, cfg.password);
+
+  try {
+    const res = await fetch(`${TINKOFF_API}/Cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...flatParams, Token: token }),
+    });
+    const data: any = await res.json().catch(() => ({}));
+    if (!res.ok || !data.Success) {
+      const errMsg = `${data.ErrorCode ?? res.status}: ${data.Message ?? 'unknown'}${data.Details ? ` — ${data.Details}` : ''}`;
+      console.warn('Tinkoff Cancel failed:', errMsg);
+      return { ok: false, error: errMsg, raw: data };
+    }
+    return { ok: true, newStatus: String(data.Status ?? ''), raw: data };
+  } catch (e) {
+    console.error('Tinkoff Cancel exception:', e);
+    return { ok: false, error: `Network: ${String(e)}` };
+  }
+}
+
+/**
  * Verify a notification (webhook) payload's Token against our stored password.
  * Same flat-fields rule as Init.
  */

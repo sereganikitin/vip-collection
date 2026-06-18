@@ -145,6 +145,29 @@ export default function AdminOrders() {
     fetchOrders();
   }
 
+  async function refundOrder(order: Order) {
+    const sum = new Intl.NumberFormat('ru-RU').format(Math.round(order.totalPrice));
+    const confirmed = confirm(
+      `Вернуть ${sum} ₽ клиенту через Тинькофф?\n\n` +
+      `Деньги уйдут на ту же карту, с которой была оплата (обычно 3-7 дней).\n` +
+      `Заказ перейдёт в статус «Отменён», статус оплаты — «Возврат».\n\n` +
+      `Это действие необратимо.`
+    );
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/orders/${order.id}/refund`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(`Ошибка возврата: ${data.error || res.statusText}`);
+        return;
+      }
+      alert(`✓ Возврат успешно отправлен в Тинькофф\nСтатус платежа: ${data.newStatus ?? 'обновлён'}`);
+      fetchOrders();
+    } catch (e) {
+      alert(`Ошибка возврата: ${String(e)}`);
+    }
+  }
+
   async function resendNotifications(orderId: string) {
     try {
       const res = await fetch(`/api/orders/${orderId}/notify`, { method: 'POST' });
@@ -327,6 +350,21 @@ export default function AdminOrders() {
                               >
                                 <Check size={12} /> Отметить как оплачен
                               </button>
+                            </div>
+                          )}
+
+                          {/* Возврат через Тинькофф — только для онлайн-оплаты в статусе paid */}
+                          {order.paymentStatus === 'paid' && order.paymentMethod === 'online' && order.paymentId && (
+                            <div className="mt-3">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); refundOrder(order); }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 border border-danger text-danger font-medium rounded-lg text-xs hover:bg-danger/5 transition-colors"
+                              >
+                                ↩ Вернуть деньги через Тинькофф
+                              </button>
+                              <p className="text-[11px] text-text-muted mt-1">
+                                Деньги уйдут клиенту на карту. Заказ перейдёт в «Отменён».
+                              </p>
                             </div>
                           )}
                         </div>
