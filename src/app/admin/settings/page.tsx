@@ -169,6 +169,30 @@ export default function AdminSettings() {
     }
   }
 
+  const [tinkoffTesting, setTinkoffTesting] = useState(false);
+  const [tinkoffTestResult, setTinkoffTestResult] = useState<{
+    ok: boolean;
+    terminalKey?: string;
+    message?: string;
+    error?: string;
+    step?: string;
+  } | null>(null);
+
+  async function testTinkoff() {
+    setTinkoffTesting(true);
+    setTinkoffTestResult(null);
+    try {
+      await persistSettings();
+      const res = await fetch('/api/settings/tinkoff-test', { method: 'POST' });
+      const data = await res.json();
+      setTinkoffTestResult(data);
+    } catch (e) {
+      setTinkoffTestResult({ ok: false, error: String(e) });
+    } finally {
+      setTinkoffTesting(false);
+    }
+  }
+
   // Редирект на /admin/login если не аутентифицирован — отдельный эффект,
   // не должен дёргать загрузку настроек.
   useEffect(() => {
@@ -452,18 +476,74 @@ export default function AdminSettings() {
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">TerminalKey</label>
-                <input className={fieldClass} value={form.tinkoff_terminal_key} onChange={(e) => set('tinkoff_terminal_key', e.target.value)} placeholder="1234567890123" />
+                <label className="block text-sm font-medium mb-1">
+                  TerminalKey
+                  {form.tinkoff_terminal_key && (
+                    <span className="ml-2 text-xs font-normal text-text-muted">
+                      ({form.tinkoff_terminal_key.length} симв.)
+                    </span>
+                  )}
+                </label>
+                <input
+                  className={fieldClass}
+                  type="text"
+                  value={form.tinkoff_terminal_key}
+                  onChange={(e) => set('tinkoff_terminal_key', e.target.value)}
+                  placeholder="1234567890123"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Password</label>
-                <input className={fieldClass} type="password" value={form.tinkoff_password} onChange={(e) => set('tinkoff_password', e.target.value)} autoComplete="off" placeholder="секретный пароль терминала" />
+                <label className="block text-sm font-medium mb-1">
+                  Password (SecretKey)
+                  {form.tinkoff_password && (
+                    <span className="ml-2 text-xs font-normal text-text-muted">
+                      ({form.tinkoff_password.length} симв.)
+                    </span>
+                  )}
+                </label>
+                <input
+                  className={fieldClass}
+                  type="text"
+                  value={form.tinkoff_password}
+                  onChange={(e) => set('tinkoff_password', e.target.value)}
+                  autoComplete="off"
+                  placeholder="секретный пароль терминала"
+                  spellCheck={false}
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-lpignore="true"
+                />
               </div>
             </div>
             <p className="text-xs text-text-muted mt-3">
               В личном кабинете Тинькоффа также пропишите Webhook URL:{' '}
               <span className="font-mono">https://vipcoll.ru/api/payment/tinkoff/notify</span>
             </p>
+
+            <button
+              type="button"
+              onClick={testTinkoff}
+              disabled={tinkoffTesting}
+              className="mt-2 px-3 py-1.5 text-xs bg-bg border border-border rounded-lg hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+            >
+              {tinkoffTesting ? 'Проверяем…' : 'Тест Тинькофф (валидность пары TerminalKey/Password)'}
+            </button>
+            {tinkoffTestResult && (
+              <div className={`mt-2 p-3 rounded-lg text-xs ${
+                tinkoffTestResult.ok ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+              }`}>
+                {tinkoffTestResult.ok ? (
+                  <>✅ {tinkoffTestResult.message}</>
+                ) : (
+                  <>
+                    ❌ {tinkoffTestResult.step ? `(${tinkoffTestResult.step}) ` : ''}
+                    {tinkoffTestResult.error}
+                  </>
+                )}
+              </div>
+            )}
 
             <h4 className="font-medium text-sm mt-6 mb-2">Агентская схема (54-ФЗ)</h4>
             <p className="text-xs text-text-muted mb-3">
