@@ -45,19 +45,26 @@ export async function GET(req: NextRequest) {
   // (товары принципала). К ним Тинькофф добавит признак агента и реквизиты
   // принципала, если в /admin/settings включён агент-режим. Доставка —
   // наша собственная услуга, поэтому isAgentItem=false.
-  const receiptItems: Array<{ name: string; quantity: number; priceRub: number; isAgentItem: boolean }> =
-    order.items.map((it) => ({
-      name: it.product.name,
-      quantity: it.quantity,
-      priceRub: it.price,
-      isAgentItem: true,
-    }));
+  const receiptItems: Array<{
+    name: string;
+    quantity: number;
+    priceRub: number;
+    isAgentItem: boolean;
+    isService?: boolean;
+  }> = order.items.map((it) => ({
+    name: it.product.name,
+    quantity: it.quantity,
+    priceRub: it.price,
+    isAgentItem: true,
+    isService: false,
+  }));
   if (order.deliveryPrice && order.deliveryPrice > 0) {
     receiptItems.push({
       name: 'Доставка',
       quantity: 1,
       priceRub: order.deliveryPrice,
       isAgentItem: false,
+      isService: true, // PaymentObject='service' для доставки
     });
   }
 

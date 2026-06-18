@@ -50,7 +50,16 @@ export interface TinkoffInitOptions {
   // (товар принципала). К ней Тинькофф добавит признак агента и реквизиты
   // принципала. По умолчанию false — например, для строки «Доставка»,
   // которая является собственной услугой агента.
-  items?: Array<{ name: string; quantity: number; priceRub: number; isAgentItem?: boolean }>;
+  // isService=true — это услуга (например, доставка), а не товар.
+  // PaymentObject в чеке станет 'service' вместо 'commodity'. ОФД ругаются,
+  // если строку «Доставка» пробивать как товар.
+  items?: Array<{
+    name: string;
+    quantity: number;
+    priceRub: number;
+    isAgentItem?: boolean;
+    isService?: boolean;
+  }>;
 }
 
 interface AgentSettings {
@@ -111,7 +120,7 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
     Price: number;
     Tax: 'none';
     PaymentMethod: 'full_payment';
-    PaymentObject: 'commodity';
+    PaymentObject: 'commodity' | 'service';
     AgentData?: { AgentSign: 'agent' };
     SupplierInfo?: { Name: string; Inn: string; Phone: string[] };
   }
@@ -124,7 +133,7 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
       Price: priceKop,
       Tax: 'none',
       PaymentMethod: 'full_payment',
-      PaymentObject: 'commodity',
+      PaymentObject: i.isService ? 'service' : 'commodity',
     };
     // 54-ФЗ: если включён агент-режим И эта позиция — товар принципала,
     // добавляем признак агента и реквизиты принципала.
@@ -189,7 +198,17 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
     });
     const data: any = await res.json().catch(() => ({}));
     if (!res.ok || !data.Success) {
-      console.warn('Tinkoff Init failed:', res.status, data.ErrorCode, data.Message, data.Details);
+      // Подробный лог: вместе с ответом дампим то, что отправляли —
+      // удобно искать причину прямо в PM2 без воспроизведения.
+      console.warn(
+        '[tinkoff] Init failed:',
+        `http=${res.status}`,
+        `code=${data.ErrorCode}`,
+        `msg=${data.Message}`,
+        `details=${data.Details ?? ''}`,
+        '\nbody.Amount=', amountKop,
+        '\nbody.Receipt.Items=', JSON.stringify(receiptItems),
+      );
       return null;
     }
     return {
