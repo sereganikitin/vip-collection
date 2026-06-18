@@ -438,6 +438,12 @@ export interface OfferDestination {
   destAddress?: string;
   /** Для mode=door: город (используется как locality в custom_location). */
   destLocality?: string;
+  /** Для mode=door: улица (без типа: «Ленина», «Тверская»). */
+  destStreet?: string;
+  /** Для mode=door: дом. Platform требует это поле явно. */
+  destHouse?: string;
+  /** Для mode=door: квартира/офис, опционально. */
+  destApartment?: string;
   /** Для mode=door (опционально): координаты. */
   destGeopoint?: { lat: number; lng: number };
 }
@@ -632,12 +638,28 @@ export async function createRussiaOffer(input: RussiaOfferInput): Promise<Russia
     if (!input.destination.destAddress) {
       return { ok: false, error: 'Не указан адрес доставки' };
     }
+    if (!input.destination.destLocality || !input.destination.destHouse) {
+      return { ok: false, error: 'Для адресной доставки нужны город и номер дома' };
+    }
+
+    // Platform требует структурированные поля: country, city, region, house.
+    // Если region не пришёл сверху — догоняем через Geocoder (он умеет
+    // определять province по названию города).
+    let region = input.destination.destLocality; // fallback
+    const cityGeo = await geocodeCity(input.destination.destLocality);
+    if (cityGeo?.province) region = cityGeo.province;
+
     destination = {
       type: 'custom_location',
       custom_location: {
         details: {
+          country: 'Россия',
+          region,
+          city: input.destination.destLocality,
+          ...(input.destination.destStreet ? { street: input.destination.destStreet } : {}),
+          house: input.destination.destHouse,
+          ...(input.destination.destApartment ? { flat: input.destination.destApartment } : {}),
           full_address: input.destination.destAddress,
-          ...(input.destination.destLocality ? { locality: input.destination.destLocality } : {}),
           ...(input.destination.destGeopoint
             ? { geopoint: [input.destination.destGeopoint.lng, input.destination.destGeopoint.lat] }
             : {}),
@@ -646,7 +668,6 @@ export async function createRussiaOffer(input: RussiaOfferInput): Promise<Russia
     };
     // ВНИМАНИЕ: значение last_mile_policy для двери не проверено эмпирически.
     // 'time_interval' — лучшая догадка на основе документации Platform.
-    // Если Яндекс ругнётся — заменим на правильное (например, 'courier_delivery').
     lastMilePolicy = 'time_interval';
   }
 

@@ -62,6 +62,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             mode: 'door',
             destAddress: String(body.destAddress ?? data.order.deliveryAddress ?? ''),
             destLocality: body.destLocality ? String(body.destLocality) : undefined,
+            destStreet: body.destStreet ? String(body.destStreet) : undefined,
+            destHouse: body.destHouse ? String(body.destHouse) : undefined,
+            destApartment: body.destApartment ? String(body.destApartment) : undefined,
             destGeopoint:
               body.destGeopoint &&
               typeof body.destGeopoint.lat === 'number' &&

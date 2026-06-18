@@ -92,6 +92,9 @@ export async function POST(req: NextRequest) {
             mode: 'door',
             destAddress: String(body.destAddress ?? ''),
             destLocality: body.destLocality ? String(body.destLocality) : undefined,
+            destStreet: body.destStreet ? String(body.destStreet) : undefined,
+            destHouse: body.destHouse ? String(body.destHouse) : undefined,
+            destApartment: body.destApartment ? String(body.destApartment) : undefined,
             destGeopoint:
               body.destGeopoint &&
               typeof (body.destGeopoint as { lat?: unknown }).lat === 'number' &&

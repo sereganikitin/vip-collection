@@ -408,7 +408,12 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
         items: itemsRef.current, mode: 'door',
         destAddress: doorFullAddress,
         destLocality: city,
-        // city используется только для СДЭК-кода и бизнес-правил
+        // Структурированные поля для Я.Доставки (Platform требует
+        // country/city/region/house в custom_location.details, иначе 400)
+        destStreet: streetSelected.street,
+        destHouse: houseInput.trim(),
+        destApartment: aptInput.trim() || undefined,
+        // city для СДЭК-кода и бизнес-правил (бесплатная Москва)
         city,
         destGeopoint: { lat: streetSelected.lat, lng: streetSelected.lng },
         customerName: c.name || undefined,
@@ -417,7 +422,7 @@ export default function RussiaCheckoutFlow({ items, customer, onChange }: Props)
       });
     }, 400);
     return () => window.clearTimeout(t);
-  }, [mode, streetSelected, houseInput, doorFullAddress, city, calculate]);
+  }, [mode, streetSelected, houseInput, aptInput, doorFullAddress, city, calculate]);
 
   // ── Какой оффер показываем как итоговый ──
   // Берём минимальную цену. Округляем priceRub до целого, чтобы итог

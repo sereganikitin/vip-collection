@@ -61,7 +61,35 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
     return null;
   }
 
-  const amountKop = Math.round(opts.amountRub * 100);
+  // Сначала собираем позиции чека, потом ВЫВОДИМ из них Amount —
+  // так гарантированно нет расхождения "Сумма позиций != Amount",
+  // на которое Тинькофф отвечает ошибкой 308. Float-арифметика по
+  // двойным precision может разойтись на 1 копейку, если в БД лежат
+  // не круглые рубли (например, доставка 325.7 от СДЭК).
+  const receiptItems = (opts.items ?? []).map((i) => {
+    const priceKop = Math.round(i.priceRub * 100);
+    return {
+      Name: i.name.slice(0, 128),
+      Quantity: i.quantity,
+      Amount: priceKop * i.quantity,
+      Price: priceKop,
+      Tax: 'none' as const,
+      PaymentMethod: 'full_payment' as const,
+      PaymentObject: 'commodity' as const,
+    };
+  });
+
+  const amountKop = receiptItems.length > 0
+    ? receiptItems.reduce((s, i) => s + i.Amount, 0)
+    : Math.round(opts.amountRub * 100);
+
+  const expectedKop = Math.round(opts.amountRub * 100);
+  if (receiptItems.length > 0 && expectedKop !== amountKop) {
+    console.warn(
+      `[tinkoff] Amount derived from items (${amountKop} kop) != totalPrice (${expectedKop} kop), diff=${expectedKop - amountKop}. Using items sum to satisfy 54-ФЗ.`
+    );
+  }
+
   const flatParams: Record<string, string | number | boolean> = {
     TerminalKey: cfg.terminalKey,
     Amount: amountKop,
@@ -82,23 +110,12 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
     };
   }
 
-  if (opts.items && opts.items.length > 0) {
+  if (receiptItems.length > 0) {
     body.Receipt = {
       Email: opts.customerEmail || undefined,
       Phone: opts.customerPhone || undefined,
       Taxation: 'usn_income', // ИП на УСН "Доходы"
-      Items: opts.items.map((i) => {
-        const priceKop = Math.round(i.priceRub * 100);
-        return {
-          Name: i.name.slice(0, 128),
-          Quantity: i.quantity,
-          Amount: priceKop * i.quantity,
-          Price: priceKop,
-          Tax: 'none', // ИП на УСН — без НДС
-          PaymentMethod: 'full_payment',
-          PaymentObject: 'commodity',
-        };
-      }),
+      Items: receiptItems,
     };
   }
 
