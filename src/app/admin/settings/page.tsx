@@ -61,6 +61,11 @@ interface FormState {
   cdek_tariff_door: string;
   // Бесплатная доставка по Москве от X ₽ (0 = выключено)
   free_delivery_moscow_amount: string;
+  // Агентская схема (54-ФЗ): чеки маркируются как продажа от имени принципала
+  agent_mode_enabled: string;    // 'true' | 'false'
+  principal_name: string;
+  principal_inn: string;
+  principal_phone: string;
 }
 
 const EMPTY: FormState = {
@@ -83,6 +88,10 @@ const EMPTY: FormState = {
   cdek_tariff_pickup: '136',
   cdek_tariff_door: '137',
   free_delivery_moscow_amount: '20000',
+  agent_mode_enabled: 'false',
+  principal_name: 'ИП Исмагилов Константин Яковлевич',
+  principal_inn: '773102794305',
+  principal_phone: '+79175741130',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'vipshopp@yandex.ru',
@@ -455,6 +464,59 @@ export default function AdminSettings() {
               В личном кабинете Тинькоффа также пропишите Webhook URL:{' '}
               <span className="font-mono">https://vipcoll.ru/api/payment/tinkoff/notify</span>
             </p>
+
+            <h4 className="font-medium text-sm mt-6 mb-2">Агентская схема (54-ФЗ)</h4>
+            <p className="text-xs text-text-muted mb-3">
+              Если вы продаёте товары не свои, а по агентскому договору, в каждой товарной
+              позиции чека Тинькофф должен передавать признак агента и реквизиты принципала.
+              Без этих полей налоговая может посчитать выручку вашей собственной — и доначислить налог.
+              <br /><br />
+              Позиция «Доставка» — это ваша услуга клиенту (договор с перевозчиком на ваше ИП),
+              поэтому в её строке агент-флаг НЕ ставится.
+              <br /><br />
+              Включайте только после подписания договора. До подписания оставьте выключенным —
+              чек будет идти как до сих пор, без признака агента.
+            </p>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.agent_mode_enabled === 'true'}
+                  onChange={(e) => set('agent_mode_enabled', e.target.checked ? 'true' : 'false')}
+                  className="accent-accent"
+                />
+                <span>Включить агент-режим в чеках 54-ФЗ</span>
+              </label>
+              <div>
+                <label className="block text-sm font-medium mb-1">Принципал (ФИО / наименование)</label>
+                <input
+                  className={fieldClass}
+                  value={form.principal_name}
+                  onChange={(e) => set('principal_name', e.target.value)}
+                  placeholder="ИП Иванов Иван Иванович"
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">ИНН принципала</label>
+                  <input
+                    className={fieldClass}
+                    value={form.principal_inn}
+                    onChange={(e) => set('principal_inn', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                    placeholder="12 цифр для ИП, 10 для юрлица"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Телефон принципала</label>
+                  <input
+                    className={fieldClass}
+                    value={form.principal_phone}
+                    onChange={(e) => set('principal_phone', e.target.value)}
+                    placeholder="+79175741130"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Yandex Delivery */}

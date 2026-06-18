@@ -46,7 +46,44 @@ export interface TinkoffInitOptions {
   failURL: string;
   customerEmail?: string;
   customerPhone?: string;
-  items?: Array<{ name: string; quantity: number; priceRub: number }>; // для Receipt
+  // isAgentItem=true — позиция продаётся по агентскому договору
+  // (товар принципала). К ней Тинькофф добавит признак агента и реквизиты
+  // принципала. По умолчанию false — например, для строки «Доставка»,
+  // которая является собственной услугой агента.
+  items?: Array<{ name: string; quantity: number; priceRub: number; isAgentItem?: boolean }>;
+}
+
+interface AgentSettings {
+  enabled: boolean;
+  principalName: string;
+  principalInn: string;
+  principalPhone: string;
+}
+
+/**
+ * Читаем агентские настройки из БД. Если выключено или нет принципала —
+ * возвращаем enabled=false и Receipt идёт без агент-флага (как сейчас).
+ */
+async function getAgentSettings(): Promise<AgentSettings> {
+  try {
+    const rows = await prisma.setting.findMany({
+      where: { key: { in: [
+        'agent_mode_enabled', 'principal_name', 'principal_inn', 'principal_phone',
+      ]}},
+    });
+    const m = new Map(rows.map((r) => [r.key, r.value]));
+    const enabled = (m.get('agent_mode_enabled') ?? 'false') === 'true';
+    const principalName = (m.get('principal_name') ?? '').trim();
+    const principalInn = (m.get('principal_inn') ?? '').trim();
+    const principalPhone = (m.get('principal_phone') ?? '').trim();
+    // Требуем заполненность ВСЕХ полей принципала, иначе чек не пройдёт ОФД
+    if (!enabled || !principalName || !principalInn || !principalPhone) {
+      return { enabled: false, principalName: '', principalInn: '', principalPhone: '' };
+    }
+    return { enabled: true, principalName, principalInn, principalPhone };
+  } catch {
+    return { enabled: false, principalName: '', principalInn: '', principalPhone: '' };
+  }
 }
 
 export interface TinkoffInitResult {
@@ -66,17 +103,42 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
   // на которое Тинькофф отвечает ошибкой 308. Float-арифметика по
   // двойным precision может разойтись на 1 копейку, если в БД лежат
   // не круглые рубли (например, доставка 325.7 от СДЭК).
-  const receiptItems = (opts.items ?? []).map((i) => {
+  const agent = await getAgentSettings();
+  interface ReceiptItem {
+    Name: string;
+    Quantity: number;
+    Amount: number;
+    Price: number;
+    Tax: 'none';
+    PaymentMethod: 'full_payment';
+    PaymentObject: 'commodity';
+    AgentData?: { AgentSign: 'agent' };
+    SupplierInfo?: { Name: string; Inn: string; Phone: string[] };
+  }
+  const receiptItems: ReceiptItem[] = (opts.items ?? []).map((i) => {
     const priceKop = Math.round(i.priceRub * 100);
-    return {
+    const item: ReceiptItem = {
       Name: i.name.slice(0, 128),
       Quantity: i.quantity,
       Amount: priceKop * i.quantity,
       Price: priceKop,
-      Tax: 'none' as const,
-      PaymentMethod: 'full_payment' as const,
-      PaymentObject: 'commodity' as const,
+      Tax: 'none',
+      PaymentMethod: 'full_payment',
+      PaymentObject: 'commodity',
     };
+    // 54-ФЗ: если включён агент-режим И эта позиция — товар принципала,
+    // добавляем признак агента и реквизиты принципала.
+    // Доставка (i.isAgentItem === false) — наша собственная услуга,
+    // флаг не ставим: это наш доход.
+    if (agent.enabled && i.isAgentItem) {
+      item.AgentData = { AgentSign: 'agent' };
+      item.SupplierInfo = {
+        Name: agent.principalName.slice(0, 239),
+        Inn: agent.principalInn,
+        Phone: [agent.principalPhone],
+      };
+    }
+    return item;
   });
 
   const amountKop = receiptItems.length > 0

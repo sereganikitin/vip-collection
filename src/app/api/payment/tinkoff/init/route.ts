@@ -39,19 +39,25 @@ export async function GET(req: NextRequest) {
     : order.id;
 
   // Тинькофф требует, чтобы сумма позиций Receipt.Items совпадала с Amount.
-  // Если у заказа есть стоимость доставки — добавляем её отдельной позицией,
-  // иначе чек разъезжается (товары + 0 ≠ товары + доставка) и Init упадёт.
-  const receiptItems: Array<{ name: string; quantity: number; priceRub: number }> =
+  // Если у заказа есть стоимость доставки — добавляем её отдельной позицией.
+  //
+  // isAgentItem помечает позиции, которые продаются по агентскому договору
+  // (товары принципала). К ним Тинькофф добавит признак агента и реквизиты
+  // принципала, если в /admin/settings включён агент-режим. Доставка —
+  // наша собственная услуга, поэтому isAgentItem=false.
+  const receiptItems: Array<{ name: string; quantity: number; priceRub: number; isAgentItem: boolean }> =
     order.items.map((it) => ({
       name: it.product.name,
       quantity: it.quantity,
       priceRub: it.price,
+      isAgentItem: true,
     }));
   if (order.deliveryPrice && order.deliveryPrice > 0) {
     receiptItems.push({
       name: 'Доставка',
       quantity: 1,
       priceRub: order.deliveryPrice,
+      isAgentItem: false,
     });
   }
 
