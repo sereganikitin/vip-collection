@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
 // GET /api/payment/tinkoff/init?orderId=XXX → redirects user to Tinkoff payment page.
 // We re-use a saved paymentUrl if Init was already called for this order.
 export async function GET(req: NextRequest) {
+  const tStart = Date.now();
+  const stage = (label: string) => console.log(`[tinkoff init] ${label}: +${Date.now() - tStart}ms`);
+
   const orderId = req.nextUrl.searchParams.get('orderId');
   if (!orderId) {
     return NextResponse.redirect(`${SITE_URL}/checkout/fail?reason=missing-order`);
@@ -79,6 +82,7 @@ export async function GET(req: NextRequest) {
     customerPhone: order.customerPhone,
     items: receiptItems,
   });
+  stage('tinkoffInit done');
 
   if (!result) {
     return NextResponse.redirect(`${SITE_URL}/checkout/fail?orderId=${order.id}&reason=init-failed`);
@@ -92,6 +96,7 @@ export async function GET(req: NextRequest) {
       paymentStatus: 'pending',
     },
   });
+  stage('redirecting to Tinkoff');
 
   return NextResponse.redirect(result.paymentUrl);
 }

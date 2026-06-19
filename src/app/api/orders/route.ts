@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { sendOrderEmails } from '@/lib/mail';
 import { sendTelegramMessage, escapeTgHtml } from '@/lib/telegram';
-import { validateRussianPhone, validateEmailFormat, checkEmailDomainExists } from '@/lib/validation';
+import { validateRussianPhone, validateEmailFormat } from '@/lib/validation';
 
 function formatPriceRu(p: number): string {
   return new Intl.NumberFormat('ru-RU').format(p) + ' ₽';
@@ -23,8 +23,12 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const tStart = Date.now();
+  const stage = (label: string) => console.log(`[orders POST] ${label}: +${Date.now() - tStart}ms`);
+
   try {
     const data = await req.json();
+    stage('body parsed');
     const {
       items, customerName, customerPhone, customerEmail,
       deliveryAddress, deliveryMethod, comment, paymentMethod,
@@ -43,23 +47,19 @@ export async function POST(req: NextRequest) {
     }
     const normalizedPhone = phoneCheck.normalized!;
 
-    // Валидация email: формат + DNS-проверка домена (MX/A)
+    // Валидация email: только формат. DNS-проверка домена убрана —
+    // она занимала 4-7 сек на каждом заказе (MX+A lookup с таймаутами)
+    // и сильно тормозила переход к оплате. Опечатки в популярных доменах
+    // ловит typo-хинт на фронте (gmial.com → gmail.com и т.п.).
     let validatedEmail: string | null = null;
     if (customerEmail && String(customerEmail).trim() !== '') {
       const fmt = validateEmailFormat(String(customerEmail));
       if (!fmt.ok) {
         return NextResponse.json({ error: fmt.error }, { status: 400 });
       }
-      const domainOk = await checkEmailDomainExists(String(customerEmail));
-      if (domainOk === false) {
-        return NextResponse.json(
-          { error: 'Домен email не существует или не принимает почту. Проверьте адрес.' },
-          { status: 400 }
-        );
-      }
-      // domainOk === null — DNS-таймаут, пропускаем (soft fail)
       validatedEmail = String(customerEmail).trim();
     }
+    stage('validation done');
 
     // Items can contain productId (DB id) or productSlug (from static data)
     // Try to resolve all products from DB
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
         ],
       },
     });
+    stage('products fetched');
 
     // If no products found by id, try matching by slug from the items
     if (products.length === 0) {
@@ -127,6 +128,7 @@ export async function POST(req: NextRequest) {
       },
       include: { items: { include: { product: true } } },
     });
+    stage('order created');
 
     // Send email notifications (async, don't block response)
     sendOrderEmails({
@@ -179,6 +181,7 @@ export async function POST(req: NextRequest) {
       })
       .catch((e) => console.error(`[ORDER #${order.number}] Telegram threw:`, e));
 
+    stage('returning response');
     return NextResponse.json(order, { status: 201 });
   } catch (error) {
     console.error('Order creation error:', error);
