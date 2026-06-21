@@ -191,10 +191,14 @@ export async function tinkoffInit(opts: TinkoffInitOptions): Promise<TinkoffInit
   }
 
   try {
+    // 10-секундный таймаут на Init — иначе клиент будет видеть пустую
+    // страницу до 30 сек+ если Тинькофф залип. Лучше fail-fast и
+    // показать ему checkout/fail с понятным reason.
     const res = await fetch(`${TINKOFF_API}/Init`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10000),
     });
     const data: any = await res.json().catch(() => ({}));
     if (!res.ok || !data.Success) {
