@@ -373,7 +373,7 @@ export default async function Home() {
           </div>
           <p className="mt-6 text-sm text-text-muted">
             Телефон для звонков: <a href="tel:+79257437135" className="text-accent hover:underline">+7 (925) 743-71-35</a>.
-            Email: <a href="mailto:vipshopp@yandex.ru" className="text-accent hover:underline">vipshopp@yandex.ru</a>.
+            Email: <a href="mailto:hello@vipcoll.ru" className="text-accent hover:underline">hello@vipcoll.ru</a>.
             Для сообщений — форма обратной связи в правом нижнем углу.
           </p>
         </article>

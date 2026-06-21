@@ -15,7 +15,7 @@ async function getSmtpConfig() {
 // все они получают уведомления о каждом новом заказе.
 async function getAdminEmails(): Promise<string[]> {
   const setting = await prisma.setting.findUnique({ where: { key: 'admin_email' } });
-  const raw = setting?.value || 'k959em177@gmail.com';
+  const raw = setting?.value || 'hello@vipcoll.ru';
   return raw
     .split(/[,;\n]/)
     .map((e) => e.trim())
@@ -79,7 +79,7 @@ function buildOrderHtml(order: OrderEmailData, forAdmin: boolean) {
       </div>
       <div style="background:#f5f5f5;padding:15px;text-align:center;font-size:12px;color:#666">
         VIP COLLECTION — Чемоданы и аксессуары для путешествий<br>
-        +7 (925) 743-71-35 | vipshopp@yandex.ru
+        +7 (925) 743-71-35 | hello@vipcoll.ru
       </div>
     </div>
   `;

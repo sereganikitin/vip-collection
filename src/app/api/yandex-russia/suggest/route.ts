@@ -196,7 +196,7 @@ async function nominatimSuggest(text: string, city: string): Promise<GeoSuggesti
 
   try {
     const res = await fetch(url.toString(), {
-      headers: { 'User-Agent': 'vipcoll.ru-checkout/1.0 (vipshopp@yandex.ru)' },
+      headers: { 'User-Agent': 'vipcoll.ru-checkout/1.0 (hello@vipcoll.ru)' },
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return [];

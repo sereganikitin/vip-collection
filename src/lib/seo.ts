@@ -1,7 +1,7 @@
 export const SITE_URL = 'https://vipcoll.ru';
 export const SITE_NAME = 'VIP COLLECTION';
 export const SITE_PHONE = '+7-925-743-71-35';
-export const SITE_EMAIL = 'vipshopp@yandex.ru';
+export const SITE_EMAIL = 'hello@vipcoll.ru';
 export const SITE_ADDRESS = {
   addressLocality: 'Москва',
   addressCountry: 'RU',

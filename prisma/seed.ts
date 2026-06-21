@@ -182,7 +182,7 @@ async function main() {
   await prisma.setting.upsert({
     where: { key: 'admin_email' },
     update: {},
-    create: { key: 'admin_email', value: 'k959em177@gmail.com' },
+    create: { key: 'admin_email', value: 'hello@vipcoll.ru' },
   });
   console.log('Default settings created');
 

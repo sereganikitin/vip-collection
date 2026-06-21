@@ -122,7 +122,7 @@ async function geocodeQueryNominatim(query: string): Promise<CityGeoInfo | null>
 
   try {
     const res = await fetch(url.toString(), {
-      headers: { 'User-Agent': 'vipcoll.ru-checkout/1.0 (vipshopp@yandex.ru)' },
+      headers: { 'User-Agent': 'vipcoll.ru-checkout/1.0 (hello@vipcoll.ru)' },
       signal: AbortSignal.timeout(6000),
     });
     if (!res.ok) {

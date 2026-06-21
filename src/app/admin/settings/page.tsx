@@ -69,7 +69,7 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  admin_email: 'k959em177@gmail.com',
+  admin_email: 'hello@vipcoll.ru',
   smtp_host: '', smtp_port: '587', smtp_user: '', smtp_pass: '', smtp_from: '',
   tg_bot_token: '', tg_chat_id: '',
   tinkoff_terminal_key: '', tinkoff_password: '',
@@ -94,7 +94,7 @@ const EMPTY: FormState = {
   principal_phone: '+79175741130',
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
-  contact_email: 'vipshopp@yandex.ru',
+  contact_email: 'hello@vipcoll.ru',
   contact_telegram_url: 'https://t.me/VIP_CHEMODAN',
   contact_telegram_username: '@VIP_CHEMODAN',
   contact_whatsapp_url: 'https://wa.me/79257437135',
@@ -282,7 +282,7 @@ export default function AdminSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <input className={fieldClass} value={form.contact_email} onChange={(e) => set('contact_email', e.target.value)} placeholder="vipshopp@yandex.ru" />
+                <input className={fieldClass} value={form.contact_email} onChange={(e) => set('contact_email', e.target.value)} placeholder="hello@vipcoll.ru" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Город</label>
