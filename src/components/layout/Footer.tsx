@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
 import type { SiteContacts } from '@/lib/settings';
 
 export default function Footer({ contacts }: { contacts: SiteContacts }) {
@@ -65,6 +65,45 @@ export default function Footer({ contacts }: { contacts: SiteContacts }) {
                 <MapPin size={16} className="mt-0.5 flex-shrink-0 text-accent" />
                 <span>{contacts.city}</span>
               </li>
+              {contacts.telegramUrl && (
+                <li className="flex items-start gap-2">
+                  <MessageCircle size={16} className="mt-0.5 flex-shrink-0 text-accent" />
+                  <a
+                    href={contacts.telegramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-accent transition-colors"
+                  >
+                    Написать в Telegram
+                  </a>
+                </li>
+              )}
+              {contacts.whatsappUrl && (
+                <li className="flex items-start gap-2">
+                  <MessageCircle size={16} className="mt-0.5 flex-shrink-0 text-accent" />
+                  <a
+                    href={contacts.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-accent transition-colors"
+                  >
+                    Написать в WhatsApp
+                  </a>
+                </li>
+              )}
+              {contacts.maxUrl && (
+                <li className="flex items-start gap-2">
+                  <MessageCircle size={16} className="mt-0.5 flex-shrink-0 text-accent" />
+                  <a
+                    href={contacts.maxUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-accent transition-colors"
+                  >
+                    Написать в MAX
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

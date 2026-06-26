@@ -26,6 +26,7 @@ interface FormState {
   contact_telegram_url: string;
   contact_telegram_username: string;
   contact_whatsapp_url: string;
+  contact_max_url: string;
   contact_address_full: string;
   contact_address_short: string;
   contact_postal_code: string;
@@ -95,9 +96,10 @@ const EMPTY: FormState = {
   contact_phone: '+79257437135',
   contact_phone_display: '+7 (925) 743-71-35',
   contact_email: 'hello@vipcoll.ru',
-  contact_telegram_url: 'https://t.me/VIP_CHEMODAN',
+  contact_telegram_url: 'https://t.me/+79257437135',
   contact_telegram_username: '@VIP_CHEMODAN',
   contact_whatsapp_url: 'https://wa.me/79257437135',
+  contact_max_url: 'https://max.ru/u/f9LHodD0cOKhlg_PEZXX2QeTBGijQCUcNUksbgEhv31r4A4SwERWoGO3lyg',
   contact_address_full: 'г. Москва',
   contact_address_short: 'Москва',
   contact_postal_code: '',
@@ -299,6 +301,10 @@ export default function AdminSettings() {
               <div>
                 <label className="block text-sm font-medium mb-1">WhatsApp URL</label>
                 <input className={fieldClass} value={form.contact_whatsapp_url} onChange={(e) => set('contact_whatsapp_url', e.target.value)} placeholder="https://wa.me/..." />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">MAX URL</label>
+                <input className={fieldClass} value={form.contact_max_url} onChange={(e) => set('contact_max_url', e.target.value)} placeholder="https://max.ru/u/..." />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Почтовый индекс</label>

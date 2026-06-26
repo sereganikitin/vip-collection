@@ -11,6 +11,7 @@ export interface SiteContacts {
   telegramUrl: string;
   telegramUsername: string;
   whatsappUrl: string;
+  maxUrl: string;
   addressFull: string;
   addressShort: string;
   postalCode: string;
@@ -28,9 +29,10 @@ export const DEFAULT_CONTACTS: SiteContacts = {
   phone: '+79257437135',
   phoneDisplay: '+7 (925) 743-71-35',
   email: 'hello@vipcoll.ru',
-  telegramUrl: 'https://t.me/VIP_CHEMODAN',
+  telegramUrl: 'https://t.me/+79257437135',
   telegramUsername: '@VIP_CHEMODAN',
   whatsappUrl: 'https://wa.me/79257437135',
+  maxUrl: 'https://max.ru/u/f9LHodD0cOKhlg_PEZXX2QeTBGijQCUcNUksbgEhv31r4A4SwERWoGO3lyg',
   addressFull: 'г. Москва',
   addressShort: 'Москва',
   postalCode: '',
@@ -50,6 +52,7 @@ const KEY_MAP: Record<keyof SiteContacts, string> = {
   telegramUrl: 'contact_telegram_url',
   telegramUsername: 'contact_telegram_username',
   whatsappUrl: 'contact_whatsapp_url',
+  maxUrl: 'contact_max_url',
   addressFull: 'contact_address_full',
   addressShort: 'contact_address_short',
   postalCode: 'contact_postal_code',

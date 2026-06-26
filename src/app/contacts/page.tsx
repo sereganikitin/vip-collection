@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ChevronRight, Phone, Mail, MapPin, Send, Clock, FileText } from 'lucide-react';
+import { ChevronRight, Phone, Mail, MapPin, Clock, FileText, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { getSiteContacts } from '@/lib/settings';
 import JsonLd from '@/components/JsonLd';
@@ -95,6 +95,53 @@ export default async function ContactsPage() {
               <p className="text-text-muted text-sm">{c.hours}</p>
             </div>
           </div>
+
+          {(c.telegramUrl || c.whatsappUrl || c.maxUrl) && (
+            <div className="flex gap-3">
+              <MessageCircle size={20} className="text-accent flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold mb-1">Мессенджеры</p>
+                <ul className="space-y-1 text-sm">
+                  {c.telegramUrl && (
+                    <li>
+                      <a
+                        href={c.telegramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-text-muted hover:text-accent transition-colors"
+                      >
+                        Написать в Telegram
+                      </a>
+                    </li>
+                  )}
+                  {c.whatsappUrl && (
+                    <li>
+                      <a
+                        href={c.whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-text-muted hover:text-accent transition-colors"
+                      >
+                        Написать в WhatsApp
+                      </a>
+                    </li>
+                  )}
+                  {c.maxUrl && (
+                    <li>
+                      <a
+                        href={c.maxUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-text-muted hover:text-accent transition-colors"
+                      >
+                        Написать в MAX
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
