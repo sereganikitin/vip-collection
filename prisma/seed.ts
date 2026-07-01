@@ -53,17 +53,18 @@ async function main() {
   // SEO-словари в src/data/seo-content.ts и subcategory-content.ts
   // тоже привязаны к этим английским ключам.
   const categoriesData = [
-    { id: 'suitcases', name: 'Чемоданы и кейс-пилоты', slug: 'suitcases', image: '/images/categories/suitcases.jpg', sortOrder: 1 },
-    { id: 'women-bags', name: 'Сумки женские David Jones', slug: 'women-bags', image: '/images/categories/women-bags.jpg', sortOrder: 2 },
-    { id: 'briefcases', name: 'Портфели и сумки дорожные', slug: 'briefcases', image: '/images/categories/briefcases.jpg', sortOrder: 3 },
-    { id: 'parts', name: 'Запчасти для чемоданов', slug: 'parts', image: '/images/categories/parts.jpg', sortOrder: 4 },
-    { id: 'wallets', name: 'Портмоне и обложки', slug: 'wallets', image: '/images/categories/wallets.jpg', sortOrder: 5 },
-    { id: 'backpacks', name: 'Рюкзаки и сумки для ноутбука', slug: 'backpacks', image: '/images/categories/backpacks.jpg', sortOrder: 6 },
-    { id: 'covers', name: 'Чехлы для чемоданов', slug: 'covers', image: '/images/categories/covers.jpg', sortOrder: 7 },
-    { id: 'belts', name: 'Ремни', slug: 'belts', image: '/images/categories/belts.jpg', sortOrder: 8 },
-    { id: 'waist-bags', name: 'Сумки на пояс', slug: 'waist-bags', image: '/images/categories/waist-bags.jpg', sortOrder: 9 },
-    { id: 'misc', name: 'Разное', slug: 'misc', image: '/images/categories/misc.jpg', sortOrder: 10 },
-    { id: 'sale', name: 'РАСПРОДАЖА', slug: 'sale', image: '/images/categories/sale.jpg', sortOrder: 11 },
+    { id: 'suitcases',  name: 'Чемоданы',              slug: 'suitcases',  image: '/images/categories/suitcases.jpg',  sortOrder: 1 },
+    { id: 'covers',     name: 'Чехлы для чемоданов',   slug: 'covers',     image: '/images/categories/covers.jpg',     sortOrder: 2 },
+    { id: 'parts',      name: 'Запчасти для чемоданов', slug: 'parts',     image: '/images/categories/parts.jpg',      sortOrder: 3 },
+    { id: 'briefcases', name: 'Портфели и сумки',      slug: 'briefcases', image: '/images/categories/briefcases.jpg', sortOrder: 4 },
+    { id: 'backpacks',  name: 'Рюкзаки и сумки',       slug: 'backpacks',  image: '/images/categories/backpacks.jpg',  sortOrder: 5 },
+    { id: 'women-bags', name: 'Женские сумки',         slug: 'women-bags', image: '/images/categories/women-bags.jpg', sortOrder: 6 },
+    { id: 'wallets',    name: 'Портмоне и обложки',    slug: 'wallets',    image: '/images/categories/wallets.jpg',    sortOrder: 7 },
+    // «Разное» вмещает содержимое бывших belts + waist-bags — см.
+    // scripts/reorder-categories.ts. Прежние категории belts/waist-bags
+    // помечены isActive=false в проде и в seed не пересоздаются.
+    { id: 'misc',       name: 'Разное',                slug: 'misc',       image: '/images/categories/misc.jpg',       sortOrder: 8 },
+    { id: 'sale',       name: 'РАСПРОДАЖА',            slug: 'sale',       image: '/images/categories/sale.jpg',       sortOrder: 9 },
   ];
 
   const categories: Record<string, string> = {};

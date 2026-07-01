@@ -24,10 +24,13 @@ export default function Footer({ contacts }: { contacts: SiteContacts }) {
             <h3 className="font-semibold text-lg mb-4">Каталог</h3>
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link href="/catalog/suitcases" className="hover:text-accent transition-colors">Чемоданы</Link></li>
-              <li><Link href="/catalog/women-bags" className="hover:text-accent transition-colors">Сумки женские</Link></li>
-              <li><Link href="/catalog/briefcases" className="hover:text-accent transition-colors">Портфели</Link></li>
-              <li><Link href="/catalog/backpacks" className="hover:text-accent transition-colors">Рюкзаки</Link></li>
-              <li><Link href="/catalog/wallets" className="hover:text-accent transition-colors">Портмоне</Link></li>
+              <li><Link href="/catalog/covers" className="hover:text-accent transition-colors">Чехлы для чемоданов</Link></li>
+              <li><Link href="/catalog/parts" className="hover:text-accent transition-colors">Запчасти для чемоданов</Link></li>
+              <li><Link href="/catalog/briefcases" className="hover:text-accent transition-colors">Портфели и сумки</Link></li>
+              <li><Link href="/catalog/backpacks" className="hover:text-accent transition-colors">Рюкзаки и сумки</Link></li>
+              <li><Link href="/catalog/women-bags" className="hover:text-accent transition-colors">Женские сумки</Link></li>
+              <li><Link href="/catalog/wallets" className="hover:text-accent transition-colors">Портмоне и обложки</Link></li>
+              <li><Link href="/catalog/misc" className="hover:text-accent transition-colors">Разное</Link></li>
               <li><Link href="/catalog/sale" className="hover:text-accent transition-colors text-danger font-medium">Распродажа</Link></li>
             </ul>
           </div>

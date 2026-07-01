@@ -7,16 +7,17 @@ import { useCart } from '@/context/CartContext';
 import type { CategoryView } from '@/lib/categories';
 import type { SiteContacts } from '@/lib/settings';
 
+// Отображаемые имена в шапке. Порядок задаётся через DB (sortOrder),
+// а здесь только маппинг id → короткое имя для меню.
+// belts + waist-bags слиты в «Разное» — их тут больше нет.
 const SHORT_NAMES: Record<string, string> = {
   'suitcases': 'Чемоданы',
+  'covers': 'Чехлы для чемоданов',
+  'parts': 'Запчасти для чемоданов',
+  'briefcases': 'Портфели и сумки',
+  'backpacks': 'Рюкзаки и сумки',
   'women-bags': 'Женские сумки',
-  'briefcases': 'Портфели',
-  'parts': 'Запчасти',
-  'wallets': 'Портмоне',
-  'backpacks': 'Рюкзаки',
-  'covers': 'Чехлы',
-  'belts': 'Ремни',
-  'waist-bags': 'Поясные сумки',
+  'wallets': 'Портмоне и обложки',
   'misc': 'Разное',
   'sale': 'РАСПРОДАЖА',
 };
