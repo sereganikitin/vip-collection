@@ -64,7 +64,18 @@ export const ORGANIZATION_JSONLD = {
   priceRange: '500₽–50000₽',
   paymentAccepted: ['Cash', 'Credit Card', 'СБП', 'Bank Transfer'],
   currenciesAccepted: 'RUB',
-  areaServed: { '@type': 'Country', name: 'Россия' },
+  // Явный список зон, а не Country: Россия — так Яндекс/Google
+  // выше ранжируют по локальным запросам «купить чемодан в Люберцах»
+  // и подтягивают карточку в локальную колдунщицу.
+  areaServed: [
+    { '@type': 'City', name: 'Москва' },
+    { '@type': 'AdministrativeArea', name: 'Юго-Восточный административный округ (ЮВАО)' },
+    { '@type': 'City', name: 'Люберцы' },
+    { '@type': 'City', name: 'Котельники' },
+    { '@type': 'City', name: 'Дзержинский' },
+    { '@type': 'City', name: 'Реутов' },
+    { '@type': 'AdministrativeArea', name: 'Московская область' },
+  ],
   address: {
     '@type': 'PostalAddress',
     ...SITE_ADDRESS,
